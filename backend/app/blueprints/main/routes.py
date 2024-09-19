@@ -1,6 +1,6 @@
 # backend/app/blueprints/main/routes.py
 
-from flask import jsonify, render_template
+from flask import jsonify
 from flasgger import swag_from
 from . import main_bp
 
@@ -33,6 +33,8 @@ def landing_page():
         }
     }
 })
+def header():
+    return jsonify({"logo": "Sancho Logo URL", "name": "Sancho"})
 
 @main_bp.route('/api/landing', methods=['GET'])
 @swag_from({
@@ -47,8 +49,5 @@ def landing_page():
         }
     }
 })
-def landing_api():
+def api_landing_page():
     return jsonify({"message": "Welcome to Sancho!"})
-
-def header():
-    return jsonify({"logo": "Sancho Logo URL", "name": "Sancho"})

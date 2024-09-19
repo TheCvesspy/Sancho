@@ -1,8 +1,7 @@
-# backend/app/__init__.py
-
 from flask import Flask
 from .extensions import db, migrate, cors, swagger
 from .blueprints.main import main_bp
+from .blueprints.economy import economy_bp  # Ensure Economy Blueprint is imported
 from flasgger import Swagger
 
 def create_app(config_class='app.config.Config'):
@@ -17,5 +16,6 @@ def create_app(config_class='app.config.Config'):
 
     # Register blueprints
     app.register_blueprint(main_bp)
+    app.register_blueprint(economy_bp)  # Register Economy Blueprint
 
     return app
