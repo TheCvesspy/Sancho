@@ -1,42 +1,47 @@
-<!-- frontend/sancho-frontend/src/views/LandingPage.vue -->
+<!-- src/views/LandingPage.vue -->
 
 <template>
   <div>
     <AppHeader />
     <main class="landing-page">
-      <h2>{{ message }}</h2>
+      <h2>Welcome to Sancho!</h2>
       <div class="tiles">
-        <!-- Future tiles will be added here -->
-        <p>Landing page content goes here.</p>
+        <Card class="tile" @click="navigateToEconomy">
+          <h3>Economy Module</h3>
+          <p>Manage your in-game economy.</p>
+          <Button label="Go to Economy" icon="pi pi-arrow-right" class="p-mt-2" />
+        </Card>
+        <!-- Future tiles for other modules can be added here -->
       </div>
     </main>
   </div>
 </template>
 
 <script>
-import AppHeader from '@/components/AppHeader.vue'
+import AppHeader from '@/components/AppHeader.vue';
+import Card from 'primevue/card';
+import Button from 'primevue/button';
+import { useRouter } from 'vue-router';
 
 export default {
   name: 'LandingPage',
   components: {
-    AppHeader
+    AppHeader,
+    Card,
+    Button,
   },
-  data() {
+  setup() {
+    const router = useRouter();
+
+    const navigateToEconomy = () => {
+      router.push('/economy/basic-items');
+    };
+
     return {
-      message: ''
-    }
+      navigateToEconomy,
+    };
   },
-  mounted() {
-    fetch('http://127.0.0.1:5000/api/landing')
-      .then(response => response.json())
-      .then(data => {
-        this.message = data.message
-      })
-      .catch(error => {
-        console.error('Error fetching landing message:', error)
-      })
-  }
-}
+};
 </script>
 
 <style scoped>
@@ -51,5 +56,15 @@ export default {
   justify-content: center;
   flex-wrap: wrap;
   gap: 20px;
+}
+
+.tile {
+  width: 250px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.tile:hover {
+  transform: scale(1.05);
 }
 </style>

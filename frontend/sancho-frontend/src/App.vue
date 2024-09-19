@@ -1,17 +1,20 @@
-<!-- frontend/sancho-frontend/src/App.vue -->
+<!-- src/App.vue -->
 
 <template>
-  <router-view />
+  <div id="app">
+    <PrimeToast />
+    <router-view />
+  </div>
 </template>
 
 <script>
 export default {
-  name: 'App'
-}
+  name: 'App',
+};
 </script>
 
 <style>
-/* Global styles can be added here */
+/* Global styles */
 body {
   margin: 0;
   font-family: Avenir, Helvetica, Arial, sans-serif;

@@ -1,27 +1,30 @@
 // src/main.js
 
-import { createApp } from 'vue';                  // Vue framework
-import App from './App.vue';                      // Root App component
-import PrimeVue from 'primevue/config';           // PrimeVue for UI components
-import Aura from '@primevue/themes/aura';         // PrimeVue Aura theme
-import 'primeicons/primeicons.css';               // PrimeVue Icons
-import 'primeflex/primeflex.css';                 // PrimeFlex for utility classes
+import { createApp } from 'vue';
+import App from './App.vue';
+import PrimeVue from 'primevue/config';
+import Aura from '@primevue/themes/aura';
+import 'primeicons/primeicons.css';
+import 'primeflex/primeflex.css';
 
-// Import Vue Router for routing
 import router from './router';
 
-// Create the Vue application instance
+// PrimeVue Components
+import ToastService from 'primevue/toastservice';
+import Toast from 'primevue/toast';
+
 const app = createApp(App);
 
-// Use PrimeVue with the Aura theme
 app.use(PrimeVue, {
-    theme: {
-        preset: Aura
-    }
+  theme: {
+    preset: Aura,
+  },
 });
 
-// Use Vue Router for managing routes
 app.use(router);
+app.use(ToastService);
 
-// Mount the application to the DOM element with id 'app'
+// Register Toast with a multi-word name
+app.component('PrimeToast', Toast);
+
 app.mount('#app');
