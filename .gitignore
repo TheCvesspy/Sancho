@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# Testing
+coverage/
+
+# Next.js
+.next/
+out/
+
+# Production
+build/
+dist/
+
+# .NET Specific
+bin/
+obj/
+.vs/
+*.user
+*.suo
+*.cache
+appsettings.json
+appsettings.*.json
+
+# Tooling
+.vercel
+.eslintcache
+
+# Misc
+.DS_Store
+*.pem
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+*.tsbuildinfo
+next-env.d.ts
+
+# Project Specific
+database_credentials.md
+supabase/.temp/

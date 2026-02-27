@@ -1,0 +1,17 @@
+{
+    "title": "Profil",
+    "accountInfo": "Informace o účtu",
+    "email": "E-mail",
+    "authProvider": "Poskytovatel ověření",
+    "roles": "Role",
+    "noRoles": "Žádné přiřazené role",
+    "contentSummary": "Přehled obsahu",
+    "comingSoon": "Již brzy...",
+    "avatarAlt": "Avatar",
+    "saveChanges": "Uložit změny",
+    "displayName": "Zobrazované jméno",
+    "bio": "Bio",
+    "language": "Jazyk",
+    "dangerZone": "Nebezpečná zóna",
+    "signOut": "Odhlásit se"
+}

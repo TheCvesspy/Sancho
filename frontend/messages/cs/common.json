@@ -1,0 +1,25 @@
+{
+  "title": "Zaklad UI pro Sancho",
+  "subtitle": "Tmavy i svetly rezim, dvojjazycny obsah a priprava pro shadcn/ui.",
+  "toggleTheme": "Prepnout motiv",
+  "primaryAction": "Hlavni akce",
+  "localeHint": "Tato stranka je lokalizovana (EN/CS).",
+  "profile": {
+    "title": "Uživatelský profil",
+    "displayName": "Zobrazované jméno",
+    "bio": "Biografie",
+    "language": "Předvolba jazyka",
+    "saveChanges": "Uložit změny",
+    "roles": "Přiřazené role",
+    "noRoles": "Žádné přiřazené role",
+    "accountInfo": "Informace o účtu",
+    "signOut": "Odhlásit se",
+    "dangerZone": "Nebezpečná zóna",
+    "avatarAlt": "Avatar uživatele",
+    "contentSummary": "Souhrn obsahu",
+    "comingSoon": "Již brzy...",
+    "email": "E-mailová adresa",
+    "authProvider": "Poskytovatel ověření",
+    "lastSignIn": "Poslední přihlášení"
+  }
+}

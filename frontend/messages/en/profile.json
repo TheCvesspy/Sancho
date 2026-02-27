@@ -1,0 +1,17 @@
+{
+    "title": "Profile",
+    "accountInfo": "Account Information",
+    "email": "Email",
+    "authProvider": "Authentication Provider",
+    "roles": "Roles",
+    "noRoles": "No roles assigned",
+    "contentSummary": "Content Summary",
+    "comingSoon": "Coming soon...",
+    "avatarAlt": "Avatar",
+    "saveChanges": "Save Changes",
+    "displayName": "Display Name",
+    "bio": "Bio",
+    "language": "Language",
+    "dangerZone": "Danger Zone",
+    "signOut": "Sign Out"
+}

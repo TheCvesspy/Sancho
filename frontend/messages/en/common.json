@@ -1,0 +1,25 @@
+{
+  "title": "Sancho UI baseline",
+  "subtitle": "Dark and light mode, bilingual content, and shadcn/ui-ready styling.",
+  "toggleTheme": "Toggle theme",
+  "primaryAction": "Primary action",
+  "localeHint": "This page is localized (EN/CS).",
+  "profile": {
+    "title": "User Profile",
+    "displayName": "Display Name",
+    "bio": "Biography",
+    "language": "Language Preference",
+    "saveChanges": "Save Changes",
+    "roles": "Assigned Roles",
+    "noRoles": "No roles assigned",
+    "accountInfo": "Account Information",
+    "signOut": "Sign Out",
+    "dangerZone": "Danger Zone",
+    "avatarAlt": "User Avatar",
+    "contentSummary": "Content Summary",
+    "comingSoon": "Coming soon...",
+    "email": "Email Address",
+    "authProvider": "Authentication Provider",
+    "lastSignIn": "Last Sign In"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "sancho",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "dev": "powershell -ExecutionPolicy Bypass ./dev.ps1",
+    "stop": "powershell -ExecutionPolicy Bypass ./stop.ps1",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "supabase": "^2.76.15"
+  }
+}
