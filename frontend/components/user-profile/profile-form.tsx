@@ -40,6 +40,7 @@ interface ProfileFormProps {
 export function ProfileForm({ initialData }: ProfileFormProps) {
     const t = useTranslations("profile")
     const [isSaving, setIsSaving] = useState(false)
+    const [saveError, setSaveError] = useState<string | null>(null)
 
     const form = useForm<ProfileFormValues>({
         resolver: zodResolver(profileSchema),
@@ -47,11 +48,17 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
     })
 
     async function onSubmit(data: ProfileFormValues) {
+        setSaveError(null)
         setIsSaving(true)
         const result = await updateProfile(data)
         setIsSaving(false)
 
-        if (result.success && data.locale !== initialData.locale) {
+        if (!result.success) {
+            setSaveError(result.error ?? "Failed to save profile")
+            return
+        }
+
+        if (data.locale !== initialData.locale) {
             // If locale changed, we might need a full page reload or router push to the new locale
             window.location.href = `/${data.locale}/profile`
         }
@@ -117,6 +124,9 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                 <Button type="submit" disabled={isSaving}>
                     {isSaving ? "Saving..." : t("saveChanges")}
                 </Button>
+                {saveError ? (
+                    <p className="text-sm text-destructive">{saveError}</p>
+                ) : null}
             </form>
         </Form>
     )

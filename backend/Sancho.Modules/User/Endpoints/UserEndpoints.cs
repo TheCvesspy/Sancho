@@ -7,11 +7,20 @@ using Microsoft.Extensions.Configuration;
 using System.Net.Http.Json;
 using System.Net.Http.Headers;
 using Microsoft.Extensions.Logging;
+using System.Text.Json.Serialization;
 
 namespace User.Endpoints;
 
 public static class UserEndpoints
 {
+    private record SupabaseUserProfileResponse(
+        Guid id,
+        string email,
+        [property: JsonPropertyName("display_name")] string? display_name,
+        [property: JsonPropertyName("avatar_url")] string? avatar_url,
+        string? bio,
+        string locale);
+
     public static void MapUserEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/user");
@@ -62,10 +71,21 @@ public static class UserEndpoints
             return Results.Problem("Failed to fetch profile from Supabase");
         }
 
-        var profiles = await response.Content.ReadFromJsonAsync<List<UserProfileDto>>();
+        var profiles = await response.Content.ReadFromJsonAsync<List<SupabaseUserProfileResponse>>();
         var profile = profiles?.FirstOrDefault();
 
-        return profile != null ? Results.Ok(profile) : Results.NotFound();
+        if (profile == null)
+        {
+            return Results.NotFound();
+        }
+
+        return Results.Ok(new UserProfileDto(
+            profile.id,
+            profile.email,
+            profile.display_name,
+            ResolveAvatarUrl(supabaseUrl!, profile.avatar_url),
+            profile.bio,
+            profile.locale));
     }
 
     private static async Task<IResult> UpdateProfile(ClaimsPrincipal user, UpdateProfileRequest request, IConfiguration config, HttpClient httpClient)
@@ -79,7 +99,12 @@ public static class UserEndpoints
         var patchRequest = new HttpRequestMessage(HttpMethod.Patch, $"{supabaseUrl}/rest/v1/user_profiles?id=eq.{userId}");
         patchRequest.Headers.Add("apikey", supabaseKey);
         patchRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", supabaseKey);
-        patchRequest.Content = JsonContent.Create(request);
+        patchRequest.Content = JsonContent.Create(new
+        {
+            display_name = request.DisplayName,
+            bio = request.Bio,
+            locale = request.Locale
+        });
 
         var response = await httpClient.SendAsync(patchRequest);
         return response.IsSuccessStatusCode ? Results.NoContent() : Results.Problem("Failed to update profile");
@@ -135,7 +160,7 @@ public static class UserEndpoints
         var storageRequest = new HttpRequestMessage(HttpMethod.Post, $"{supabaseUrl}/storage/v1/object/upload/sign/avatars/{filePath}");
         storageRequest.Headers.Add("apikey", supabaseKey);
         storageRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", supabaseKey);
-        storageRequest.Content = JsonContent.Create(new { expiresIn = 600 }); // 10 mins
+        storageRequest.Content = JsonContent.Create(new { expiresIn = 600, upsert = true }); // 10 mins, allow replacing existing avatar
 
         var response = await httpClient.SendAsync(storageRequest);
         if (!response.IsSuccessStatusCode) return Results.Problem("Failed to generate signed URL");
@@ -144,7 +169,8 @@ public static class UserEndpoints
         string? token = signResult?.token;
         if (string.IsNullOrEmpty(token)) return Results.Problem("Failed to parse upload token");
         
-        var uploadUrl = $"{supabaseUrl}/storage/v1/object/upload/avatars/{filePath}?token={token}";
+        // Signed upload tokens are valid only for the /upload/sign endpoint.
+        var uploadUrl = $"{supabaseUrl}/storage/v1/object/upload/sign/avatars/{filePath}?token={token}";
 
         return Results.Ok(new AvatarUploadUrlResponse(uploadUrl, filePath));
     }
@@ -167,3 +193,18 @@ public static class UserEndpoints
         return response.IsSuccessStatusCode ? Results.NoContent() : Results.Problem("Failed to confirm avatar");
     }
 }
+    private static string? ResolveAvatarUrl(string supabaseUrl, string? avatarPath)
+    {
+        if (string.IsNullOrWhiteSpace(avatarPath))
+        {
+            return null;
+        }
+
+        // Keep already-absolute URLs unchanged.
+        if (Uri.TryCreate(avatarPath, UriKind.Absolute, out _))
+        {
+            return avatarPath;
+        }
+
+        return $"{supabaseUrl.TrimEnd('/')}/storage/v1/object/public/avatars/{avatarPath}";
+    }

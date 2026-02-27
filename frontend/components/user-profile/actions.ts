@@ -3,7 +3,7 @@
 import { createClient } from "@/utils/supabase/server"
 import { revalidatePath } from "next/cache"
 
-const API_BASE_URL = "http://localhost:5293" // Update with actual backend URL if different
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5293"
 
 async function getAuthHeaders() {
     const supabase = await createClient()
@@ -29,14 +29,18 @@ export async function updateProfile(formData: { displayName: string, bio: string
         })
 
         if (!response.ok) {
-            throw new Error("Failed to update profile")
+            const errorText = await response.text()
+            throw new Error(`Failed to update profile (${response.status}): ${errorText}`)
         }
 
         revalidatePath("/[locale]/profile", "page")
         return { success: true }
     } catch (error) {
         console.error("Profile update error:", error)
-        return { success: false, error: "An unexpected error occurred" }
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : "An unexpected error occurred"
+        }
     }
 }
 

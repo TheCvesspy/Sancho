@@ -40,10 +40,14 @@ export function AvatarUpload({ currentAvatarUrl, displayName }: AvatarUploadProp
                 body: file,
                 headers: {
                     "Content-Type": file.type,
+                    "x-upsert": "true",
                 },
             })
 
-            if (!uploadResponse.ok) throw new Error("Failed to upload file")
+            if (!uploadResponse.ok) {
+                const errorText = await uploadResponse.text()
+                throw new Error(`Failed to upload file (${uploadResponse.status}): ${errorText}`)
+            }
 
             // 3. Confirm upload with our backend
             const confirmResult = await confirmAvatarUpload(filePath)
