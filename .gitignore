@@ -16,7 +16,7 @@ coverage/
 out/
 
 # Production
-build/
+/build
 dist/
 
 # .NET Specific
@@ -42,6 +42,10 @@ yarn-error.log*
 .pnpm-debug.log*
 *.tsbuildinfo
 next-env.d.ts
+
+# local env files
+.env*.local
+.env
 
 # Project Specific
 database_credentials.md
