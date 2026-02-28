@@ -1,0 +1,181 @@
+{
+    "title": "Event Management",
+    "subtitle": "Create and manage events, assign leadership, and monitor operational status.",
+    "table": {
+        "columns": {
+            "name": "Event Name",
+            "location": "Location",
+            "dates": "Dates",
+            "status": "Status",
+            "actions": "Actions"
+        },
+        "searchPlaceholder": "Search events...",
+        "statusFilterPlaceholder": "Status",
+        "statusFilter": {
+            "all": "All Statuses",
+            "active": "Active",
+            "archived": "Archived",
+            "deleted": "Deleted"
+        },
+        "showDeleted": "Show deleted events",
+        "emptyState": "No events found.",
+        "loading": "Loading events..."
+    },
+    "status": {
+        "active": "Active",
+        "archived": "Archived",
+        "deleted": "Deleted"
+    },
+    "actions": {
+        "create": "Create Event",
+        "edit": "Edit",
+        "archive": "Archive",
+        "restore": "Restore",
+        "delete": "Delete",
+        "undelete": "Undelete",
+        "view": "View Details"
+    },
+    "dialogs": {
+        "create": {
+            "title": "Create New Event",
+            "description": "Initialize a new event context in the organization.",
+            "success": "Event created successfully.",
+            "error": "Failed to create event."
+        },
+        "edit": {
+            "title": "Edit Event",
+            "description": "Update event basic information.",
+            "success": "Event updated successfully.",
+            "error": "Failed to update event."
+        },
+        "archive": {
+            "title": "Archive Event",
+            "description": "Archiving makes the event read-only for managers. This action is auditable.",
+            "reasonLabel": "Reason for archiving",
+            "reasonPlaceholder": "Event completed, end of season etc.",
+            "confirm": "Archive Event",
+            "success": "Event archived.",
+            "error": "Failed to archive event."
+        },
+        "restore": {
+            "title": "Restore Event",
+            "description": "This will return the event to Active status.",
+            "confirm": "Restore",
+            "success": "Event restored.",
+            "error": "Failed to restore event."
+        },
+        "delete": {
+            "title": "Delete Event",
+            "description": "Soft-deleting hides the event from default lists but keeps it recoverable. This action is auditable.",
+            "reasonLabel": "Reason for deletion",
+            "reasonPlaceholder": "Accidental duplicate etc.",
+            "confirm": "Delete Event",
+            "success": "Event deleted.",
+            "error": "Failed to delete event."
+        },
+        "undelete": {
+            "title": "Undelete Event",
+            "description": "This will make the event visible in lists again.",
+            "confirm": "Undelete",
+            "success": "Event recovered.",
+            "error": "Failed to undelete event."
+        }
+    },
+    "form": {
+        "name": "Name",
+        "location": "Location",
+        "startAt": "Start Date & Time",
+        "endAt": "End Date & Time",
+        "placeholder": {
+            "name": "Summer LARP 2026",
+            "location": "Brno, CZ"
+        },
+        "validation": {
+            "dates": "End time must be after start time."
+        }
+    },
+    "detail": {
+        "tabs": {
+            "overview": "Overview",
+            "managers": "Managers",
+            "permissions": "Permissions",
+            "activity": "Recent Activity"
+        },
+        "back": "Back to events",
+        "meta": {
+            "location": "Location",
+            "period": "Period",
+            "created": "Created",
+            "updated": "Last updated"
+        }
+    },
+    "stats": {
+        "title": "Operational Overview",
+        "characters": "Characters",
+        "questLines": "Quest Lines",
+        "items": "Items",
+        "players": "Players",
+        "unavailable": "unavailable"
+    },
+    "managers": {
+        "title": "Event Managers",
+        "subtitle": "Users with full management access to this specific event.",
+        "assign": "Assign Manager",
+        "revoke": "Revoke",
+        "revokeConfirm": "Revoke manager access for this user?",
+        "searchUser": "Search users...",
+        "selectUser": "Select a user to assign",
+        "assignedAt": "Assigned at",
+        "success": {
+            "assigned": "Manager assigned.",
+            "revoked": "Access revoked."
+        },
+        "error": {
+            "assigned": "Failed to assign manager.",
+            "revoked": "Failed to revoke access."
+        }
+    },
+    "permissions": {
+        "title": "Module Permissions",
+        "subtitle": "Granular module-level access for regular users.",
+        "module": "Module",
+        "user": "User",
+        "permission": "Permission",
+        "levels": {
+            "none": "None",
+            "read": "Read-only",
+            "write": "Write access"
+        },
+        "addUser": "Add User",
+        "success": "Permissions updated.",
+        "error": "Failed to update permissions."
+    },
+    "activity": {
+        "title": "Recent Activity",
+        "empty": "No recent activity.",
+        "actions": {
+            "event": {
+                "created": "created the event",
+                "updated": "updated event details",
+                "archived": "archived the event",
+                "restored": "restored the event",
+                "deleted": "deleted the event",
+                "undeleted": "recovered the event"
+            },
+            "manager": {
+                "assigned": "assigned a manager",
+                "revoked": "revoked a manager"
+            },
+            "permission": {
+                "updated": "updated user permissions",
+                "revoked": "revoked user permissions"
+            }
+        }
+    },
+    "errors": {
+        "forbidden": {
+            "title": "Access Denied",
+            "description": "You do not have the necessary permissions to view this event. Please contact the event organizer or manager to resolve this."
+        }
+    }
+}

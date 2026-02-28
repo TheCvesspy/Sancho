@@ -25,7 +25,16 @@ Sancho is a **single-organization** web app for a LARP group, covering the full 
 
 ## Architecture Principles
 - Modular monolith with bounded contexts. Keep module boundaries intact.
-- Contexts include: Identity & Access, Event Management, Character, Narrative, Logistics, NPC/Org, Finance, Communications.
+- Contexts include:
+- Characters (`characters`)
+- Narrative (`narrative`)
+- Logistics (`logistics`)
+- NPC/Org (`npc_org`)
+- Finance (`finance`)
+- Communications (`communications`)
+- Event Management (`event_management`)
+- Identity and Access (`identity`)
+- User (`user`)
 - The API Gateway (ASP.NET Core) routes to bounded contexts.
 - Supabase is shared for Auth, DB, Storage, and Realtime; apply RLS for **org/event membership** isolation.
 
@@ -34,6 +43,7 @@ Sancho is a **single-organization** web app for a LARP group, covering the full 
 - Keep DTOs and domain models separated.
 - Prefer explicit typing and clear validation for external inputs.
 - Favor deterministic, testable services. Avoid static singletons except configuration.
+- **Module Identifiers**: Always use `lowercase_snake_case` for module names in API paths, database strings, and constants (e.g., `npc_org`, `event_management`).
 
 ## Coding Standards (Frontend)
 - Use Next.js App Router conventions in `frontend/app/`.
@@ -47,8 +57,21 @@ Sancho is a **single-organization** web app for a LARP group, covering the full 
 - **Migration Execution**: Always try to execute database changes and migrations via the **Supabase MCP server** tools (`apply_migration`, `execute_sql`) to ensure the live environment stays in sync with local files.
 - CORE framework (Users, Roles, Events) has been implemented via migrations. There is **no tenants table** — the application is a single-organization deployment.
 - The organization membership table is `public.org_members` (holds only `OrgOwner`).
-- Event-level managers are in `public.event_members`. Granular user permissions are in `public.event_member_permissions`.
-- Avoid manual edits in production. Use migrations and seed scripts.
+- Event-level managers are in `public.event_members`. Granular user permissions are in:
+- `public.event_member_permissions(user_id, event_id, module, permission)`: Granular user module access. Permission enum is `'none', 'read', 'write'`.
+
+## Module Identifiers
+
+The canonical `module` strings used in the database and API are:
+- `event_management`
+- `narrative`
+- `logistics`
+- `finance`
+- `npc_org` (NPC/Org module)
+- `characters`
+- `communications`
+
+Identifiers must always be **lowercase snake_case**.
 - Enforce authorization with RLS; never rely solely on client-side filtering. Use `public.event_member_permissions` and `public.event_members` to scope event-level access.
 
 ## API & Contracts
@@ -90,6 +113,8 @@ If you make a noteworthy design decision, add a short note in `docs/architecture
   - `public.user_profiles`: Application-specific user data.
   - `public.org_members`: Organization-level leadership (`OrgOwner`).
   - `public.event_members`: Event-level leadership (`EventManager`).
+  - `PUT/DELETE /api/events/{eventId}/permissions/{userId}/{module}`
+  - `{module}` must be one of: `characters`, `narrative`, `logistics`, `finance`, `npc_org`, `communications`, `event_management`.
   - `public.event_member_permissions`: Granular per-user, per-event module permissions.
   - `public.system_admins`: Platform-level admin accounts.
   - `public.role_module_permissions`: Declarative default permission matrix for core roles.

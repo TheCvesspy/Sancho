@@ -12,15 +12,15 @@ Sancho is a **single-organization** web application for a LARP group. It covers 
 - Data/Auth: Supabase (PostgreSQL + Auth + RLS + Storage + Realtime)
 
 ## Bounded Contexts
-- User
-- Identity and Access
-- Event Management
-- Characters
-- Narrative
-- Logistics
-- NPC/Org
-- Finance
-- Communications
+- Characters (`characters`)
+- Narrative (`narrative`)
+- Logistics (`logistics`)
+- NPC/Org (`npc_org`)
+- Finance (`finance`)
+- Communications (`communications`)
+- Event Management (`event_management`)
+- Identity and Access (`identity`)
+- User (`user`)
 
 ## Technology Stack
 - Backend: .NET 9, ASP.NET Core

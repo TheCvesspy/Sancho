@@ -251,7 +251,7 @@ public static class IdentityEndpoints
         ));
     }
 
-    private static async Task<IResult> AssignOrgRole(Guid userId, ClaimsPrincipal user, AssignOrgRoleRequest req, IConfiguration config, HttpClient httpClient, ILoggerFactory loggerFactory)
+    private static async Task<IResult> AssignOrgRole(Guid userId, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient, ILoggerFactory loggerFactory)
     {
         var logger = loggerFactory.CreateLogger("IdentityEndpoints");
         var supabaseUrl = config["Supabase:Url"];
@@ -311,6 +311,9 @@ public static class IdentityEndpoints
         var supabaseUrl = config["Supabase:Url"];
         var supabaseKey = config["Supabase:ServiceRoleKey"];
 
+        if (string.IsNullOrEmpty(supabaseUrl) || string.IsNullOrEmpty(supabaseKey))
+            return Results.Problem("Supabase configuration is missing.");
+
         var req = new HttpRequestMessage(HttpMethod.Get, $"{supabaseUrl}/rest/v1/invite_tokens?select=*,auth_users:created_by(email)");
         AddSupabaseHeaders(req, supabaseKey);
         
@@ -357,6 +360,9 @@ public static class IdentityEndpoints
         var supabaseUrl = config["Supabase:Url"];
         var supabaseKey = config["Supabase:ServiceRoleKey"];
 
+        if (string.IsNullOrEmpty(supabaseUrl) || string.IsNullOrEmpty(supabaseKey))
+            return Results.Problem("Supabase configuration is missing.");
+
         // Generate raw token
         var rawToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
         var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(rawToken)));
@@ -393,6 +399,9 @@ public static class IdentityEndpoints
     {
         var supabaseUrl = config["Supabase:Url"];
         var supabaseKey = config["Supabase:ServiceRoleKey"];
+
+        if (string.IsNullOrEmpty(supabaseUrl) || string.IsNullOrEmpty(supabaseKey))
+            return Results.Problem("Supabase configuration is missing.");
 
         var req = new HttpRequestMessage(HttpMethod.Patch, $"{supabaseUrl}/rest/v1/invite_tokens?id=eq.{tokenId}");
         AddSupabaseHeaders(req, supabaseKey);

@@ -149,11 +149,11 @@ public static class EventEndpoints
 
     private static async Task<IResult> ListEvents(
         ClaimsPrincipal user, 
-        [FromQuery] bool includeArchived, 
-        [FromQuery] bool includeDeleted, 
-        [FromQuery] int page, 
-        [FromQuery] int pageSize,
-        IConfiguration config, HttpClient httpClient, EventAuthorizationService authz)
+        IConfiguration config, HttpClient httpClient, EventAuthorizationService authz,
+        [FromQuery] bool includeArchived = false, 
+        [FromQuery] bool includeDeleted = false, 
+        [FromQuery] int page = 1, 
+        [FromQuery] int pageSize = 50)
     {
         if (!TryConfig(config, out var url, out var key, out var error)) return error!;
         page = Math.Max(1, page);
@@ -213,6 +213,22 @@ public static class EventEndpoints
 
         await activity.LogAsync(url!, key!, created.id, UserId(user), "event.created", "event", created.id);
         return Results.Created($"/api/events/{created.id}", ToDetail(created));
+    }
+
+    private static async Task<Dictionary<Guid, (string? Name, string? Email)>> GetUserDisplayNamesAsync(IEnumerable<Guid> userIds, string url, string key, HttpClient httpClient)
+    {
+        var distinctIds = userIds.Distinct().ToList();
+        if (distinctIds.Count == 0) return new();
+
+        var filter = string.Join(",", distinctIds.Select(id => id.ToString()));
+        var profilesReq = new HttpRequestMessage(HttpMethod.Get, $"{url}/rest/v1/user_profiles?id=in.({filter})&select=id,display_name,email");
+        AddHeaders(profilesReq, key);
+        
+        var resp = await httpClient.SendAsync(profilesReq);
+        if (!resp.IsSuccessStatusCode) return new();
+
+        var profiles = await resp.Content.ReadFromJsonAsync<List<SupabaseUserProfileShortResponse>>() ?? [];
+        return profiles.ToDictionary(x => x.id, x => (x.display_name, x.email));
     }
 
     private static async Task<IResult> GetEventById(
@@ -335,7 +351,12 @@ public static class EventEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to fetch managers: {resp.StatusCode}");
         var rows = await resp.Content.ReadFromJsonAsync<List<SupabaseEventMemberResponse>>() ?? [];
-        return Results.Ok(rows.Select(x => new EventManagerDto(x.user_id, x.role, x.created_at)));
+        
+        var userNames = await GetUserDisplayNamesAsync(rows.Select(x => x.user_id), url!, key!, httpClient);
+        return Results.Ok(rows.Select(x => {
+            userNames.TryGetValue(x.user_id, out var profile);
+            return new EventManagerDto(x.user_id, profile.Name ?? profile.Email, x.role, x.created_at);
+        }));
     }
 
     private static async Task<IResult> AssignManager(
@@ -385,7 +406,12 @@ public static class EventEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to fetch permissions: {resp.StatusCode}");
         var rows = await resp.Content.ReadFromJsonAsync<List<SupabaseEventPermissionResponse>>() ?? [];
-        return Results.Ok(rows.Select(x => new EventPermissionDto(x.user_id, x.module, x.permission, x.granted_by, x.granted_at ?? DateTimeOffset.UtcNow)));
+        
+        var userNames = await GetUserDisplayNamesAsync(rows.Select(x => x.user_id), url!, key!, httpClient);
+        return Results.Ok(rows.Select(x => {
+            userNames.TryGetValue(x.user_id, out var profile);
+            return new EventPermissionDto(x.user_id, profile.Name ?? profile.Email, x.module, x.permission, x.granted_by, x.granted_at ?? DateTimeOffset.UtcNow);
+        }));
     }
 
     private static async Task<IResult> UpsertPermission(
@@ -467,7 +493,17 @@ public static class EventEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to fetch activity: {resp.StatusCode}");
         var rows = await resp.Content.ReadFromJsonAsync<List<SupabaseActivityResponse>>() ?? [];
-        return Results.Ok(rows.Select(x => new RecentActivityItemDto(x.id, x.event_id, x.actor_user_id, x.action, x.entity_type, x.entity_id, x.metadata ?? new(), x.created_at)));
+        
+        var actorIds = rows.Where(x => x.actor_user_id.HasValue).Select(x => x.actor_user_id!.Value);
+        var userNames = await GetUserDisplayNamesAsync(actorIds, url!, key!, httpClient);
+        
+        return Results.Ok(rows.Select(x => {
+            string? actorName = null;
+            if (x.actor_user_id.HasValue && userNames.TryGetValue(x.actor_user_id.Value, out var profile)) {
+                actorName = profile.Name ?? profile.Email;
+            }
+            return new RecentActivityItemDto(x.id, x.event_id, x.actor_user_id, actorName, x.action, x.entity_type, x.entity_id, x.metadata ?? new(), x.created_at);
+        }));
     }
 
     private static EventListItemDto ToListItem(SupabaseEventResponse row) =>

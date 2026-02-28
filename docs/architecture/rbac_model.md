@@ -9,6 +9,19 @@ This document details the mechanics of the role and granular permission model in
 - `public.event_members(user_id, event_id, role)`: Event leadership. Role is constrained to `'EventManager'`.
 - `public.event_member_permissions(user_id, event_id, module, permission)`: Granular user module access. Permission enum is `'none', 'read', 'write'`.
 
+## Module Identifiers
+
+The canonical `module` strings used in the database and API are:
+- `event_management`
+- `narrative`
+- `logistics`
+- `finance`
+- `npc_org` (NPC/Org module)
+- `characters`
+- `communications`
+
+Identifiers must always be **lowercase snake_case**.
+
 ## Who Can Grant What?
 
 The UI should expose role and permission assignment logic based on these rules:

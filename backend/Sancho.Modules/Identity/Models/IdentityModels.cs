@@ -30,7 +30,6 @@ public record UserDetailDto(
     Dictionary<string, string> Permissions
 );
 
-public record AssignOrgRoleRequest();
 
 internal record SupabaseUserAdminResponse(
     Guid id,

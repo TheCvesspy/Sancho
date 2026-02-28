@@ -1,0 +1,181 @@
+{
+    "title": "Správa akcí",
+    "subtitle": "Vytvářejte a spravujte akce, přiřazujte vedení a sledujte provozní stav.",
+    "table": {
+        "columns": {
+            "name": "Název akce",
+            "location": "Lokalita",
+            "dates": "Termín",
+            "status": "Stav",
+            "actions": "Akce"
+        },
+        "searchPlaceholder": "Hledat akce...",
+        "statusFilterPlaceholder": "Stav",
+        "statusFilter": {
+            "all": "Všechny stavy",
+            "active": "Aktivní",
+            "archived": "Archivované",
+            "deleted": "Smazané"
+        },
+        "showDeleted": "Zobrazit smazané akce",
+        "emptyState": "Nebyly nalezeny žádné akce.",
+        "loading": "Načítání akcí..."
+    },
+    "status": {
+        "active": "Aktivní",
+        "archived": "Archivováno",
+        "deleted": "Smazáno"
+    },
+    "actions": {
+        "create": "Vytvořit akci",
+        "edit": "Upravit",
+        "archive": "Archivovat",
+        "restore": "Obnovit",
+        "delete": "Smazat",
+        "undelete": "Obnovit smazané",
+        "view": "Zobrazit detail"
+    },
+    "dialogs": {
+        "create": {
+            "title": "Vytvořit novou akci",
+            "description": "Inicializace nového kontextu akce v organizaci.",
+            "success": "Akce byla úspěšně vytvořena.",
+            "error": "Nepodařilo se vytvořit akci."
+        },
+        "edit": {
+            "title": "Upravit akci",
+            "description": "Aktualizace základních informací o akci.",
+            "success": "Akce byla úspěšně aktualizována.",
+            "error": "Nepodařilo se aktualizovat akci."
+        },
+        "archive": {
+            "title": "Archivovat akci",
+            "description": "Archivace přepne akci do režimu pouze pro čtení pro správce. Tato akce je auditovatelná.",
+            "reasonLabel": "Důvod archivace",
+            "reasonPlaceholder": "Akce skončila, konec sezóny atd.",
+            "confirm": "Archivovat akci",
+            "success": "Akce byla archivována.",
+            "error": "Nepodařilo se archivovat akci."
+        },
+        "restore": {
+            "title": "Obnovit akci",
+            "description": "Tímto se akce vrátí do stavu Aktivní.",
+            "confirm": "Obnovit",
+            "success": "Akce byla obnovena.",
+            "error": "Nepodařilo se obnovit akci."
+        },
+        "delete": {
+            "title": "Smazat akci",
+            "description": "Měkké smazání skryje akci z výchozích seznamů, ale ponechá ji obnovitelnou. Tato akce je auditovatelná.",
+            "reasonLabel": "Důvod smazání",
+            "reasonPlaceholder": "Náhodný duplikát atd.",
+            "confirm": "Smazat akci",
+            "success": "Akce byla smazána.",
+            "error": "Nepodařilo se smazat akci."
+        },
+        "undelete": {
+            "title": "Obnovit smazanou akci",
+            "description": "Tímto se akce opět zviditelní v seznamech.",
+            "confirm": "Obnovit",
+            "success": "Akce byla obnovena.",
+            "error": "Nepodařilo se obnovit smazanou akci."
+        }
+    },
+    "form": {
+        "name": "Název",
+        "location": "Lokalita",
+        "startAt": "Datum a čas zahájení",
+        "endAt": "Datum a čas ukončení",
+        "placeholder": {
+            "name": "Letní larp 2026",
+            "location": "Brno, CZ"
+        },
+        "validation": {
+            "dates": "Čas ukončení musí být po čase zahájení."
+        }
+    },
+    "detail": {
+        "tabs": {
+            "overview": "Přehled",
+            "managers": "Správci",
+            "permissions": "Oprávnění",
+            "activity": "Nedávná aktivita"
+        },
+        "back": "Zpět na akce",
+        "meta": {
+            "location": "Lokalita",
+            "period": "Období",
+            "created": "Vytvořeno",
+            "updated": "Naposledy upraveno"
+        }
+    },
+    "stats": {
+        "title": "Provozní přehled",
+        "characters": "Postavy",
+        "questLines": "Linie úkolů",
+        "items": "Předměty",
+        "players": "Hráči",
+        "unavailable": "nedostupné"
+    },
+    "managers": {
+        "title": "Správci akce",
+        "subtitle": "Uživatelé s plným přístupem ke správě této konkrétní akce.",
+        "assign": "Přiřadit správce",
+        "revoke": "Odebrat",
+        "revokeConfirm": "Odebrat přístup správce tomuto uživateli?",
+        "searchUser": "Hledat uživatele...",
+        "selectUser": "Vyberte uživatele k přiřazení",
+        "assignedAt": "Přiřazeno dne",
+        "success": {
+            "assigned": "Správce byl přiřazen.",
+            "revoked": "Přístup byl odebrán."
+        },
+        "error": {
+            "assigned": "Nepodařilo se přiřadit správce.",
+            "revoked": "Nepodařilo se odebrat přístup."
+        }
+    },
+    "permissions": {
+        "title": "Oprávnění modulů",
+        "subtitle": "Granulární přístup k modulům pro běžné uživatele.",
+        "module": "Modul",
+        "user": "Uživatel",
+        "permission": "Oprávnění",
+        "levels": {
+            "none": "Žádné",
+            "read": "Pouze ke čtení",
+            "write": "Zápis"
+        },
+        "addUser": "Přidat uživatele",
+        "success": "Oprávnění byla aktualizována.",
+        "error": "Nepodařilo se aktualizovat oprávnění."
+    },
+    "activity": {
+        "title": "Nedávná aktivita",
+        "empty": "Žádná nedávná aktivita.",
+        "actions": {
+            "event": {
+                "created": "vytvořil(a) akci",
+                "updated": "aktualizoval(a) údaje o akci",
+                "archived": "archivoval(a) akci",
+                "restored": "obnovil(a) akci",
+                "deleted": "smazal(a) akci",
+                "undeleted": "obnovil(a) smazanou akci"
+            },
+            "manager": {
+                "assigned": "přiřadil(a) správce",
+                "revoked": "odebral(a) správce"
+            },
+            "permission": {
+                "updated": "upravil(a) oprávnění uživatele",
+                "revoked": "odebral(a) oprávnění uživatele"
+            }
+        }
+    },
+    "errors": {
+        "forbidden": {
+            "title": "Přístup odepřen",
+            "description": "Nemáte potřebná oprávnění k zobrazení této akce. Pro vyřešení kontaktujte organizátora nebo správce akce."
+        }
+    }
+}

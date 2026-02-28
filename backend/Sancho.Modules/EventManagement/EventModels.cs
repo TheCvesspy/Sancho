@@ -65,6 +65,7 @@ public record RecentActivityItemDto(
     Guid Id,
     Guid EventId,
     Guid? ActorUserId,
+    string? ActorDisplayName,
     string Action,
     string? EntityType,
     Guid? EntityId,
@@ -74,12 +75,14 @@ public record RecentActivityItemDto(
 
 public record EventManagerDto(
     Guid UserId,
+    string? UserDisplayName,
     string Role,
     DateTimeOffset CreatedAt
 );
 
 public record EventPermissionDto(
     Guid UserId,
+    string? UserDisplayName,
     string Module,
     string Permission,
     Guid? GrantedBy,
@@ -129,4 +132,10 @@ internal record SupabaseActivityResponse(
 
 internal record SupabaseCountOnly(
     Guid user_id
+);
+
+internal record SupabaseUserProfileShortResponse(
+    Guid id,
+    [property: JsonPropertyName("display_name")] string? display_name,
+    string? email
 );

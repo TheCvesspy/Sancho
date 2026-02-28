@@ -85,6 +85,7 @@ See detailed contract in [events.md](/D:/Sancho/docs/api/events.md).
 - `POST /api/events/{eventId}/undelete`
 - `PUT/DELETE /api/events/{eventId}/managers/{userId}`
 - `PUT/DELETE /api/events/{eventId}/permissions/{userId}/{module}`
+  - `{module}` must be one of: `characters`, `narrative`, `logistics`, `finance`, `npc_org`, `communications`, `event_management`.
 
 ## Suggested Backend Structure (`backend/Sancho.Modules/EventManagement`)
 
