@@ -1,6 +1,6 @@
 # Sancho — LARP Event Management Platform
 
-**Version: 0.3.0**
+**Version: 0.5.0**
 
 Sancho is a single-organization web application for managing LARP (Live Action Role-Playing) groups, covering the full event lifecycle from planning through execution. One deployment serves one organization and supports multiple events.
 
@@ -31,6 +31,14 @@ Sancho is a single-organization web application for managing LARP (Live Action R
 - Event activity/audit log
 - Event manager assignment
 - Per-user, per-module permission matrix per event
+
+#### Characters (Backend v1)
+- Event-scoped character APIs under `/api/events/{eventId}/characters`
+- Character profile lifecycle (`Draft`, `Ready`, `Locked`)
+- Character abilities CRUD
+- Character photo + attachments with Supabase Storage signed uploads
+- Soft-delete and restore
+- Narrative integration seam via stub provider (ready for Narrative module)
 
 #### Identity & Access (Admin UI)
 - User listing and role assignment
@@ -95,7 +103,7 @@ sancho/
 | Event Management | ✅ Full | ✅ Full | ✅ Full |
 | Identity & Access | ✅ Full | ✅ Full | ✅ Full |
 | User / Profile | ✅ Full | ✅ Full | ✅ Full |
-| Characters | ⏳ Stub | ⏳ None | ⏳ None |
+| Characters | ✅ Backend | ⏳ None | ✅ Full |
 | Narrative | ⏳ Stub | ⏳ None | ⏳ None |
 | Logistics | ⏳ Stub | ⏳ None | ⏳ None |
 | Finance | ⏳ Stub | ⏳ None | ⏳ None |
@@ -117,8 +125,11 @@ sancho/
 | `role_module_permissions` | Default role → module → permission matrix |
 | `event_activity_log` | Audit trail for event actions |
 | `invite_tokens` | Gated registration tokens |
+| `characters` | Event-scoped character profiles |
+| `character_abilities` | Flexible key-value abilities per character |
+| `character_attachments` | Character file metadata stored in Supabase Storage |
 
-**Applied Migrations:** 8 (latest: `20260228230000_invite_tokens`)
+**Applied Migrations:** 9 (latest: `20260228235500_characters_context_v1`)
 
 ---
 
@@ -157,12 +168,28 @@ sancho/
 - `PUT /events/{id}/permissions/{userId}/{module}` — set permission
 - `DELETE /events/{id}/permissions/{userId}/{module}` — remove permission
 
+### Characters (`/api/events/{eventId}/characters`)
+- `GET /api/events/{eventId}/characters`
+- `POST /api/events/{eventId}/characters`
+- `GET /api/events/{eventId}/characters/{characterId}`
+- `PATCH /api/events/{eventId}/characters/{characterId}`
+- `POST /api/events/{eventId}/characters/{characterId}/status`
+- `POST /api/events/{eventId}/characters/{characterId}/duplicate`
+- `DELETE /api/events/{eventId}/characters/{characterId}` (soft-delete)
+- `POST /api/events/{eventId}/characters/{characterId}/undelete`
+- `GET/POST/PATCH/DELETE /api/events/{eventId}/characters/{characterId}/abilities...`
+- `GET/POST/DELETE /api/events/{eventId}/characters/{characterId}/photo...`
+- `GET/POST/DELETE /api/events/{eventId}/characters/{characterId}/attachments...`
+- `GET /api/events/{eventId}/characters/{characterId}/narrative-links`
+
 ---
 
 ## Version History
 
 | Version | Date | Summary |
 |---|---|---|
+| 0.5.0 | 2026-02-28 | Characters backend finalized and migration applied |
+| 0.4.0 | 2026-02-28 | Characters backend v1 (event-scoped APIs, DB schema, RLS, storage upload flows, narrative integration stubs) |
 | 0.3.0 | 2026-02-28 | Event management lifecycle, permissions matrix, toast notifications, activity feed |
 | 0.2.0 | 2026-02-28 | Auth rework (invite-only, email/password), RBAC redesign, single-org model |
 | 0.1.0 | 2026-02-27 | Initial scaffold: auth shell, Supabase integration, AppSidebar, core DB schema |

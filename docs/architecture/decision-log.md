@@ -69,3 +69,11 @@ Lightweight log of noteworthy architecture and design decisions.
   - Confirmed `SystemAdmin` and `OrgOwner` are auto-treated as event managers without `event_members` rows.
   - Introduced lightweight `event_activity_log` design and pluggable stats provider pattern.
   **Alternatives**: Split manager assignment and permission management into separate modules (rejected due to operator workflow fragmentation).
+
+- **Context**: Implementing Characters backend before Narrative context is available.
+  **Decision**: Ship Characters as event-scoped APIs (`/api/events/{eventId}/characters/...`) with a pluggable narrative seam (`ICharacterNarrativeService`) and stub implementation for read links and deletion guard checks.
+  **Implementation**:
+  - Added `characters`, `character_abilities`, `character_attachments` tables with RLS.
+  - Implemented soft-delete/restore, lifecycle transitions, storage upload flows, and locked-character edit rules.
+  - Added deletion guard via `HasActiveRelationshipsAsync(eventId, characterId)` (stubbed for now).
+  **Alternatives**: Block Character implementation until Narrative exists (rejected to avoid cross-context delivery bottleneck).

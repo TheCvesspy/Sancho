@@ -171,3 +171,14 @@ If you make a noteworthy design decision, add a short note in `docs/architecture
   - Updated `handle_new_user` trigger to enforce valid invite token hashes on registration.
   - Restricted Google OAuth to existing users only.
   - Added Invite Token management UI to the Identity & Access module.
+
+- **Characters Context Backend v1 (Event-Scoped)**:
+  - Implemented `public.characters`, `public.character_abilities`, and `public.character_attachments` with RLS and event scoping.
+  - Added Character endpoints under `/api/events/{eventId}/characters/...` including:
+    - profile CRUD + status transitions + duplicate + soft-delete/restore
+    - abilities CRUD
+    - photo and attachment upload/confirm/delete using Supabase Storage signed upload URLs
+  - Enforced locked-character rule: only `notes` are editable when status is `Locked`.
+  - Added narrative integration seam via `ICharacterNarrativeService`:
+    - current implementation is `StubCharacterNarrativeService` (returns empty read models)
+    - deletion guard calls `HasActiveRelationshipsAsync(...)` (currently stubbed, ready for Narrative context implementation)

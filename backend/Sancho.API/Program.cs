@@ -3,10 +3,12 @@ using Microsoft.IdentityModel.Tokens;
 using User.Endpoints;
 using Identity.Endpoints;
 using EventManagement.Endpoints;
+using Character.Endpoints;
 using Microsoft.AspNetCore.Authentication;
 using Sancho.Infrastructure.Authorization;
 using Sancho.Shared.Roles;
 using EventManagement.Services;
+using Character.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -81,6 +83,9 @@ builder.Services.AddScoped<IClaimsTransformation, SanchoClaimsTransformation>();
 builder.Services.AddScoped<EventAuthorizationService>();
 builder.Services.AddScoped<EventActivityService>();
 builder.Services.AddScoped<EventStatsService>();
+builder.Services.AddScoped<CharacterAuthorizationService>();
+builder.Services.AddScoped<CharacterStorageService>();
+builder.Services.AddScoped<ICharacterNarrativeService, StubCharacterNarrativeService>();
 
 builder.Services.AddHttpClient();
 
@@ -114,6 +119,7 @@ app.UseAuthorization();
 app.MapUserEndpoints();
 app.MapIdentityEndpoints();
 app.MapEventEndpoints();
+app.MapCharacterEndpoints();
 
 var summaries = new[]
 {
