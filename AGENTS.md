@@ -88,6 +88,33 @@ Identifiers must always be **lowercase snake_case**.
 - Keep diagrams in sync with code changes that affect structure or boundaries.
 - UI baseline plan is in `Basic Information/UI_Implementation_Guide_Lines.md`.
 
+## README Maintenance (Required Before Every Commit)
+
+`README.md` is the canonical state-of-the-project document. **It must be updated before every commit** that changes functionality, schema, API endpoints, or module status.
+
+### What to update in README.md:
+
+1. **Version number** — increment following semver:
+   - Patch (`0.3.x`): bug fixes, minor UI tweaks, no new features
+   - Minor (`0.x.0`): new feature or module added, significant UI work
+   - Major (`x.0.0`): breaking architecture change or full module group launch
+
+2. **"What's Implemented" section** — add or update bullet points for any new user-facing features.
+
+3. **Module Implementation Status table** — flip `⏳` to `✅` when a module's backend, frontend, or DB layer is complete.
+
+4. **API Endpoints section** — add any new endpoints or remove deprecated ones.
+
+5. **Database Schema table** — add new tables introduced by migrations.
+
+6. **Version History table** — append a new row with the new version, today's date, and a one-line summary of changes.
+
+### Commit checklist:
+- [ ] README.md version number bumped
+- [ ] Version History row added
+- [ ] Affected sections updated (features, modules, endpoints, schema)
+- [ ] Decision log updated if a noteworthy architectural decision was made (`docs/architecture/decision-log.md`)
+
 ## Operational Considerations
 - Log with context (event, user).
 - Avoid exposing PII in logs or errors.
