@@ -1,6 +1,7 @@
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
 import { createClient } from "@/utils/supabase/server"
+import { Toaster } from "sonner"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5293"
 
@@ -29,6 +30,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                     {children}
                 </div>
             </SidebarInset>
+            <Toaster position="top-right" closeButton richColors />
         </SidebarProvider>
     )
 }
