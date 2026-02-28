@@ -3,7 +3,7 @@
 This repository is developed by multiple agents and humans. Use this file to coordinate work, avoid conflicts, and keep a consistent engineering bar.
 
 ## Project Snapshot
-Sancho is a multi-tenant web app for LARP organizers covering the full event lifecycle (planning -> organization -> execution).
+Sancho is a **single-organization** web app for a LARP group, covering the full event lifecycle (planning → organization → execution). One deployment = one organization, with multiple events.
 
 **Stack**
 - Backend: .NET 9 (ASP.NET Core), modular monolith with bounded contexts
@@ -27,7 +27,7 @@ Sancho is a multi-tenant web app for LARP organizers covering the full event lif
 - Modular monolith with bounded contexts. Keep module boundaries intact.
 - Contexts include: Identity & Access, Event Management, Character, Narrative, Logistics, NPC/Org, Finance, Communications.
 - The API Gateway (ASP.NET Core) routes to bounded contexts.
-- Supabase is shared for Auth, DB, Storage, and Realtime; apply RLS for tenant isolation.
+- Supabase is shared for Auth, DB, Storage, and Realtime; apply RLS for **org/event membership** isolation.
 
 ## Coding Standards (Backend)
 - Follow clean architecture conventions already in `backend/`.
@@ -44,9 +44,12 @@ Sancho is a multi-tenant web app for LARP organizers covering the full event lif
 
 ## Database & Supabase
 - All schema changes must go through `supabase/migrations/`. 
-- CORE framework (Tenants, Users, Roles, Events) has been implemented via migration `initial_schema_and_roles`.
+- **Migration Execution**: Always try to execute database changes and migrations via the **Supabase MCP server** tools (`apply_migration`, `execute_sql`) to ensure the live environment stays in sync with local files.
+- CORE framework (Users, Roles, Events) has been implemented via migrations. There is **no tenants table** — the application is a single-organization deployment.
+- The organization membership table is `public.org_members` (holds only `OrgOwner`).
+- Event-level managers are in `public.event_members`. Granular user permissions are in `public.event_member_permissions`.
 - Avoid manual edits in production. Use migrations and seed scripts.
-- Enforce tenant isolation with RLS; never rely solely on client-side filtering. Use `public.tenant_members` to resolve scopes.
+- Enforce authorization with RLS; never rely solely on client-side filtering. Use `public.event_member_permissions` and `public.event_members` to scope event-level access.
 
 ## API & Contracts
 - Keep API contracts stable; update OpenAPI when endpoints change.
@@ -63,9 +66,9 @@ Sancho is a multi-tenant web app for LARP organizers covering the full event lif
 - UI baseline plan is in `Basic Information/UI_Implementation_Guide_Lines.md`.
 
 ## Operational Considerations
-- Log with context (tenant, event, user).
+- Log with context (event, user).
 - Avoid exposing PII in logs or errors.
-- Handle authorization and tenant scoping in every request path.
+- Handle authorization and membership scoping in every request path.
 
 ## Decision Log (Lightweight)
 If you make a noteworthy design decision, add a short note in `docs/architecture/decision-log.md` (create if missing) with:
@@ -73,25 +76,26 @@ If you make a noteworthy design decision, add a short note in `docs/architecture
 
 
 ## Recent Setup Changes
-
-## Recent Setup Changes
-- Created repo structure per docs: ackend/, rontend/, supabase/, docs/ and subfolders.
+- Created repo structure per docs: \backend/, \frontend/, supabase/, docs/ and subfolders.
 - Initialized backend solution and projects:
-- ackend/Sancho.sln`r
-- ackend/Sancho.API (ASP.NET Core Web API)
-- ackend/Sancho.Shared, ackend/Sancho.Infrastructure`r
-- Bounded-context class libraries under ackend/Sancho.Modules/`r
-- Initialized Next.js app in rontend/ (App Router, TypeScript, ESLint, npm).
-- Initialized Supabase project in supabase/ (
-px supabase init).
+  - \backend/Sancho.sln`r
+  - \backend/Sancho.API (ASP.NET Core Web API)
+  - \backend/Sancho.Shared, \backend/Sancho.Infrastructure`r
+  - Bounded-context class libraries under \backend/Sancho.Modules/`r
+- Initialized Next.js app in \frontend/ (App Router, TypeScript, ESLint, npm).
+- Initialized Supabase project in supabase/ (\
+  px supabase init).
 - Added root package.json and installed supabase CLI as a dev dependency.
 - **Implemented core database schema**:
-  - `public.tenants`: Organizational scoping.
   - `public.user_profiles`: Application-specific user data.
-  - `public.tenant_members`: Multi-tenant linkage with **Module-Specific Roles** (array).
+  - `public.org_members`: Organization-level leadership (`OrgOwner`).
+  - `public.event_members`: Event-level leadership (`EventManager`).
+  - `public.event_member_permissions`: Granular per-user, per-event module permissions.
+  - `public.system_admins`: Platform-level admin accounts.
+  - `public.role_module_permissions`: Declarative default permission matrix for core roles.
   - `public.events`: Base event entities.
-  - Applied initial RLS policies for tenant isolation.
-  - Created `docs/application_roles.md` as a role reference.
+  - Applied RLS policies for event isolation.
+  - Created `docs/architecture/rbac_model.md` as the technical RBAC reference.
 - **Frontend Authentication & Shell Implementation**:
   - Integrated `@supabase/ssr` for server-side auth and session management.
   - Implemented a custom middleware that coordinates `next-intl` (localization) and Supabase Auth session updates.
@@ -101,6 +105,11 @@ px supabase init).
 - **Database & Role Automation**:
   - Implemented a PostgreSQL trigger (`handle_new_user`) that automatically:
     - Creates a `user_profiles` entry on first sign-in.
-    - Provisionally grants the `owner` role to `cvesspy@gmail.com` on first login.
-    - Ensures a default tenant exists and links the owner to it.
+    - Provisionally grants the `SystemAdmin` and `OrgOwner` roles to `cvesspy@gmail.com` on first login.
   - Applied RLS improvements to ensure user data isolation.
+- **Single-Organization Rework**:
+  - Dropped `public.tenants` and `public.tenant_members`.
+  - Created `public.org_members` as the single org-level membership table.
+  - Updated `SanchoClaimsTransformation` to resolve `sancho:org_role` from `org_members`.
+  - Updated `UserEndpoints` (`GetMemberships`, `GetPermissions`) to use `org_members`.
+  - Updated frontend `RolesOverview` component and profile page to display a single org role.

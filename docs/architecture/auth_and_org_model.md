@@ -1,6 +1,6 @@
-# Authentication & Tenant Model
+# Authentication & Organization Model
 
-This document describes how Sancho identifies users, manages their sessions, and enforces tenant isolation.
+This document describes how Sancho identifies users, manages their sessions, and enforces access control.
 
 ## Technology Stack
 - **Provider**: [Supabase Auth](https://supabase.com/auth)
@@ -12,28 +12,37 @@ This document describes how Sancho identifies users, manages their sessions, and
 1. **Sign In**: User authenticates via Google.
 2. **Post-Auth Trigger**: The Postgres function `handle_new_user()` in the `public` schema is triggered by an insert in `auth.users`.
 3. **Profile Creation**: A record is created in `public.user_profiles` linked by `id` (UUID).
-4. **Tenant Initialization**:
+4. **Org Initialization**:
    - If the user is the pre-defined owner (`cvesspy@gmail.com`), the trigger:
-     - Verifies or creates a "Default Tenant".
-     - Inserts the user into `public.tenant_members` with the `['owner']` role.
-   - For other users, tenant assignment is handled via invitation/organization logic (TBD).
+     - Inserts the user into `public.system_admins`.
+     - Inserts the user into `public.org_members` with the `'OrgOwner'` role.
+   - For other users, org assignment is handled via an invitation/admin flow (TBD).
 
-## Multi-Tenancy (Data Isolation)
-Sancho uses **Row Level Security (RLS)** in PostgreSQL to isolate data.
+## Single-Organization Model
+Sancho operates as a **single-organization** deployment. There is no `tenants` table. All users share the same implicit organization.
 
 ### Core Tables
-- **tenants**: The top-level organizational unit.
 - **user_profiles**: Public-schema user metadata.
-- **tenant_members**: Link table defining which `user_id` belongs to which `tenant_id` and what roles they hold.
+- **system_admins**: Global platform administrators.
+- **org_members**: The user's org-level role (`OrgOwner`). One row per user.
+- **event_members**: Event-level role (`EventManager`), one row per user+event.
+- **event_member_permissions**: Explicit per-module granular permissions (`none`, `read`, `write`) for regular users.
 
 ### RLS Implementation
-Every table containing tenant-specific data (e.g., `events`, `characters`) MUST have a `tenant_id` column.
-The RLS policy should verify the user's membership in that tenant:
+Every table containing event-specific data (e.g., characters) MUST have an `event_id` column.
+Org-level access is controlled via `org_members`:
 ```sql
-CREATE POLICY "Tenant isolation" ON some_table
-FOR ALL USING (
-  tenant_id IN (
-    SELECT tenant_id FROM public.tenant_members WHERE user_id = auth.uid()
+CREATE POLICY "Org members can view" ON some_table
+FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.org_members WHERE user_id = auth.uid())
+);
+```
+Event-level access is controlled via `event_members`:
+```sql
+CREATE POLICY "Event members can view" ON some_table
+FOR SELECT USING (
+  event_id IN (
+    SELECT event_id FROM public.event_members WHERE user_id = auth.uid()
   )
 );
 ```
@@ -53,6 +62,6 @@ The ASP.NET Core API Gateway validates every inbound request using the JWT Beare
 3. **Key Loading**: On first request, `Program.cs` fetches the JWKS via `HttpClient`, parses it with `JsonWebKeySet.Create()`, and caches the `SecurityKey` list in memory.
 4. **Validation**: The `IssuerSigningKeyResolver` returns the cached keys. The framework validates `iss`, `aud`, signature, and expiry on every request.
 5. **Claims**: `NameClaimType = "sub"` (user UUID), `RoleClaimType = "role"`.
+6. **Sancho Claims**: `SanchoClaimsTransformation` adds `sancho:org_role`, `sancho:event_role`, `sancho:system_admin`, and per-module `sancho:permission:*` claims.
 
 > **Note**: Supabase does not publish a full OpenID Connect discovery document. Only the raw JWKS endpoint is available, which is why `OpenIdConnectConfigurationRetriever` cannot be used here.
-

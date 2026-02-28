@@ -6,17 +6,26 @@ public record UserProfileDto(
     string? DisplayName,
     string? AvatarUrl, 
     string? Bio, 
-    string Locale);
+    string Locale,
+    bool IsSystemAdmin = false);
 
-public record TenantMembershipDto(
-    Guid TenantId, 
-    string TenantName, 
-    string[] Roles);
+/// <summary>Represents the user's single organization-level role and their effective module permissions.</summary>
+public record OrgMembershipDto(
+    string OrgRole,
+    Dictionary<string, string> Permissions);
+
+/// <summary>Represents the user's role and granular permissions within a specific event.</summary>
+public record EventMembershipDto(
+    string EventRole,
+    Dictionary<string, string> Permissions);
 
 public record UpdateProfileRequest(
     string? DisplayName, 
     string? Bio, 
     string? Locale);
+
+public record AvatarUploadUrlRequest(
+    string ContentType);
 
 public record AvatarUploadUrlResponse(
     string UploadUrl, 
@@ -25,13 +34,19 @@ public record AvatarUploadUrlResponse(
 public record ConfirmAvatarRequest(
     string FilePath);
 
-internal record SupabaseTenantMembershipResponse(
-    Guid tenant_id,
-    string[] roles,
-    SupabaseTenantNameResponse tenants);
+internal record SupabaseOrgMembershipResponse(
+    string role);
 
-internal record SupabaseTenantNameResponse(
-    string name);
+internal record SupabasePermissionResponse(
+    string module,
+    string permission);
+
+internal record SupabaseEventMembershipResponse(
+    string role);
+
+internal record SupabaseEventPermissionResponse(
+    string module,
+    string permission);
 
 internal record SupabaseSignUploadResponse(
     string token);

@@ -22,6 +22,20 @@ export function AvatarUpload({ currentAvatarUrl, displayName }: AvatarUploadProp
         const file = e.target.files?.[0]
         if (!file) return
 
+        // 1. Client-side validation: Max 2MB
+        const MAX_FILE_SIZE = 2 * 1024 * 1024 // 2MB
+        if (file.size > MAX_FILE_SIZE) {
+            alert("File is too large. Maximum size is 2MB.")
+            return
+        }
+
+        // 2. Client-side validation: MIME type
+        const allowedMimes = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+        if (!allowedMimes.includes(file.type)) {
+            alert("Invalid file type. Only JPG, PNG, GIF, and WEBP are allowed.")
+            return
+        }
+
         // Preview
         const objectUrl = URL.createObjectURL(file)
         setPreviewUrl(objectUrl)
@@ -29,7 +43,7 @@ export function AvatarUpload({ currentAvatarUrl, displayName }: AvatarUploadProp
         setIsUploading(true)
         try {
             // 1. Get signed URL
-            const result = await requestAvatarUploadUrl()
+            const result = await requestAvatarUploadUrl(file.type)
             if (!result.success) throw new Error(result.error)
 
             const { uploadUrl, filePath } = result.data
@@ -83,7 +97,7 @@ export function AvatarUpload({ currentAvatarUrl, displayName }: AvatarUploadProp
                     id="avatar-input"
                     type="file"
                     className="hidden"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
                     onChange={handleFileChange}
                     disabled={isUploading}
                 />

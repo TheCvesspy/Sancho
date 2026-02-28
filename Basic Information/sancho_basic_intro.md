@@ -1,7 +1,7 @@
 
 ## 1. Přehled systému
 
-Sancho je multi-tenant webová aplikace určená organizátorům LARP eventů. Pokrývá celý životní cyklus eventu – od plánování přes organizaci až po samotnou exekuci na místě.
+Sancho je **single-organization** webová aplikace určená organizátorům LARP eventů. Jeden deployment = jedna organizace spravující více eventů. Pokrývá celý životní cyklus eventu – od plánování přes organizaci až po samotnou exekuci na místě.
 
 ---
 
@@ -136,21 +136,23 @@ Tady je přehled modulů s jejich zodpovědností a mobilní dostupností:
 Toto je základ všeho ostatního, takže mu věnujeme nejvíce pozornosti.
 
 ```
-Tenant (Organization)
-  └── Event (konkrétní LARP)
-        └── EventRole → User
-              └── Module Permissions
+Organizace (single, implicit — jeden deployment)
+  └── OrgOwner
+        └── Event (konkrétní LARP)
+              ├── EventManager (plný přístup na event)
+              └── Běžný uživatel → konkrétní oprávnění per modul (event_member_permissions)
 ```
 
-**Role model:**
+**Role a oprávnění:**
 
-- **`owner`** – vlastník organizace (plný přístup, billing, správa uživatelů)
-- **`admin`** – administrátor organizace (přístup ke všem modulům a většině uživatelů)
-- **`*_manager`** – manager konkrétního modulu (např. `event_manager`, `narrative_manager`) - CRUD přístup
-- **`*_viewer`** – divák konkrétního modulu (např. `event_viewer`, `logistics_viewer`) - Read-only přístup
+Systém využívá třístupňovou hierarchii + explicitní oprávnění pro běžné uživatele:
+- **`SystemAdmin`** – platform-level admin (plný přístup napříč celým systémem)
+- **`OrgOwner`** – vlastník organizace (plný přístup, jmenuje manažery eventů)
+- **`EventManager`** – správce konkrétního eventu (plný přístup na jeden event)
+- **Běžný Uživatel (Bez Role)** – By default má oprávnění `read` pouze do modulu `communications`, zbytek je `none`.
+  - Oprávnění k jednotlivým modulům (`read` nebo `write`) mu na **per-event** a **per-module** bázi přiřazuje SystemAdmin, OrgOwner, nebo EventManager (v tabulce `event_member_permissions`).
 
-Každý uživatel může mít pole těchto rolí v rámci daného tenanta.
-Detailní rozpis najdete v `docs/application_roles.md`.
+Detailní rozpis najdete v `docs/architecture/application_roles.md` a technický návrh v `docs/architecture/rbac_model.md`.
 
 ---
 

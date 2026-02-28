@@ -44,12 +44,13 @@ export async function updateProfile(formData: { displayName: string, bio: string
     }
 }
 
-export async function requestAvatarUploadUrl() {
+export async function requestAvatarUploadUrl(contentType: string) {
     try {
         const headers = await getAuthHeaders()
         const response = await fetch(`${API_BASE_URL}/api/user/me/avatar/upload-url`, {
             method: "POST",
-            headers
+            headers,
+            body: JSON.stringify({ contentType })
         })
 
         if (!response.ok) {

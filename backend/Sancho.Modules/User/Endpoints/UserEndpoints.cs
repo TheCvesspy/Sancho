@@ -8,6 +8,8 @@ using System.Net.Http.Json;
 using System.Net.Http.Headers;
 using Microsoft.Extensions.Logging;
 using System.Text.Json.Serialization;
+using System.Text.Json;
+using Sancho.Shared.Roles;
 
 namespace User.Endpoints;
 
@@ -20,7 +22,6 @@ public static class UserEndpoints
         [property: JsonPropertyName("avatar_url")] string? avatar_url,
         string? bio,
         string locale);
-
     public static void MapUserEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/user");
@@ -43,6 +44,10 @@ public static class UserEndpoints
 
         group.MapPost("/me/avatar/confirm", ConfirmAvatar)
             .WithName("ConfirmAvatar")
+            .RequireAuthorization();
+
+        group.MapGet("/me/permissions", GetPermissions)
+            .WithName("GetUserPermissions")
             .RequireAuthorization();
     }
 
@@ -79,13 +84,18 @@ public static class UserEndpoints
             return Results.NotFound();
         }
 
+        var avatarUrl = await ResolveAvatarUrlAsync(supabaseUrl!, supabaseKey!, profile.avatar_url, httpClient);
+
+        var isSystemAdmin = user.HasClaim("sancho:system_admin", "true");
+
         return Results.Ok(new UserProfileDto(
             profile.id,
             profile.email,
             profile.display_name,
-            ResolveAvatarUrl(supabaseUrl!, profile.avatar_url),
+            avatarUrl,
             profile.bio,
-            profile.locale));
+            profile.locale,
+            isSystemAdmin));
     }
 
     private static async Task<IResult> UpdateProfile(ClaimsPrincipal user, UpdateProfileRequest request, IConfiguration config, HttpClient httpClient)
@@ -118,34 +128,161 @@ public static class UserEndpoints
         var supabaseUrl = config["Supabase:Url"];
         var supabaseKey = config["Supabase:ServiceRoleKey"];
 
-        // Query tenant_members and join with tenants
-        var query = $"tenant_members?user_id=eq.{userId}&select=tenant_id,roles,tenants(name)";
-        var request = new HttpRequestMessage(HttpMethod.Get, $"{supabaseUrl}/rest/v1/{query}");
-        request.Headers.Add("apikey", supabaseKey);
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", supabaseKey);
+        // 1. Fetch org membership (single row, single role)
+        var orgRequest = new HttpRequestMessage(HttpMethod.Get, $"{supabaseUrl}/rest/v1/org_members?user_id=eq.{userId}&select=role&limit=1");
+        AddSupabaseHeaders(orgRequest, supabaseKey!);
+        var orgResponse = await httpClient.SendAsync(orgRequest);
+        if (!orgResponse.IsSuccessStatusCode) return Results.Problem($"Failed to fetch org membership: {orgResponse.StatusCode}");
+        var orgData = await orgResponse.Content.ReadFromJsonAsync<List<SupabaseOrgMembershipResponse>>();
+        var orgRole = orgData?.FirstOrDefault()?.role;
+        if (string.IsNullOrEmpty(orgRole)) return Results.Ok(new OrgMembershipDto("", new Dictionary<string, string>()));
 
-        var response = await httpClient.SendAsync(request);
-        if (!response.IsSuccessStatusCode) 
+        // 2. Fetch permissions for the org role
+        var roleFilter = $"\"{orgRole}\"";
+        var permRequest = new HttpRequestMessage(HttpMethod.Get, $"{supabaseUrl}/rest/v1/role_module_permissions?role=in.({roleFilter})&select=module,permission");
+        AddSupabaseHeaders(permRequest, supabaseKey!);
+        var permResponse = await httpClient.SendAsync(permRequest);
+
+        var permissions = new Dictionary<string, string>();
+        if (permResponse.IsSuccessStatusCode)
         {
-            var errorBody = await response.Content.ReadAsStringAsync();
-            // Using logger from parent scope if available or just return problem
-            return Results.Problem($"Failed to fetch memberships: {response.StatusCode}");
+            var permsData = await permResponse.Content.ReadFromJsonAsync<List<SupabasePermissionResponse>>();
+            if (permsData != null)
+                foreach (var p in permsData)
+                    permissions[p.module] = p.permission;
         }
 
-        var rawData = await response.Content.ReadFromJsonAsync<List<SupabaseTenantMembershipResponse>>();
-        var memberships = rawData?.Select(d => new TenantMembershipDto(
-            d.tenant_id,
-            d.tenants.name,
-            d.roles
-        )).ToList();
-
-        return Results.Ok(memberships);
+        return Results.Ok(new OrgMembershipDto(orgRole, permissions));
     }
 
-    private static async Task<IResult> GetAvatarUploadUrl(ClaimsPrincipal user, IConfiguration config, HttpClient httpClient)
+    private static async Task<IResult> GetPermissions(
+        ClaimsPrincipal user,
+        Guid? eventId,
+        IConfiguration config,
+        HttpClient httpClient)
     {
         var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
+
+        var supabaseUrl = config["Supabase:Url"];
+        var supabaseKey = config["Supabase:ServiceRoleKey"];
+
+        var roles = new HashSet<string>();
+
+        // 1. System Admin
+        var sysAdminRequest = new HttpRequestMessage(HttpMethod.Get, $"{supabaseUrl}/rest/v1/system_admins?user_id=eq.{userId}&select=user_id");
+        AddSupabaseHeaders(sysAdminRequest, supabaseKey!);
+        var sysAdminResponse = await httpClient.SendAsync(sysAdminRequest);
+        if (sysAdminResponse.IsSuccessStatusCode)
+        {
+            var data = await sysAdminResponse.Content.ReadFromJsonAsync<List<object>>();
+            if (data?.Count > 0) roles.Add(AppRoles.SystemAdmin);
+        }
+
+        // 2. Org Role
+        var orgRequest = new HttpRequestMessage(HttpMethod.Get, $"{supabaseUrl}/rest/v1/org_members?user_id=eq.{userId}&select=role&limit=1");
+        AddSupabaseHeaders(orgRequest, supabaseKey!);
+        var orgResponse = await httpClient.SendAsync(orgRequest);
+        if (orgResponse.IsSuccessStatusCode)
+        {
+            var data = await orgResponse.Content.ReadFromJsonAsync<List<SupabaseOrgMembershipResponse>>();
+            var orgRole = data?.FirstOrDefault()?.role;
+            if (!string.IsNullOrEmpty(orgRole)) roles.Add(orgRole);
+        }
+
+        // 3. Event Role
+        if (eventId.HasValue)
+        {
+            var eventRequest = new HttpRequestMessage(HttpMethod.Get, $"{supabaseUrl}/rest/v1/event_members?user_id=eq.{userId}&event_id=eq.{eventId}&select=role");
+            AddSupabaseHeaders(eventRequest, supabaseKey!);
+            var eventResponse = await httpClient.SendAsync(eventRequest);
+            if (eventResponse.IsSuccessStatusCode)
+            {
+                var data = await eventResponse.Content.ReadFromJsonAsync<List<SupabaseEventMembershipResponse>>();
+                if (data != null) foreach (var r in data) roles.Add(r.role);
+            }
+        }
+
+        var permissions = new Dictionary<string, string>();
+        var hierarchy = new Dictionary<string, int> { { "none", 0 }, { "read", 1 }, { "write", 2 } };
+
+        // 4. Resolve baseline from Roles
+        if (roles.Count > 0)
+        {
+            var roleFilter = string.Join(",", roles.Select(r => $"\"{r}\""));
+            var permRequest = new HttpRequestMessage(HttpMethod.Get, $"{supabaseUrl}/rest/v1/role_module_permissions?role=in.({roleFilter})&select=module,permission");
+            AddSupabaseHeaders(permRequest, supabaseKey!);
+            var permResponse = await httpClient.SendAsync(permRequest);
+
+            if (permResponse.IsSuccessStatusCode)
+            {
+                var permsData = await permResponse.Content.ReadFromJsonAsync<List<SupabasePermissionResponse>>();
+                if (permsData != null)
+                {
+                    foreach (var p in permsData)
+                    {
+                        if (!permissions.ContainsKey(p.module) || hierarchy.GetValueOrDefault(p.permission, 0) > hierarchy.GetValueOrDefault(permissions[p.module], 0))
+                            permissions[p.module] = p.permission;
+                    }
+                }
+            }
+        }
+
+        // Default base permissions for regular users (if not EventManager/OrgOwner/SystemAdmin)
+        // Ensure every module has at least 'none', except 'communications' which is 'read'
+        foreach (var module in ModulePermissions.AllModules)
+        {
+            if (!permissions.ContainsKey(module))
+            {
+                permissions[module] = module == ModulePermissions.Communications ? ModulePermissions.Read : ModulePermissions.None;
+            }
+        }
+
+        // 5. Apply granular overrides from event_member_permissions (only for specific event)
+        if (eventId.HasValue)
+        {
+            var granularRequest = new HttpRequestMessage(HttpMethod.Get, $"{supabaseUrl}/rest/v1/event_member_permissions?user_id=eq.{userId}&event_id=eq.{eventId}&select=module,permission");
+            AddSupabaseHeaders(granularRequest, supabaseKey!);
+            var granularResponse = await httpClient.SendAsync(granularRequest);
+            
+            if (granularResponse.IsSuccessStatusCode)
+            {
+                var granularData = await granularResponse.Content.ReadFromJsonAsync<List<SupabaseEventPermissionResponse>>();
+                if (granularData != null)
+                {
+                    foreach (var grant in granularData)
+                    {
+                        // Overrides base permission if higher in hierarchy 
+                        // (Wait, actually granular should override completely? Or just take the highest. Usually take highest among granted roles + granular)
+                        if (hierarchy.GetValueOrDefault(grant.permission, 0) > hierarchy.GetValueOrDefault(permissions.GetValueOrDefault(grant.module, "none"), 0))
+                        {
+                            permissions[grant.module] = grant.permission;
+                        }
+                    }
+                }
+            }
+        }
+
+        return Results.Ok(permissions);
+    }
+
+    private static void AddSupabaseHeaders(HttpRequestMessage request, string key)
+    {
+        request.Headers.Add("apikey", key);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key);
+    }
+
+    private static async Task<IResult> GetAvatarUploadUrl(ClaimsPrincipal user, AvatarUploadUrlRequest request, IConfiguration config, HttpClient httpClient)
+    {
+        var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
+
+        // Validate MIME type
+        var allowedMimes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
+        if (string.IsNullOrEmpty(request.ContentType) || !allowedMimes.Contains(request.ContentType.ToLower()))
+        {
+            return Results.BadRequest("Invalid content type. Only JPEG, PNG, GIF, and WEBP are allowed.");
+        }
 
         var supabaseUrl = config["Supabase:Url"];
         var supabaseKey = config["Supabase:ServiceRoleKey"];
@@ -155,8 +292,10 @@ public static class UserEndpoints
         // The bucket RLS will handle the permission if the frontend uses its own token, 
         // OR the backend generates a signed URL.
         
-        // Let's simulate generating a signed upload URL via Supabase Storage API
-        var filePath = $"{userId}/avatar.jpg";
+        // Generate a signed upload URL via Supabase Storage API
+        var extension = request.ContentType.Split('/').Last();
+        if (extension == "jpeg") extension = "jpg";
+        var filePath = $"{userId}/avatar.{extension}";
         var storageRequest = new HttpRequestMessage(HttpMethod.Post, $"{supabaseUrl}/storage/v1/object/upload/sign/avatars/{filePath}");
         storageRequest.Headers.Add("apikey", supabaseKey);
         storageRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", supabaseKey);
@@ -192,8 +331,8 @@ public static class UserEndpoints
         var response = await httpClient.SendAsync(patchRequest);
         return response.IsSuccessStatusCode ? Results.NoContent() : Results.Problem("Failed to confirm avatar");
     }
-}
-    private static string? ResolveAvatarUrl(string supabaseUrl, string? avatarPath)
+
+    private static async Task<string?> ResolveAvatarUrlAsync(string supabaseUrl, string supabaseKey, string? avatarPath, HttpClient httpClient)
     {
         if (string.IsNullOrWhiteSpace(avatarPath))
         {
@@ -206,5 +345,46 @@ public static class UserEndpoints
             return avatarPath;
         }
 
+        var normalizedBaseUrl = supabaseUrl.TrimEnd('/');
+        var encodedPath = EncodeStoragePath(avatarPath);
+
+        // Prefer signed read URLs so avatar rendering works even with a private bucket.
+        var signRequest = new HttpRequestMessage(HttpMethod.Post, $"{normalizedBaseUrl}/storage/v1/object/sign/avatars/{encodedPath}");
+        signRequest.Headers.Add("apikey", supabaseKey);
+        signRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", supabaseKey);
+        signRequest.Content = JsonContent.Create(new { expiresIn = 3600 });
+
+        var signResponse = await httpClient.SendAsync(signRequest);
+        if (signResponse.IsSuccessStatusCode)
+        {
+            string? signedPath = null;
+            using var signJson = await JsonDocument.ParseAsync(await signResponse.Content.ReadAsStreamAsync());
+            var root = signJson.RootElement;
+            if (root.TryGetProperty("signedURL", out var signedUrlUpper))
+            {
+                signedPath = signedUrlUpper.GetString();
+            }
+            else if (root.TryGetProperty("signedUrl", out var signedUrlLower))
+            {
+                signedPath = signedUrlLower.GetString();
+            }
+
+            if (!string.IsNullOrWhiteSpace(signedPath))
+            {
+                if (Uri.TryCreate(signedPath, UriKind.Absolute, out _))
+                {
+                    return signedPath;
+                }
+
+                var normalizedSignedPath = signedPath.StartsWith("/") ? signedPath : $"/{signedPath}";
+                return $"{normalizedBaseUrl}/storage/v1{normalizedSignedPath}";
+            }
+        }
+
+        // Fallback for public buckets.
         return $"{supabaseUrl.TrimEnd('/')}/storage/v1/object/public/avatars/{avatarPath}";
     }
+
+    private static string EncodeStoragePath(string path) =>
+        string.Join('/', path.TrimStart('/').Split('/').Select(Uri.EscapeDataString));
+}

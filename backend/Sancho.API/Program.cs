@@ -1,6 +1,9 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using User.Endpoints;
+using Microsoft.AspNetCore.Authentication;
+using Sancho.Infrastructure.Authorization;
+using Sancho.Shared.Roles;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -49,7 +52,30 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    // 1. Platform Level
+    options.AddPolicy(AppRoles.SystemAdmin, policy => policy.RequireClaim("sancho:system_admin", "true"));
+
+    // 2. Module Level Policies
+    foreach (var module in ModulePermissions.AllModules)
+    {
+        // Permission: Read
+        options.AddPolicy($"{module}:{ModulePermissions.Read}", policy => 
+            policy.RequireAssertion(context => 
+                context.User.HasClaim(c => c.Type == $"sancho:permission:{module}" && 
+                    (c.Value == ModulePermissions.Read || c.Value == ModulePermissions.Write))));
+
+        // Permission: Write
+        options.AddPolicy($"{module}:{ModulePermissions.Write}", policy => 
+            policy.RequireAssertion(context => 
+                context.User.HasClaim(c => c.Type == $"sancho:permission:{module}" && 
+                    c.Value == ModulePermissions.Write)));
+    }
+});
+
+builder.Services.AddScoped<IClaimsTransformation, SanchoClaimsTransformation>();
+
 builder.Services.AddHttpClient();
 
 builder.Services.AddCors(options =>

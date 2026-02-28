@@ -1,51 +1,67 @@
 # Sancho Application Roles & Permissions
 
-This document serves as a reference for the module-specific role system used in Sancho.
+Sancho uses a **Hierarchical Role-Based Access Control (RBAC)** system combined with **Resource-Scoped Granular Permissions**. Access is resolved across three tiers: Platform, Organization, and Event.
 
-## Core Authorization Model
+## Scope Hierarchy
 
-Sancho uses a **Modular Multi-Tenant Role-Based Access Control (RBAC)** system. 
-Each user is a member of one or more tenants, and their permissions within a tenant are defined by an array of roles stored in `public.tenant_members.roles`.
+1.  **Platform (`SystemAdmin`)**: Global access to all organization data, system settings, and billing.
+2.  **Organization (`OrgOwner`)**: Full control over the single organization, including the ability to appoint Event Managers.
+3.  **Event (`EventManager`)**: Total control over a specific event.
+4.  **Granular User Grants**: Per-module permissions (`none`, `read`, `write`) granted to regular users for specific events.
 
-### Tenant-Wide Roles
+> **Note:** The `admin` module permission level is exclusive to `SystemAdmin`, `OrgOwner`, and `EventManager` via their role. Regular users can only be granted up to `write`.
 
-These roles provide overarching access across all modules within a specific tenant.
+---
 
-- **`owner`**:
-  - Full administrative control.
-  - Can manage tenant settings, billing, and all user memberships/roles.
-  - Can perform any action in any module.
-- **`admin`**:
-  - Can manage all application modules.
-  - Can manage user roles (except owners).
-  - Restricted from billing and critical tenant deletion actions.
+## Role Definitions
 
-### Module-Specific Roles
-
-For more granular access, users can be assigned specific roles per module (Bounded Context).
-
-| Bounded Context | Manager Role (`*_manager`) | Viewer Role (`*_viewer`) |
+| Role | Scope | Description |
 | :--- | :--- | :--- |
-| **Event Management** | `event_manager` | `event_viewer` |
-| **Characters** | `character_manager` | `character_viewer` |
-| **Narrative** | `narrative_manager` | `narrative_viewer` |
-| **Logistics** | `logistics_manager` | `logistics_viewer` |
-| **NPC / Organization** | `npc_manager` | `npc_viewer` |
-| **Finance** | `finance_manager` | `finance_viewer` |
-| **Communications** | `communications_manager` | `communications_viewer` |
+| **`SystemAdmin`** | Platform | Full administrative control of the entire platform. Can assign OrgOwner. |
+| **`OrgOwner`** | Organization | Full administrative control over the organization and all its events. |
+| **`EventManager`** | Event | Total control over a specific event. Appointed by OrgOwner or SystemAdmin. |
 
-#### Permission Levels:
-- **Manager**: Grants full CRUD (Create, Read, Update, Delete) permissions for the specific module's resources.
-- **Viewer**: Grants Read-only access to the module's resources and dashboards.
+*Roles like `NarrativeTeam` or `Player` do not exist as strict DB enums. Their access patterns are achieved via granular module grants.*
 
-## Implementation Details
+---
 
-- **Database Type**: PostgreSQL ENUM `public.tenant_role`.
-- **Storage**: `public.tenant_members.roles` (Array).
-- **Enforcement**: Via PostgreSQL **Row Level Security (RLS)** and backend service-layer validation.
+## Permission Resolution Logic
 
-## Development Guidelines
+When determining if a user has access to a module actions, the system checks permissions in this order of priority:
 
-1. **Check Roles**: When implementing a new feature in a module (e.g., "Narrative"), always verify if the user has either `owner`, `admin`, or the specific `narrative_manager` role.
-2. **RLS First**: Most data isolation should be handled by RLS policies using the `auth.uid()` and checking the `tenant_members` table.
-3. **Updating Roles**: Changes to the available roles must be reflected in the `tenant_role` ENUM and this document.
+1. **Is the user `SystemAdmin`?** → Full Access
+2. **Is the user `OrgOwner`?** → Full Access
+3. **Is the user `EventManager` for this event?** → Full Access
+4. **Does the user have an explicit grant in `event_member_permissions`?** → Return granted value (`read` or `write`)
+5. **No grant found?** → Default to `read` for `communications`, `none` for everything else.
+
+### Example Access Profiles (Configured via Grants)
+
+| Team Type | Event Mgmt | Narrative | Logistics | Finance | NPC/Org | Characters | Communications |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| *Narrative Writer* | read | write | none | none | read | read | read |
+| *Logistics Coordinator*| read | none | write | none | read | none | read |
+| *Player* | read | none | none | none | none | write | read |
+
+*(These are not fixed roles, just examples of how `event_member_permissions` rows would be configured for specific users).*
+
+---
+
+## Technical Implementation
+
+### Database
+- **Org Roles**: Stored in `public.org_members` (one row per user_id). Must be `OrgOwner`.
+- **Event Roles**: Stored in `public.event_members` (user_id, event_id). Must be `EventManager`.
+- **Granular Grants**: Defined in `public.event_member_permissions` (user_id, event_id, module, permission).
+- **System Admins**: Identified via the `public.system_admins` table.
+
+### Backend
+- **Claims**: Roles and permissions are injected into the user principal via `SanchoClaimsTransformation`.
+  - `sancho:org_role` = the user's org-level role string.
+  - `sancho:event_role` = `{eventId}:{role}` per event membership.
+  - `sancho:permission:{module}` = effective permission level for each module.
+- **Policies**: Every module endpoint is protected by named policies (e.g., `[Authorize(Policy = "narrative:write")]`).
+- **RLS**: PostgreSQL Row Level Security enforces event isolation based on roles and explicit permission grants.
+
+### Frontend
+- **Permissions API**: Component logic should use `GET /api/user/me/permissions?eventId={id}` to resolve effective permissions for the current view context across roles and granular grants.

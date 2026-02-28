@@ -35,11 +35,11 @@ export default async function ProfilePage({ params }: { params: Promise<{ locale
     const membershipsResponse = await fetch(`${API_BASE_URL}/api/user/me/memberships`, { headers, cache: "no-store" })
 
     const profileData = userResponse.ok ? await userResponse.json() : null
-    const memberships = membershipsResponse.ok ? await membershipsResponse.json() : []
+    const membership = membershipsResponse.ok ? await membershipsResponse.json() : null
 
     if (!profileData) {
-        const errorText = await userResponse.text();
-        console.error("Profile API Error:", userResponse.status, errorText);
+        const errorText = await userResponse.text()
+        console.error("Profile API Error:", userResponse.status, errorText)
         return (
             <div className="mx-auto w-full max-w-5xl px-6 py-10">
                 <div className="bg-destructive/10 border border-destructive/20 text-destructive p-4 rounded-md">
@@ -75,7 +75,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ locale
                             email={session.user.email!}
                             provider={session.user.app_metadata.provider || "google"}
                         />
-                        <RolesOverview memberships={memberships} />
+                        <RolesOverview membership={membership} />
                     </div>
 
                     {/* Right Column: Settings & Content */}

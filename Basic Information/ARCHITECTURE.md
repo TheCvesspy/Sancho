@@ -3,7 +3,7 @@
 This document captures the current, high-level architecture and dependencies for the Sancho platform.
 
 ## Purpose
-Sancho is a multi-tenant web application for LARP organizers. It covers the full event lifecycle from planning through execution. The system is designed as a modular monolith with clear bounded contexts.
+Sancho is a **single-organization** web application for a LARP group. It covers the full event lifecycle from planning through execution. The system is designed as a modular monolith with clear bounded contexts. One Supabase deployment = one organization managing multiple events.
 
 ## High-Level Architecture
 - Clients: Next.js web app, admin app, and mobile PWA view
@@ -43,15 +43,30 @@ Sancho is a multi-tenant web application for LARP organizers. It covers the full
 - `docs/` architecture and API documentation
 
 ## Data Model (Conceptual)
-- Tenant (Organization - `public.tenants`)
-- Event (belongs to Tenant - `public.events`)
-- User Profile (Linked to global identity - `public.user_profiles`)
-- TenantMember (User + Tenant + Role Array - `public.tenant_members`)
+
+The application has **one implicit organization** (the deployment). There is no `tenants` table.
+
+- **OrgMember** (User + `OrgOwner` role — `public.org_members`)
+- **Event** (belongs to the org — `public.events`)
+- **EventMember** (User + Event + `EventManager` role — `public.event_members`)
+- **EventMemberPermission** (Explicit per-user, per-event, per-module grants — `public.event_member_permissions`)
+- **User Profile** (Linked to global identity — `public.user_profiles`)
+- **SystemAdmin** (Platform-level Admin — `public.system_admins`)
+- **RoleModulePermission** (Declarative matrix for base roles — `public.role_module_permissions`)
 - Characters (belongs to Event, linked to User)
 - NarrativeAsset (belongs to Event, linked to factions/quests)
 - LogisticsItem (resources, locations, maps for an Event)
 - FinanceRecord (payments, budget items for an Event)
 - Communication (announcements and notifications scoped to Event)
+
+## Organization Data Model
+```
+Organization (single, implicit — one deployment)
+  └── OrgMember (OrgOwner)
+        └── Event
+              ├── EventMember (EventManager)
+              └── EventMemberPermission (Regular users with none/read/write per-module)
+```
 
 ## Auth Flows
 - Sign-in uses Supabase Auth with Google OAuth.
@@ -59,12 +74,13 @@ Sancho is a multi-tenant web application for LARP organizers. It covers the full
 - Next.js **Server Components** call `supabase.auth.getUser()` to cryptographically verify the session server-side, then forward the `access_token` to the API Gateway as a `Bearer` token.
 - The API Gateway validates the token by fetching Supabase's public signing keys from the raw JWKS endpoint (`/auth/v1/.well-known/jwks.json`) via `HttpClient` + `JsonWebKeySet.Create()`. Keys are cached in memory after the first fetch.
 - The API Gateway resolves the validated token to:
-  - Tenant membership and roles from `public.tenant_members`.
-  - Roles are module-specific (e.g., `event_manager`, `finance_viewer`).
-- For backend-to-Supabase administrative queries, the API relies on a modern **Secret API Key** rather than the legacy `service_role` key.
+  - System Admin status from `public.system_admins`.
+  - Org role from `public.org_members` (single row per user).
+  - Event roles from `public.event_members`.
+  - Effective module permissions evaluated across roles + explicit grants in `public.event_member_permissions`.
 - Authorization is enforced at:
   - API layer (policy checks per module/role/action).
-  - Database layer (RLS policies in Supabase based on `tenant_members`).
+  - Database layer (RLS policies in Supabase based on `org_members` and `event_members`).
 
 
 ## API Gateway Routing
@@ -95,7 +111,5 @@ WebSocket endpoints (Realtime or custom SignalR) should be namespaced per module
 - npm 11.x
 - Supabase CLI installed as a dev dependency at repo root (use `npx supabase`).
 
-## Multi-Tenant Data Isolation
-Tenant isolation is enforced in Supabase using Row Level Security (RLS). All data access must be scoped by tenant and authorized role.
-
-
+## Data Isolation
+Authorization is enforced in Supabase using Row Level Security (RLS). All data access must be scoped by organization and event membership. Org-level access is controlled through `public.org_members`; event-level access through `public.event_members`.

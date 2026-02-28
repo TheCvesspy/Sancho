@@ -2,17 +2,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useTranslations } from "next-intl"
 
-interface Membership {
-    tenantId: string
-    tenantName: string
-    roles: string[]
+export interface OrgMembership {
+    orgRole: string
+    permissions: Record<string, string>
 }
 
 interface RolesOverviewProps {
-    memberships: Membership[]
+    membership: OrgMembership | null
 }
 
-export function RolesOverview({ memberships }: RolesOverviewProps) {
+export function RolesOverview({ membership }: RolesOverviewProps) {
     const t = useTranslations("profile")
 
     return (
@@ -20,23 +19,33 @@ export function RolesOverview({ memberships }: RolesOverviewProps) {
             <CardHeader>
                 <CardTitle>{t("roles")}</CardTitle>
             </CardHeader>
-            <CardContent>
-                {memberships.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">{t("noRoles")}</p>
-                ) : (
-                    <div className="space-y-4">
-                        {memberships.map((m) => (
-                            <div key={m.tenantId} className="flex flex-col gap-2 border-b pb-3 last:border-0 last:pb-0">
-                                <span className="text-sm font-semibold">{m.tenantName}</span>
-                                <div className="flex flex-wrap gap-1">
-                                    {m.roles.map((role) => (
-                                        <Badge key={role} variant="secondary" className="capitalize">
-                                            {role.replace('_', ' ')}
-                                        </Badge>
-                                    ))}
+            <CardContent className="space-y-4">
+                {/* Organization role */}
+                <div>
+                    <p className="text-xs text-muted-foreground mb-1">{t("orgRole")}</p>
+                    {membership?.orgRole ? (
+                        <Badge variant="secondary" className="capitalize">
+                            {membership.orgRole.replace(/([A-Z])/g, " $1").trim()}
+                        </Badge>
+                    ) : (
+                        <p className="text-sm text-muted-foreground">{t("noRoles")}</p>
+                    )}
+                </div>
+
+                {/* Base Module Permissions */}
+                {membership?.permissions && Object.keys(membership.permissions).length > 0 && (
+                    <div className="pt-2">
+                        <p className="text-xs text-muted-foreground mb-2">Base Permissions</p>
+                        <div className="flex flex-col gap-2">
+                            {Object.entries(membership.permissions).map(([module, permission]) => (
+                                <div key={module} className="flex items-center justify-between text-sm py-1 border-b last:border-0">
+                                    <span className="capitalize">{module.replace(/_/g, " ")}</span>
+                                    <Badge variant={permission === "write" ? "default" : permission === "read" ? "secondary" : "outline"} className="capitalize text-xs">
+                                        {permission}
+                                    </Badge>
                                 </div>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
                     </div>
                 )}
             </CardContent>
