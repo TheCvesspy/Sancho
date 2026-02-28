@@ -1,0 +1,41 @@
+{
+    "title": "Identity & Access",
+    "subtitle": "Manage users and platform access roles.",
+    "table": {
+        "searchPlaceholder": "Search by name or email...",
+        "roleFilterAll": "All Roles",
+        "roleFilterOrgOwner": "OrgOwner",
+        "roleFilterSystemAdmin": "SystemAdmin",
+        "roleFilterRegular": "Regular",
+        "columns": {
+            "user": "User",
+            "role": "Role",
+            "events": "Events",
+            "joined": "Joined",
+            "lastSignIn": "Last Sign In",
+            "actions": "Actions"
+        }
+    },
+    "roles": {
+        "systemAdmin": "SystemAdmin",
+        "orgOwner": "OrgOwner",
+        "eventManager": "EventManager",
+        "regular": "User"
+    },
+    "actions": {
+        "assignOrgOwner": "Assign OrgOwner",
+        "revokeOrgOwner": "Revoke OrgOwner",
+        "assignSuccess": "OrgOwner role assigned successfully.",
+        "revokeSuccess": "OrgOwner role revoked successfully.",
+        "errorTitle": "Error",
+        "errorGen": "An error occurred while changing the role."
+    },
+    "dialog": {
+        "assignTitle": "Assign OrgOwner Role",
+        "assignDescription": "This will grant the user full administrative access to the organization and all its events.",
+        "revokeTitle": "Revoke OrgOwner Role",
+        "revokeDescription": "This will remove full administrative access. The user will still retain access to any specific events they manage.",
+        "confirm": "Confirm",
+        "cancel": "Cancel"
+    }
+}

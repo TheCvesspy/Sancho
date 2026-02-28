@@ -9,14 +9,14 @@ This document describes how Sancho identifies users, manages their sessions, and
 - **Frontend**: Next.js 15 Middleware for session persistence and route protection.
 
 ## User Lifecycle
-1. **Sign In**: User authenticates via Google.
-2. **Post-Auth Trigger**: The Postgres function `handle_new_user()` in the `public` schema is triggered by an insert in `auth.users`.
-3. **Profile Creation**: A record is created in `public.user_profiles` linked by `id` (UUID).
-4. **Org Initialization**:
-   - If the user is the pre-defined owner (`cvesspy@gmail.com`), the trigger:
-     - Inserts the user into `public.system_admins`.
-     - Inserts the user into `public.org_members` with the `'OrgOwner'` role.
-   - For other users, org assignment is handled via an invitation/admin flow (TBD).
+1. **Invite Generation**: A `SystemAdmin` or `OrgOwner` generates a cryptographically secure random token via the Identity module.
+2. **Invite Storage**: The SHA-256 hash of the token is stored in `public.invite_tokens`. The raw token is shared with the invitee.
+3. **Registration**: The user enters the raw token, email, and password on the Register page.
+4. **Validation**: The frontend hashes the token (SHA-256) and passes it in the `signUp` metadata.
+5. **Post-Auth Trigger**: `handle_new_user()` validates the hash.
+   - If valid: Create profile, mark token as `used`.
+   - If invalid/missing: The insert into `auth.users` is blocked (Registration fails).
+6. **Login**: After registration, the user can log in via Email/Password or Google OAuth (if email matches).
 
 ## Single-Organization Model
 Sancho operates as a **single-organization** deployment. There is no `tenants` table. All users share the same implicit organization.

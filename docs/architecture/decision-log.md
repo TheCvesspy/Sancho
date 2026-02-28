@@ -59,3 +59,13 @@ Lightweight log of noteworthy architecture and design decisions.
   - `OrgAdmin` and static team roles (`NarrativeTeam`, `Player`, etc.) were retired from `app_role`.
   - Created `event_member_permissions` for explicit per-module (`none`, `read`, `write`) grants.
   - Default user access restricted to `read` on `communications` (all other modules `none`).
+
+- **Context**: Defining a concrete backend design for Event Management with multi-event support and operational controls.
+  **Decision**: Standardized Event module API under `/api/events` with explicit lifecycle operations (archive, soft-delete, restore), integrated access-control management (event managers + per-module grants), and read models for stats and recent activity.
+  **Implementation**:
+  - Added API contract doc: `docs/api/events.md`.
+  - Added bounded context doc: `docs/bounded-contexts/event-management.md`.
+  - Documented archived-event read-only rule for non `SystemAdmin`/`OrgOwner`.
+  - Confirmed `SystemAdmin` and `OrgOwner` are auto-treated as event managers without `event_members` rows.
+  - Introduced lightweight `event_activity_log` design and pluggable stats provider pattern.
+  **Alternatives**: Split manager assignment and permission management into separate modules (rejected due to operator workflow fragmentation).

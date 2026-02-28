@@ -12,7 +12,8 @@ public record UserProfileDto(
 /// <summary>Represents the user's single organization-level role and their effective module permissions.</summary>
 public record OrgMembershipDto(
     string OrgRole,
-    Dictionary<string, string> Permissions);
+    Dictionary<string, string> Permissions,
+    bool IsSystemAdmin = false);
 
 /// <summary>Represents the user's role and granular permissions within a specific event.</summary>
 public record EventMembershipDto(

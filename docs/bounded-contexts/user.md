@@ -9,6 +9,8 @@ The **User Context** manages individual user identity, profile settings, and loc
 - **Account Dashboard**: An overview of the user's organization role, event memberships, and a summary of their activity.
 - **Security**: Self-service management of personal data with strict access controls.
 
+> **Note on Organization Identity**: While the `User` context handles self-service functionality, system-wide role assignments and user directory management are handled by the **Identity & Access** context (`/api/identity/...`). Only `SystemAdmin` users have access to those APIs.
+
 ## Data Model
 
 - **`public.user_profiles`** (Extends original schema)

@@ -4,17 +4,40 @@
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <OpenApiGenerateDocuments>false</OpenApiGenerateDocuments>
+    <OpenApiGenerateDocumentsOnBuild>false</OpenApiGenerateDocumentsOnBuild>
+    <OpenApiDocumentsDirectory>..\..\docs\api</OpenApiDocumentsDirectory>
+    <OpenApiGenerateDocumentsOptions>--file-name sancho-openapi</OpenApiGenerateDocumentsOptions>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.1" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.13" />
+    <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" Version="9.0.13">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.IdentityModel.Protocols.OpenIdConnect" Version="8.16.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Sancho.Modules\User\User.csproj" />
+    <ProjectReference Include="..\Sancho.Modules\Identity\Identity.csproj" />
+    <ProjectReference Include="..\Sancho.Modules\EventManagement\EventManagement.csproj" />
     <ProjectReference Include="..\Sancho.Infrastructure\Sancho.Infrastructure.csproj" />
   </ItemGroup>
+
+  <Target Name="OpenApiGenerateDocuments" DependsOnTargets="Build">
+    <PropertyGroup>
+      <_OpenApiOutput>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\$(OpenApiDocumentsDirectory)'))</_OpenApiOutput>
+      <_OpenApiFile>$(_OpenApiOutput)\sancho-openapi.json</_OpenApiFile>
+      <_OpenApiScript>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\..\generate_openapi.ps1'))</_OpenApiScript>
+    </PropertyGroup>
+
+    <Error Condition="!Exists('$(_OpenApiScript)')" Text="OpenAPI generation script not found at $(_OpenApiScript)." />
+    <Exec Command="powershell -ExecutionPolicy Bypass -File &quot;$(_OpenApiScript)&quot; -ApiProject &quot;$(MSBuildProjectFullPath)&quot; -OutputFile &quot;$(_OpenApiFile)&quot;" />
+  </Target>
+
+  <Target Name="GenerateOpenApiDocuments" DependsOnTargets="OpenApiGenerateDocuments" />
 
 </Project>

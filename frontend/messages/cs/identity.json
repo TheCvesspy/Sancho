@@ -1,0 +1,41 @@
+{
+    "title": "Identita a Přístup",
+    "subtitle": "Správa uživatelů a přístupových rolí platformy.",
+    "table": {
+        "searchPlaceholder": "Hledat podle jména nebo emailu...",
+        "roleFilterAll": "Všechny role",
+        "roleFilterOrgOwner": "OrgOwner",
+        "roleFilterSystemAdmin": "SystemAdmin",
+        "roleFilterRegular": "Běžný",
+        "columns": {
+            "user": "Uživatel",
+            "role": "Role",
+            "events": "Eventy",
+            "joined": "Připojen",
+            "lastSignIn": "Poslední přihlášení",
+            "actions": "Akce"
+        }
+    },
+    "roles": {
+        "systemAdmin": "SystemAdmin",
+        "orgOwner": "OrgOwner",
+        "eventManager": "EventManager",
+        "regular": "Uživatel"
+    },
+    "actions": {
+        "assignOrgOwner": "Přiřadit OrgOwner",
+        "revokeOrgOwner": "Odebrat OrgOwner",
+        "assignSuccess": "Role OrgOwner úspěšně přiřazena.",
+        "revokeSuccess": "Role OrgOwner úspěšně odebrána.",
+        "errorTitle": "Chyba",
+        "errorGen": "Při změně role došlo k chybě."
+    },
+    "dialog": {
+        "assignTitle": "Přiřadit roli OrgOwner",
+        "assignDescription": "Tímto udělíte uživateli plný administrativní přístup k organizaci a všem jejím eventům.",
+        "revokeTitle": "Odebrat roli OrgOwner",
+        "revokeDescription": "Tímto odeberete plný administrativní přístup. Uživatel si zachová přístup k eventům, které spravuje.",
+        "confirm": "Potvrdit",
+        "cancel": "Zrušit"
+    }
+}

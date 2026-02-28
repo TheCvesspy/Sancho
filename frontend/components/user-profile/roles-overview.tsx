@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl"
 export interface OrgMembership {
     orgRole: string
     permissions: Record<string, string>
+    isSystemAdmin?: boolean
 }
 
 interface RolesOverviewProps {
@@ -13,6 +14,7 @@ interface RolesOverviewProps {
 
 export function RolesOverview({ membership }: RolesOverviewProps) {
     const t = useTranslations("profile")
+    const hasAnyRole = Boolean(membership?.isSystemAdmin || membership?.orgRole)
 
     return (
         <Card>
@@ -20,13 +22,19 @@ export function RolesOverview({ membership }: RolesOverviewProps) {
                 <CardTitle>{t("roles")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-                {/* Organization role */}
                 <div>
-                    <p className="text-xs text-muted-foreground mb-1">{t("orgRole")}</p>
-                    {membership?.orgRole ? (
-                        <Badge variant="secondary" className="capitalize">
-                            {membership.orgRole.replace(/([A-Z])/g, " $1").trim()}
-                        </Badge>
+                    <p className="text-xs text-muted-foreground mb-2">Assigned roles</p>
+                    {hasAnyRole ? (
+                        <div className="flex flex-wrap gap-2">
+                            {membership?.isSystemAdmin && (
+                                <Badge>System Admin</Badge>
+                            )}
+                            {membership?.orgRole && (
+                                <Badge variant="secondary" className="capitalize">
+                                    {membership.orgRole.replace(/([A-Z])/g, " $1").trim()}
+                                </Badge>
+                            )}
+                        </div>
                     ) : (
                         <p className="text-sm text-muted-foreground">{t("noRoles")}</p>
                     )}
@@ -35,7 +43,7 @@ export function RolesOverview({ membership }: RolesOverviewProps) {
                 {/* Base Module Permissions */}
                 {membership?.permissions && Object.keys(membership.permissions).length > 0 && (
                     <div className="pt-2">
-                        <p className="text-xs text-muted-foreground mb-2">Base Permissions</p>
+                        <p className="text-xs text-muted-foreground mb-2">Base permissions</p>
                         <div className="flex flex-col gap-2">
                             {Object.entries(membership.permissions).map(([module, permission]) => (
                                 <div key={module} className="flex items-center justify-between text-sm py-1 border-b last:border-0">

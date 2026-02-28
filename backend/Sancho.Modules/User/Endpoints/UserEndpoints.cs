@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -124,6 +125,7 @@ public static class UserEndpoints
     {
         var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
+        var isSystemAdmin = user.HasClaim("sancho:system_admin", "true");
 
         var supabaseUrl = config["Supabase:Url"];
         var supabaseKey = config["Supabase:ServiceRoleKey"];
@@ -135,7 +137,10 @@ public static class UserEndpoints
         if (!orgResponse.IsSuccessStatusCode) return Results.Problem($"Failed to fetch org membership: {orgResponse.StatusCode}");
         var orgData = await orgResponse.Content.ReadFromJsonAsync<List<SupabaseOrgMembershipResponse>>();
         var orgRole = orgData?.FirstOrDefault()?.role;
-        if (string.IsNullOrEmpty(orgRole)) return Results.Ok(new OrgMembershipDto("", new Dictionary<string, string>()));
+        if (string.IsNullOrEmpty(orgRole))
+        {
+            return Results.Ok(new OrgMembershipDto("", new Dictionary<string, string>(), isSystemAdmin));
+        }
 
         // 2. Fetch permissions for the org role
         var roleFilter = $"\"{orgRole}\"";
@@ -152,12 +157,12 @@ public static class UserEndpoints
                     permissions[p.module] = p.permission;
         }
 
-        return Results.Ok(new OrgMembershipDto(orgRole, permissions));
+        return Results.Ok(new OrgMembershipDto(orgRole, permissions, isSystemAdmin));
     }
 
     private static async Task<IResult> GetPermissions(
         ClaimsPrincipal user,
-        Guid? eventId,
+        [FromQuery] Guid? eventId,
         IConfiguration config,
         HttpClient httpClient)
     {
@@ -388,3 +393,5 @@ public static class UserEndpoints
     private static string EncodeStoragePath(string path) =>
         string.Join('/', path.TrimStart('/').Split('/').Select(Uri.EscapeDataString));
 }
+
+

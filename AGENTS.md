@@ -113,3 +113,9 @@ If you make a noteworthy design decision, add a short note in `docs/architecture
   - Updated `SanchoClaimsTransformation` to resolve `sancho:org_role` from `org_members`.
   - Updated `UserEndpoints` (`GetMemberships`, `GetPermissions`) to use `org_members`.
   - Updated frontend `RolesOverview` component and profile page to display a single org role.
+- **Invite-Only Auth Rework**:
+  - Implemented `public.invite_tokens` for gated registration.
+  - Reworked Login page to support Email/Password and Register tabs.
+  - Updated `handle_new_user` trigger to enforce valid invite token hashes on registration.
+  - Restricted Google OAuth to existing users only.
+  - Added Invite Token management UI to the Identity & Access module.

@@ -1,15 +1,18 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using User.Endpoints;
+using Identity.Endpoints;
+using EventManagement.Endpoints;
 using Microsoft.AspNetCore.Authentication;
 using Sancho.Infrastructure.Authorization;
 using Sancho.Shared.Roles;
+using EventManagement.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi("v1");
 
 // Cache of Supabase signing keys, fetched lazily from the JWKS endpoint
 IList<SecurityKey>? _cachedKeys = null;
@@ -75,6 +78,9 @@ builder.Services.AddAuthorization(options =>
 });
 
 builder.Services.AddScoped<IClaimsTransformation, SanchoClaimsTransformation>();
+builder.Services.AddScoped<EventAuthorizationService>();
+builder.Services.AddScoped<EventActivityService>();
+builder.Services.AddScoped<EventStatsService>();
 
 builder.Services.AddHttpClient();
 
@@ -82,7 +88,7 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins("http://localhost:3000", "http://localhost:3001")
+        policy.WithOrigins("http://localhost:3000", "http://localhost:3001", "http://localhost:3002")
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -96,12 +102,18 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// app.MapIdentityEndpoints() logic
 app.MapUserEndpoints();
+app.MapIdentityEndpoints();
+app.MapEventEndpoints();
 
 var summaries = new[]
 {
@@ -128,3 +140,4 @@ record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
 {
     public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
 }
+

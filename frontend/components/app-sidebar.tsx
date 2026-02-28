@@ -14,9 +14,10 @@ import {
 } from "@/components/ui/sidebar"
 import { Calendar, Users, Fingerprint, BookOpen, Truck, ShieldAlert, BadgeDollarSign, MessageSquare } from "lucide-react"
 import { UserButton } from "@/components/user-button"
+import { useLocale } from "next-intl"
 
 const items = [
-    { title: "Identity & Access", url: "#", icon: Fingerprint },
+    { title: "Identity & Access", url: "/identity", icon: Fingerprint, requiresSystemAdmin: true },
     { title: "Event Management", url: "#", icon: Calendar },
     { title: "Characters", url: "#", icon: Users },
     { title: "Narrative", url: "#", icon: BookOpen },
@@ -26,7 +27,11 @@ const items = [
     { title: "Communications", url: "#", icon: MessageSquare },
 ]
 
-export function AppSidebar() {
+export function AppSidebar({ isSystemAdmin = false }: { isSystemAdmin?: boolean }) {
+    const locale = useLocale();
+
+    const visibleItems = items.filter(i => !i.requiresSystemAdmin || (i.requiresSystemAdmin && isSystemAdmin));
+
     return (
         <Sidebar>
             <SidebarHeader className="p-4 pt-6 pb-2">
@@ -37,16 +42,21 @@ export function AppSidebar() {
                     <SidebarGroupLabel>Modules</SidebarGroupLabel>
                     <SidebarGroupContent>
                         <SidebarMenu>
-                            {items.map((item) => (
-                                <SidebarMenuItem key={item.title}>
-                                    <SidebarMenuButton asChild>
-                                        <a href={item.url}>
-                                            <item.icon />
-                                            <span>{item.title}</span>
-                                        </a>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                            ))}
+                            {visibleItems.map((item) => {
+                                const url = item.url.startsWith("/") && item.url !== "/"
+                                    ? `/${locale}${item.url}`
+                                    : item.url;
+                                return (
+                                    <SidebarMenuItem key={item.title}>
+                                        <SidebarMenuButton asChild>
+                                            <a href={url}>
+                                                <item.icon />
+                                                <span>{item.title}</span>
+                                            </a>
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                )
+                            })}
                         </SidebarMenu>
                     </SidebarGroupContent>
                 </SidebarGroup>
