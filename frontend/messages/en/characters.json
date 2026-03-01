@@ -82,7 +82,18 @@
         "lockedReadOnly": "Abilities cannot be edited while the character is Locked."
     },
     "attachments": {
-        "upload": "Upload File",
+        "title": "Character Documents",
+        "addDocument": "Add Document",
+        "documentName": "Document Name",
+        "documentStatus": "Document Status",
+        "source": "Source",
+        "date": "Date",
+        "uploadFile": "Upload File",
+        "googleDriveLink": "Google Drive Link",
+        "googleDriveUrl": "Google Drive URL",
+        "googleDrivePlaceholder": "https://docs.google.com/...",
+        "uploadNewVersion": "Upload New Version",
+        "changeUrl": "Change URL",
         "fileName": "File Name",
         "uploadedBy": "Uploaded By",
         "actions": "Actions",
@@ -91,9 +102,38 @@
             "image": "Image",
             "other": "Other"
         },
-        "emptyState": "No attachments uploaded yet.",
-        "lockedReadOnly": "Attachments cannot be modified while the character is Locked.",
-        "constraints": "Max 5 MB. Allowed types: PDF, Word, images, text."
+        "documentStatuses": {
+            "draft": "Draft",
+            "readyToReview": "Ready to Review",
+            "final": "Final"
+        },
+        "sourceTypes": {
+            "upload": "Uploaded File",
+            "googleDrive": "Google Drive"
+        },
+        "emptyState": "No documents attached yet.",
+        "lockedReadOnly": "File uploads and deletions are disabled while the character is Locked. Document status can still be updated.",
+        "constraints": "Max 20 MB. PDF, Word, Excel, images, text files.",
+        "relatedDocuments": {
+            "title": "Related Documents",
+            "description": "Documents from related plot lines will appear here once the Narrative module is completed."
+        },
+        "dialogs": {
+            "addDocument": {
+                "title": "Add Document",
+                "submit": "Add Document"
+            },
+            "editDocument": {
+                "title": "Edit Document",
+                "submit": "Save Changes"
+            },
+            "deleteDocument": {
+                "title": "Delete Document",
+                "descriptionUpload": "This will permanently delete the file from storage. This cannot be undone.",
+                "descriptionLink": "This will remove the document link from this character.",
+                "submit": "Delete"
+            }
+        }
     },
     "photo": {
         "upload": "Upload Photo",
@@ -208,7 +248,11 @@
     },
     "validation": {
         "nameRequired": "Name is required.",
-        "raceRequired": "Race is required."
+        "raceRequired": "Race is required.",
+        "documentNameRequired": "Document name is required.",
+        "documentUrlInvalid": "Please enter a valid Google Drive URL (docs.google.com, drive.google.com, etc.).",
+        "fileTooLarge": "File must be 20 MB or smaller.",
+        "fileTypeNotAllowed": "This file type is not supported."
     },
     "notifications": {
         "created": "Character created successfully.",
@@ -219,7 +263,10 @@
         "statusChanged": "Status changed successfully.",
         "abilityAdded": "Ability added.",
         "abilityUpdated": "Ability updated.",
-        "abilityDeleted": "Ability deleted."
+        "abilityDeleted": "Ability deleted.",
+        "attachmentAdded": "Document added.",
+        "attachmentUpdated": "Document updated.",
+        "attachmentDeleted": "Document removed."
     },
     "errors": {
         "loadFailed": "Failed to load characters.",

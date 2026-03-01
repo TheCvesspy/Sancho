@@ -30,6 +30,32 @@ public static class CharacterAttachmentCategories
     ];
 }
 
+public static class CharacterAttachmentDocumentStatuses
+{
+    public const string Draft = "Draft";
+    public const string ReadyToReview = "Ready to Review";
+    public const string Final = "Final";
+
+    public static readonly HashSet<string> All =
+    [
+        Draft,
+        ReadyToReview,
+        Final
+    ];
+}
+
+public static class CharacterAttachmentSourceTypes
+{
+    public const string Upload = "Upload";
+    public const string GoogleDrive = "GoogleDrive";
+
+    public static readonly HashSet<string> All =
+    [
+        Upload,
+        GoogleDrive
+    ];
+}
+
 public record CharacterListItemDto(
     Guid Id,
     Guid EventId,
@@ -74,10 +100,13 @@ public record CharacterAbilityDto(
 public record CharacterAttachmentDto(
     Guid Id,
     Guid CharacterId,
+    string DisplayName,
     string FileName,
     string FileUrl,
     string MimeType,
     string Category,
+    string DocumentStatus,
+    string SourceType,
     Guid? UploadedBy,
     DateTimeOffset UploadedAt
 );
@@ -172,7 +201,23 @@ public record ConfirmCharacterAttachmentRequest(
     string FileName,
     string FilePath,
     string MimeType,
-    string Category
+    string Category,
+    string? DisplayName,
+    string DocumentStatus
+);
+
+public record AddGoogleDriveLinkRequest(
+    string Url,
+    string DisplayName,
+    string DocumentStatus
+);
+
+public record UpdateCharacterAttachmentRequest(
+    string? DisplayName,
+    string? DocumentStatus,
+    string? NewFilePath,
+    string? OldFilePath,
+    string? NewGoogleDriveUrl
 );
 
 public record CharacterDeleteRequest(
@@ -213,6 +258,9 @@ internal record SupabaseCharacterAttachmentRow(
     [property: JsonPropertyName("file_url")] string file_url,
     [property: JsonPropertyName("mime_type")] string mime_type,
     string category,
+    [property: JsonPropertyName("display_name")] string? display_name,
+    [property: JsonPropertyName("document_status")] string document_status,
+    [property: JsonPropertyName("source_type")] string source_type,
     [property: JsonPropertyName("uploaded_by")] Guid? uploaded_by,
     [property: JsonPropertyName("uploaded_at")] DateTimeOffset uploaded_at
 );
