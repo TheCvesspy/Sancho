@@ -51,6 +51,18 @@
             "abilities": "Schopnosti",
             "attachments": "Přílohy",
             "narrative": "Příběh"
+        },
+        "biography": {
+            "edit": "Upravit",
+            "save": "Uložit",
+            "cancel": "Zrušit",
+            "empty": "Zatím nebyl přidán žádný životopis."
+        },
+        "notes": {
+            "edit": "Upravit poznámky",
+            "save": "Uložit poznámky",
+            "cancel": "Zrušit",
+            "empty": "Žádné interní poznámky."
         }
     },
     "profile": {
@@ -191,11 +203,14 @@
             "description": "Vytvořit kopii této postavy. Schopnosti budou zkopírovány, ale fotka a přílohy ne.",
             "submit": "Duplikovat postavu"
         },
-        "changeStatus": {
+        "status": {
             "title": "Změnit stav postavy",
+            "description": "Vyberte nový stav pro tuto postavu. Některé přechody mohou být omezeny.",
             "currentStatus": "Současný stav",
             "targetStatus": "Cílový stav",
             "submit": "Změnit stav",
+            "draftToLockedWarning": "Postavy nelze přesunout přímo z Konceptu do Uzamčeno. Nejprve je prosím označte jako Připraveno.",
+            "unlockWarning": "Odemknutí postavy během události nebo po ní může vést k nekonzistenci dat, pokud jsou již hráči aktivní.",
             "transitions": {
                 "draftToReady": "Označení postavy jako Připraveno znamená, že profil je kompletní a připraven k přiřazení hráči.",
                 "readyToLocked": "Uzamčení postavy zabrání dalším úpravám profilu, schopností a příloh. Lze upravovat pouze interní poznámky. Tuto možnost použijte při začátku události.",

@@ -1,6 +1,6 @@
 # Sancho — LARP Event Management Platform
 
-**Version: 0.7.0**
+**Version: 0.6.1**
 
 Sancho is a single-organization web application for managing LARP (Live Action Role-Playing) groups, covering the full event lifecycle from planning through execution. One deployment serves one organization and supports multiple events.
 

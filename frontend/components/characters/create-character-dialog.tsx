@@ -46,7 +46,6 @@ export function CreateCharacterDialog({ eventId, token }: CreateCharacterDialogP
     const formSchema = z.object({
         name: z.string().min(1, t("validation.nameRequired")),
         race: z.string().min(1, t("validation.raceRequired")),
-        biography: z.string().optional(),
         notes: z.string().optional()
     });
 
@@ -55,7 +54,6 @@ export function CreateCharacterDialog({ eventId, token }: CreateCharacterDialogP
         defaultValues: {
             name: "",
             race: "",
-            biography: "",
             notes: ""
         }
     });
@@ -67,7 +65,7 @@ export function CreateCharacterDialog({ eventId, token }: CreateCharacterDialogP
             await charactersApi.createCharacter(token, eventId, {
                 name: values.name,
                 race: values.race,
-                biography: values.biography || null,
+                biography: null,
                 notes: values.notes || null,
                 playerUserId: null
             });
@@ -128,23 +126,7 @@ export function CreateCharacterDialog({ eventId, token }: CreateCharacterDialogP
                                 </FormItem>
                             )}
                         />
-                        <FormField
-                            control={form.control}
-                            name="biography"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t("fields.biography")}</FormLabel>
-                                    <FormControl>
-                                        <Textarea
-                                            placeholder={t("fields.placeholders.biography")}
-                                            className="resize-none"
-                                            {...field}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+
                         <FormField
                             control={form.control}
                             name="notes"

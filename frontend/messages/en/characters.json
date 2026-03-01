@@ -51,6 +51,18 @@
             "abilities": "Abilities",
             "attachments": "Attachments",
             "narrative": "Narrative"
+        },
+        "biography": {
+            "edit": "Edit",
+            "save": "Save",
+            "cancel": "Cancel",
+            "empty": "No biography provided."
+        },
+        "notes": {
+            "edit": "Edit Notes",
+            "save": "Save Notes",
+            "cancel": "Cancel",
+            "empty": "No internal notes."
         }
     },
     "profile": {
@@ -191,11 +203,14 @@
             "description": "Create a copy of this character. Abilities will be copied, but photo and attachments will not.",
             "submit": "Duplicate Character"
         },
-        "changeStatus": {
+        "status": {
             "title": "Change Character Status",
+            "description": "Select a new status for this character. Some transitions may be restricted.",
             "currentStatus": "Current Status",
             "targetStatus": "Target Status",
             "submit": "Change Status",
+            "draftToLockedWarning": "Characters cannot be moved directly from Draft to Locked. Please mark as Ready first.",
+            "unlockWarning": "Unlocking a character during or after an event may lead to data inconsistencies if players are already active.",
             "transitions": {
                 "draftToReady": "Marking this character as Ready indicates the profile is complete and ready for player assignment.",
                 "readyToLocked": "Locking this character prevents further edits to profile, abilities, and attachments. Only internal notes can be modified. Use this when the event starts.",
