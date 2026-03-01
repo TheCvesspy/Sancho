@@ -6,7 +6,8 @@ namespace Character.Services;
 
 public sealed class CharacterStorageService
 {
-    private const long MaxUploadBytes = 5L * 1024L * 1024L;
+    private const long MaxUploadBytes = 20L * 1024L * 1024L;
+
     private static readonly HashSet<string> AllowedImageMimeTypes =
     [
         "image/jpeg",
@@ -19,8 +20,39 @@ public sealed class CharacterStorageService
         "image/jpeg",
         "image/png",
         "image/webp",
+        "image/gif",
         "application/pdf",
-        "text/plain"
+        "text/plain",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    ];
+
+    // Maps lowercase file extensions to their expected MIME type(s).
+    // If an extension is present in the filename, the declared content-type must match.
+    private static readonly Dictionary<string, HashSet<string>> ExtensionMimeMap = new()
+    {
+        { ".jpg",  ["image/jpeg"] },
+        { ".jpeg", ["image/jpeg"] },
+        { ".png",  ["image/png"] },
+        { ".webp", ["image/webp"] },
+        { ".gif",  ["image/gif"] },
+        { ".pdf",  ["application/pdf"] },
+        { ".txt",  ["text/plain"] },
+        { ".doc",  ["application/msword"] },
+        { ".docx", ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"] },
+        { ".xls",  ["application/vnd.ms-excel"] },
+        { ".xlsx", ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"] }
+    };
+
+    private static readonly HashSet<string> AllowedGoogleDriveHosts =
+    [
+        "drive.google.com",
+        "docs.google.com",
+        "sheets.google.com",
+        "slides.google.com",
+        "forms.google.com"
     ];
 
     private readonly HttpClient _httpClient;
@@ -58,6 +90,16 @@ public sealed class CharacterStorageService
         return new AttachmentUploadUrlResponse(uploadUrl, filePath);
     }
 
+    public void ValidateGoogleDriveUrl(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)
+            || !string.Equals(uri.Scheme, "https", StringComparison.OrdinalIgnoreCase)
+            || !AllowedGoogleDriveHosts.Contains(uri.Host.ToLowerInvariant()))
+        {
+            throw new InvalidOperationException("Not a valid Google Drive URL. Accepted hosts: drive.google.com, docs.google.com, sheets.google.com, slides.google.com, forms.google.com.");
+        }
+    }
+
     public async Task DeleteObjectAsync(string supabaseUrl, string supabaseKey, string filePath)
     {
         var request = new HttpRequestMessage(HttpMethod.Delete, $"{supabaseUrl}/storage/v1/object/characters/{EncodeStoragePath(filePath)}");
@@ -89,7 +131,7 @@ public sealed class CharacterStorageService
     {
         if (request.SizeBytes <= 0 || request.SizeBytes > MaxUploadBytes)
         {
-            throw new InvalidOperationException("File size must be between 1 byte and 5 MB.");
+            throw new InvalidOperationException($"File size must be between 1 byte and {MaxUploadBytes / (1024 * 1024)} MB.");
         }
 
         if (string.IsNullOrWhiteSpace(request.ContentType) || !allowedContentTypes.Contains(request.ContentType.ToLowerInvariant()))
@@ -100,6 +142,17 @@ public sealed class CharacterStorageService
         if (string.IsNullOrWhiteSpace(request.FileName))
         {
             throw new InvalidOperationException("File name is required.");
+        }
+
+        // Cross-validate file extension against declared MIME type to prevent
+        // disguised file uploads (e.g. an executable renamed to .pdf).
+        var extension = Path.GetExtension(request.FileName).ToLowerInvariant();
+        if (!string.IsNullOrWhiteSpace(extension) && ExtensionMimeMap.TryGetValue(extension, out var expectedMimes))
+        {
+            if (!expectedMimes.Contains(request.ContentType.ToLowerInvariant()))
+            {
+                throw new InvalidOperationException($"File extension '{extension}' does not match the declared content type '{request.ContentType}'.");
+            }
         }
     }
 
@@ -113,6 +166,7 @@ public sealed class CharacterStorageService
                 "image/jpeg" => "jpg",
                 "image/png" => "png",
                 "image/webp" => "webp",
+                "image/gif" => "gif",
                 "application/pdf" => "pdf",
                 _ => "bin"
             };
@@ -136,4 +190,3 @@ public sealed class CharacterStorageService
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key);
     }
 }
-

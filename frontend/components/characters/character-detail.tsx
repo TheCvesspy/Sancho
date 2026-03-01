@@ -216,9 +216,13 @@ export function CharacterDetail({
                 </TabsContent>
 
                 <TabsContent value="attachments" className="mt-6">
-                    <div className="bg-card rounded-lg border p-12 text-center text-muted-foreground">
-                        <p>Attachments panel under construction.</p>
-                    </div>
+                    <AttachmentsPanel
+                        eventId={event.id}
+                        character={initialCharacter}
+                        initialAttachments={initialAttachments}
+                        token={token}
+                        isOrgOrSysAdmin={isOrgOrSysAdmin}
+                    />
                 </TabsContent>
 
                 <TabsContent value="narrative" className="mt-6">

@@ -1,6 +1,6 @@
 # Sancho — LARP Event Management Platform
 
-**Version: 0.6.0**
+**Version: 0.7.0**
 
 Sancho is a single-organization web application for managing LARP (Live Action Role-Playing) groups, covering the full event lifecycle from planning through execution. One deployment serves one organization and supports multiple events.
 
@@ -38,7 +38,11 @@ Sancho is a single-organization web application for managing LARP (Live Action R
 - React Flow dynamic relationship graph visualization
 - Character profile lifecycle (`Draft`, `Ready`, `Locked`)
 - Character abilities CRUD
-- Character photo + attachments with Supabase Storage signed uploads
+- Character photo upload via Supabase Storage signed uploads
+- **Character Documents:** file upload (PDF, Word, Excel, images, text) and Google Drive links
+- **Document status workflow:** `Draft` → `Ready to Review` → `Final`
+- Full CRUD on attachments — upload new version replaces file in storage; delete removes from storage
+- Related Documents placeholder (pending Narrative module)
 - Soft-delete and restore
 - Narrative integration seam via stub provider (ready for Narrative module)
 
@@ -131,7 +135,7 @@ sancho/
 | `character_abilities` | Flexible key-value abilities per character |
 | `character_attachments` | Character file metadata stored in Supabase Storage |
 
-**Applied Migrations:** 9 (latest: `20260228235500_characters_context_v1`)
+**Applied Migrations:** 10 (latest: `20260301000000_character_attachments_v2`)
 
 ---
 
@@ -181,7 +185,12 @@ sancho/
 - `POST /api/events/{eventId}/characters/{characterId}/undelete`
 - `GET/POST/PATCH/DELETE /api/events/{eventId}/characters/{characterId}/abilities...`
 - `GET/POST/DELETE /api/events/{eventId}/characters/{characterId}/photo...`
-- `GET/POST/DELETE /api/events/{eventId}/characters/{characterId}/attachments...`
+- `GET /api/events/{eventId}/characters/{characterId}/attachments`
+- `POST /api/events/{eventId}/characters/{characterId}/attachments/upload-url`
+- `POST /api/events/{eventId}/characters/{characterId}/attachments/confirm`
+- `POST /api/events/{eventId}/characters/{characterId}/attachments/google-drive`
+- `PATCH /api/events/{eventId}/characters/{characterId}/attachments/{attachmentId}`
+- `DELETE /api/events/{eventId}/characters/{characterId}/attachments/{attachmentId}`
 - `GET /api/events/{eventId}/characters/{characterId}/narrative-links`
 
 ---
@@ -190,6 +199,7 @@ sancho/
 
 | Version | Date | Summary |
 |---|---|---|
+| 0.7.0 | 2026-03-01 | Character Attachments: file upload (PDF/Word/Excel/images, 20 MB), Google Drive links, document status workflow, full CRUD |
 | 0.6.0 | 2026-03-01 | Characters frontend module with React Flow graph, i18n, and complete UI |
 | 0.5.0 | 2026-02-28 | Characters backend finalized and migration applied |
 | 0.4.0 | 2026-02-28 | Characters backend v1 (event-scoped APIs, DB schema, RLS, storage upload flows, narrative integration stubs) |

@@ -34,6 +34,8 @@ public static class CharacterEndpoints
         group.MapGet("/{characterId:guid}/attachments", ListAttachments);
         group.MapPost("/{characterId:guid}/attachments/upload-url", CreateAttachmentUploadUrl);
         group.MapPost("/{characterId:guid}/attachments/confirm", ConfirmAttachment);
+        group.MapPost("/{characterId:guid}/attachments/google-drive", AddGoogleDriveLink);
+        group.MapPatch("/{characterId:guid}/attachments/{attachmentId:guid}", UpdateAttachment);
         group.MapDelete("/{characterId:guid}/attachments/{attachmentId:guid}", DeleteAttachment);
 
         group.MapPost("/{characterId:guid}/photo/upload-url", CreatePhotoUploadUrl);
@@ -316,7 +318,7 @@ public static class CharacterEndpoints
         if (!access.CanRead) return Results.Forbid();
         if (!await CharacterExists(eventId, characterId, url!, key!, httpClient, includeDeleted: false)) return Results.NotFound();
 
-        var req = new HttpRequestMessage(HttpMethod.Get, $"{url}/rest/v1/character_attachments?character_id=eq.{characterId}&select=id,character_id,file_name,file_url,mime_type,category,uploaded_by,uploaded_at&order=uploaded_at.desc");
+        var req = new HttpRequestMessage(HttpMethod.Get, $"{url}/rest/v1/character_attachments?character_id=eq.{characterId}&select=id,character_id,file_name,file_url,mime_type,category,display_name,document_status,source_type,uploaded_by,uploaded_at&order=uploaded_at.desc");
         AddHeaders(req, key!);
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to list attachments: {resp.StatusCode}");
@@ -346,15 +348,118 @@ public static class CharacterEndpoints
         if (character is null) return Results.NotFound();
         if (character.status == CharacterStatuses.Locked) return Results.BadRequest("Locked character attachments are read-only.");
         if (!CharacterAttachmentCategories.All.Contains(request.Category)) return Results.BadRequest("Unknown attachment category.");
+        if (!CharacterAttachmentDocumentStatuses.All.Contains(request.DocumentStatus)) return Results.BadRequest("Unknown document status.");
+
+        var displayName = string.IsNullOrWhiteSpace(request.DisplayName) ? request.FileName : request.DisplayName.Trim();
 
         var req = new HttpRequestMessage(HttpMethod.Post, $"{url}/rest/v1/character_attachments");
         req.Headers.Add("Prefer", "return=representation");
         AddHeaders(req, key!);
-        req.Content = JsonContent.Create(new { character_id = characterId, file_name = request.FileName, file_url = request.FilePath, mime_type = request.MimeType, category = request.Category, uploaded_by = UserId(user), uploaded_at = DateTimeOffset.UtcNow });
+        req.Content = JsonContent.Create(new
+        {
+            character_id = characterId,
+            file_name = request.FileName,
+            file_url = request.FilePath,
+            mime_type = request.MimeType,
+            category = request.Category,
+            display_name = displayName,
+            document_status = request.DocumentStatus,
+            source_type = CharacterAttachmentSourceTypes.Upload,
+            uploaded_by = UserId(user),
+            uploaded_at = DateTimeOffset.UtcNow
+        });
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to confirm attachment: {resp.StatusCode}");
         var created = (await resp.Content.ReadFromJsonAsync<List<SupabaseCharacterAttachmentRow>>())?.FirstOrDefault();
         return created is null ? Results.Problem("Attachment saved but payload missing.") : Results.Created($"/api/events/{eventId}/characters/{characterId}/attachments/{created.id}", ToAttachmentDto(created));
+    }
+
+    private static async Task<IResult> AddGoogleDriveLink(Guid eventId, Guid characterId, ClaimsPrincipal user, [FromBody] AddGoogleDriveLinkRequest request, IConfiguration config, HttpClient httpClient, CharacterAuthorizationService authz, CharacterStorageService storage)
+    {
+        if (!TryConfig(config, out var url, out var key, out var error)) return error!;
+        var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
+        if (!access.CanWrite) return Results.Forbid();
+        var character = await GetCharacter(eventId, characterId, url!, key!, httpClient, includeDeleted: false);
+        if (character is null) return Results.NotFound();
+        if (character.status == CharacterStatuses.Locked) return Results.BadRequest("Locked character attachments are read-only.");
+        if (!CharacterAttachmentDocumentStatuses.All.Contains(request.DocumentStatus)) return Results.BadRequest("Unknown document status.");
+        if (string.IsNullOrWhiteSpace(request.DisplayName)) return Results.BadRequest("Display name is required.");
+
+        try { storage.ValidateGoogleDriveUrl(request.Url); }
+        catch (InvalidOperationException ex) { return Results.BadRequest(ex.Message); }
+
+        var req = new HttpRequestMessage(HttpMethod.Post, $"{url}/rest/v1/character_attachments");
+        req.Headers.Add("Prefer", "return=representation");
+        AddHeaders(req, key!);
+        req.Content = JsonContent.Create(new
+        {
+            character_id = characterId,
+            file_name = request.DisplayName.Trim(),
+            file_url = request.Url,
+            mime_type = "text/uri-list",
+            category = CharacterAttachmentCategories.Document,
+            display_name = request.DisplayName.Trim(),
+            document_status = request.DocumentStatus,
+            source_type = CharacterAttachmentSourceTypes.GoogleDrive,
+            uploaded_by = UserId(user),
+            uploaded_at = DateTimeOffset.UtcNow
+        });
+        var resp = await httpClient.SendAsync(req);
+        if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to add Google Drive link: {resp.StatusCode}");
+        var created = (await resp.Content.ReadFromJsonAsync<List<SupabaseCharacterAttachmentRow>>())?.FirstOrDefault();
+        return created is null ? Results.Problem("Link saved but payload missing.") : Results.Created($"/api/events/{eventId}/characters/{characterId}/attachments/{created.id}", ToAttachmentDto(created));
+    }
+
+    private static async Task<IResult> UpdateAttachment(Guid eventId, Guid characterId, Guid attachmentId, ClaimsPrincipal user, [FromBody] UpdateCharacterAttachmentRequest request, IConfiguration config, HttpClient httpClient, CharacterAuthorizationService authz, CharacterStorageService storage)
+    {
+        if (!TryConfig(config, out var url, out var key, out var error)) return error!;
+        var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
+        if (!access.CanWrite) return Results.Forbid();
+        var character = await GetCharacter(eventId, characterId, url!, key!, httpClient, includeDeleted: false);
+        if (character is null) return Results.NotFound();
+
+        // File/URL changes are blocked on locked characters; metadata updates are always allowed.
+        if (character.status == CharacterStatuses.Locked && (!string.IsNullOrEmpty(request.NewFilePath) || !string.IsNullOrEmpty(request.NewGoogleDriveUrl)))
+            return Results.BadRequest("File and URL updates are not allowed while the character is Locked.");
+
+        var attachment = await GetAttachment(attachmentId, characterId, url!, key!, httpClient);
+        if (attachment is null) return Results.NotFound();
+
+        if (!string.IsNullOrEmpty(request.DocumentStatus) && !CharacterAttachmentDocumentStatuses.All.Contains(request.DocumentStatus))
+            return Results.BadRequest("Unknown document status.");
+
+        if (!string.IsNullOrEmpty(request.NewGoogleDriveUrl))
+        {
+            try { storage.ValidateGoogleDriveUrl(request.NewGoogleDriveUrl); }
+            catch (InvalidOperationException ex) { return Results.BadRequest(ex.Message); }
+        }
+
+        // If a new file is being set, delete the previous storage object.
+        if (!string.IsNullOrEmpty(request.NewFilePath) && !string.IsNullOrEmpty(request.OldFilePath))
+        {
+            await storage.DeleteObjectAsync(url!, key!, request.OldFilePath);
+        }
+
+        var patchBody = new Dictionary<string, object?>();
+        if (!string.IsNullOrWhiteSpace(request.DisplayName)) patchBody["display_name"] = request.DisplayName.Trim();
+        if (!string.IsNullOrEmpty(request.DocumentStatus)) patchBody["document_status"] = request.DocumentStatus;
+        if (!string.IsNullOrEmpty(request.NewFilePath))
+        {
+            patchBody["file_url"] = request.NewFilePath;
+            // file_name stays as the display_name; update it if display_name is also provided
+        }
+        if (!string.IsNullOrEmpty(request.NewGoogleDriveUrl)) patchBody["file_url"] = request.NewGoogleDriveUrl;
+
+        if (patchBody.Count == 0) return Results.BadRequest("No fields to update.");
+
+        var req = new HttpRequestMessage(HttpMethod.Patch, $"{url}/rest/v1/character_attachments?id=eq.{attachmentId}&character_id=eq.{characterId}");
+        req.Headers.Add("Prefer", "return=representation");
+        AddHeaders(req, key!);
+        req.Content = JsonContent.Create(patchBody);
+        var resp = await httpClient.SendAsync(req);
+        if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to update attachment: {resp.StatusCode}");
+        var updated = (await resp.Content.ReadFromJsonAsync<List<SupabaseCharacterAttachmentRow>>())?.FirstOrDefault();
+        return updated is null ? Results.Problem("Attachment updated but payload missing.") : Results.Ok(ToAttachmentDto(updated));
     }
 
     private static async Task<IResult> DeleteAttachment(Guid eventId, Guid characterId, Guid attachmentId, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient, CharacterAuthorizationService authz, CharacterStorageService storage)
@@ -448,7 +553,11 @@ public static class CharacterEndpoints
         new(row.id, row.character_id, row.category, row.name, row.value, row.description, row.sort_order, row.created_at, row.updated_at);
 
     private static CharacterAttachmentDto ToAttachmentDto(SupabaseCharacterAttachmentRow row) =>
-        new(row.id, row.character_id, row.file_name, row.file_url, row.mime_type, row.category, row.uploaded_by, row.uploaded_at);
+        new(row.id, row.character_id,
+            row.display_name ?? row.file_name,
+            row.file_name, row.file_url, row.mime_type, row.category,
+            row.document_status, row.source_type,
+            row.uploaded_by, row.uploaded_at);
 
     private static async Task<bool> CharacterExists(Guid eventId, Guid characterId, string url, string key, HttpClient httpClient, bool includeDeleted) =>
         await GetCharacter(eventId, characterId, url, key, httpClient, includeDeleted) is not null;
@@ -496,7 +605,7 @@ public static class CharacterEndpoints
 
     private static async Task<SupabaseCharacterAttachmentRow?> GetAttachment(Guid attachmentId, Guid characterId, string url, string key, HttpClient httpClient)
     {
-        var req = new HttpRequestMessage(HttpMethod.Get, $"{url}/rest/v1/character_attachments?id=eq.{attachmentId}&character_id=eq.{characterId}&select=id,character_id,file_name,file_url,mime_type,category,uploaded_by,uploaded_at&limit=1");
+        var req = new HttpRequestMessage(HttpMethod.Get, $"{url}/rest/v1/character_attachments?id=eq.{attachmentId}&character_id=eq.{characterId}&select=id,character_id,file_name,file_url,mime_type,category,display_name,document_status,source_type,uploaded_by,uploaded_at&limit=1");
         AddHeaders(req, key);
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return null;

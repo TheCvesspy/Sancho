@@ -68,10 +68,13 @@ export interface CharacterAbilityDto {
 export interface CharacterAttachmentDto {
     id: string;
     characterId: string;
+    displayName: string;
     fileName: string;
     fileUrl: string;
     mimeType: string;
     category: "Document" | "Image" | "Other";
+    documentStatus: "Draft" | "Ready to Review" | "Final";
+    sourceType: "Upload" | "GoogleDrive";
     uploadedBy: string | null;
     uploadedAt: string;
 }
@@ -146,8 +149,8 @@ export interface UpdateCharacterAbilityRequest {
 
 export interface CharacterUploadUrlRequest {
     fileName: string;
-    mimeType: string;
-    category?: "Document" | "Image" | "Other";
+    contentType: string;
+    sizeBytes: number;
 }
 
 export interface FileUploadUrlResponse {
@@ -157,6 +160,22 @@ export interface FileUploadUrlResponse {
 
 export interface ConfirmUploadRequest {
     storagePath: string;
+    displayName: string;
+    documentStatus: string;
+}
+
+export interface AddGoogleDriveLinkRequest {
+    url: string;
+    displayName: string;
+    documentStatus: string;
+}
+
+export interface UpdateCharacterAttachmentRequest {
+    displayName?: string;
+    documentStatus?: string;
+    newFilePath?: string;
+    oldFilePath?: string;
+    newGoogleDriveUrl?: string;
 }
 
 // --- API Client ---
@@ -280,6 +299,26 @@ export const charactersApi = {
     confirmAttachment: (token: string, eventId: string, characterId: string, data: ConfirmUploadRequest) =>
         fetcher<CharacterAttachmentDto>(`/api/events/${eventId}/characters/${characterId}/attachments/confirm`, {
             method: "POST",
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(data),
+        }),
+
+    addGoogleDriveLink: (token: string, eventId: string, characterId: string, data: AddGoogleDriveLinkRequest) =>
+        fetcher<CharacterAttachmentDto>(`/api/events/${eventId}/characters/${characterId}/attachments/google-drive`, {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(data),
+        }),
+
+    updateAttachment: (token: string, eventId: string, characterId: string, attachmentId: string, data: UpdateCharacterAttachmentRequest) =>
+        fetcher<CharacterAttachmentDto>(`/api/events/${eventId}/characters/${characterId}/attachments/${attachmentId}`, {
+            method: "PATCH",
             headers: {
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",

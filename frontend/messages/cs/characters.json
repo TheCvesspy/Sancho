@@ -70,7 +70,18 @@
         "lockedReadOnly": "Schopnosti nelze upravovat, když je postava uzamčena."
     },
     "attachments": {
-        "upload": "Nahrát soubor",
+        "title": "Dokumenty postavy",
+        "addDocument": "Přidat dokument",
+        "documentName": "Název dokumentu",
+        "documentStatus": "Stav dokumentu",
+        "source": "Zdroj",
+        "date": "Datum",
+        "uploadFile": "Nahrát soubor",
+        "googleDriveLink": "Odkaz na Google Drive",
+        "googleDriveUrl": "URL Google Drive",
+        "googleDrivePlaceholder": "https://docs.google.com/...",
+        "uploadNewVersion": "Nahrát novou verzi",
+        "changeUrl": "Změnit URL",
         "fileName": "Název souboru",
         "uploadedBy": "Nahrál",
         "actions": "Akce",
@@ -79,9 +90,38 @@
             "image": "Obrázek",
             "other": "Jiné"
         },
-        "emptyState": "Zatím nebyly nahrány žádné přílohy.",
-        "lockedReadOnly": "Přílohy nelze upravovat, když je postava uzamčena.",
-        "constraints": "Max 5 MB. Povolené typy: PDF, Word, obrázky, text."
+        "documentStatuses": {
+            "draft": "Koncept",
+            "readyToReview": "Připraveno k revizi",
+            "final": "Finální"
+        },
+        "sourceTypes": {
+            "upload": "Nahraný soubor",
+            "googleDrive": "Google Drive"
+        },
+        "emptyState": "Zatím nejsou přiloženy žádné dokumenty.",
+        "lockedReadOnly": "Nahrávání a mazání souborů je zakázáno, když je postava uzamčena. Stav dokumentu lze stále aktualizovat.",
+        "constraints": "Max 20 MB. PDF, Word, Excel, obrázky, textové soubory.",
+        "relatedDocuments": {
+            "title": "Související dokumenty",
+            "description": "Dokumenty ze souvisejících dějových linií se zobrazí zde po dokončení modulu Příběh."
+        },
+        "dialogs": {
+            "addDocument": {
+                "title": "Přidat dokument",
+                "submit": "Přidat dokument"
+            },
+            "editDocument": {
+                "title": "Upravit dokument",
+                "submit": "Uložit změny"
+            },
+            "deleteDocument": {
+                "title": "Smazat dokument",
+                "descriptionUpload": "Tato akce trvale smaže soubor z úložiště. Nelze ji vrátit zpět.",
+                "descriptionLink": "Tím se odstraní odkaz na dokument z této postavy.",
+                "submit": "Smazat"
+            }
+        }
     },
     "photo": {
         "upload": "Nahrát fotku",
@@ -193,7 +233,11 @@
     },
     "validation": {
         "nameRequired": "Jméno je povinné.",
-        "raceRequired": "Rasa je povinná."
+        "raceRequired": "Rasa je povinná.",
+        "documentNameRequired": "Název dokumentu je povinný.",
+        "documentUrlInvalid": "Zadejte platnou URL adresu Google Drive (docs.google.com, drive.google.com atd.).",
+        "fileTooLarge": "Soubor musí být menší než 20 MB.",
+        "fileTypeNotAllowed": "Tento typ souboru není podporován."
     },
     "notifications": {
         "created": "Postava byla úspěšně vytvořena.",
@@ -204,7 +248,10 @@
         "statusChanged": "Stav byl úspěšně změněn.",
         "abilityAdded": "Schopnost přidána.",
         "abilityUpdated": "Schopnost aktualizována.",
-        "abilityDeleted": "Schopnost smazána."
+        "abilityDeleted": "Schopnost smazána.",
+        "attachmentAdded": "Dokument přidán.",
+        "attachmentUpdated": "Dokument aktualizován.",
+        "attachmentDeleted": "Dokument odstraněn."
     },
     "errors": {
         "loadFailed": "K načtení postav nedošlo.",
