@@ -314,42 +314,71 @@ public static class IdentityEndpoints
         if (string.IsNullOrEmpty(supabaseUrl) || string.IsNullOrEmpty(supabaseKey))
             return Results.Problem("Supabase configuration is missing.");
 
-        var req = new HttpRequestMessage(HttpMethod.Get, $"{supabaseUrl}/rest/v1/invite_tokens?select=*,auth_users:created_by(email)");
+        // Step 1: Fetch tokens (no cross-schema join — auth.users is not in the public schema)
+        var req = new HttpRequestMessage(HttpMethod.Get, $"{supabaseUrl}/rest/v1/invite_tokens?select=*&order=created_at.desc");
         AddSupabaseHeaders(req, supabaseKey);
-        
+
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem("Failed to fetch tokens.");
 
         var content = await resp.Content.ReadAsStringAsync();
-        // Since we are using a join, we might need a custom parsing if the JSON is nested
-        // But for simplicity, we'll fetch them separately if needed, or use a view if we had one.
-        // Let's stick to the simplest fetch for now.
-        var tokens = await resp.Content.ReadFromJsonAsync<JsonElement>();
-        
-        var result = new List<InviteTokenDto>();
-        if (tokens.ValueKind == JsonValueKind.Array)
-        {
-            foreach (var t in tokens.EnumerateArray())
-            {
-                var id = t.GetProperty("id").GetGuid();
-                var emailHint = t.TryGetProperty("email_hint", out var eh) && eh.ValueKind != JsonValueKind.Null ? eh.GetString() : null;
-                var expiresAt = t.GetProperty("expires_at").GetDateTimeOffset();
-                var usedAt = t.TryGetProperty("used_at", out var ua) && ua.ValueKind != JsonValueKind.Null ? (DateTimeOffset?)ua.GetDateTimeOffset() : null;
-                var usedBy = t.TryGetProperty("used_by", out var ub) && ub.ValueKind != JsonValueKind.Null ? (Guid?)ub.GetGuid() : null;
-                var revokedAt = t.TryGetProperty("revoked_at", out var ra) && ra.ValueKind != JsonValueKind.Null ? (DateTimeOffset?)ra.GetDateTimeOffset() : null;
-                var createdAt = t.GetProperty("created_at").GetDateTimeOffset();
-                
-                // Get email from join result if possible, or fallback
-                string email = "Unknown";
-                if (t.TryGetProperty("auth_users", out var user) && user.ValueKind == JsonValueKind.Object) {
-                    email = user.GetProperty("email").GetString() ?? "Unknown";
-                }
+        var tokens = JsonSerializer.Deserialize<JsonElement>(content);
 
-                result.Add(new InviteTokenDto(id, emailHint, expiresAt, usedAt, usedBy, revokedAt, createdAt, email));
+        var result = new List<InviteTokenDto>();
+        if (tokens.ValueKind != JsonValueKind.Array)
+            return Results.Ok(result);
+
+        var creatorIds = new HashSet<Guid>();
+        foreach (var t in tokens.EnumerateArray())
+        {
+            if (t.TryGetProperty("created_by", out var cb) && cb.ValueKind != JsonValueKind.Null)
+                creatorIds.Add(cb.GetGuid());
+        }
+
+        // Step 2: Resolve creator emails from user_profiles (public schema)
+        var emailMap = new Dictionary<Guid, string>();
+        if (creatorIds.Count > 0)
+        {
+            var idList = string.Join(",", creatorIds);
+            var profilesReq = new HttpRequestMessage(HttpMethod.Get,
+                $"{supabaseUrl}/rest/v1/user_profiles?select=id,email&id=in.({idList})");
+            AddSupabaseHeaders(profilesReq, supabaseKey);
+            var profilesResp = await httpClient.SendAsync(profilesReq);
+            if (profilesResp.IsSuccessStatusCode)
+            {
+                var profilesContent = await profilesResp.Content.ReadAsStringAsync();
+                var profiles = JsonSerializer.Deserialize<JsonElement>(profilesContent);
+                if (profiles.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var p in profiles.EnumerateArray())
+                    {
+                        var pid = p.GetProperty("id").GetGuid();
+                        var pemail = p.TryGetProperty("email", out var em) && em.ValueKind != JsonValueKind.Null
+                            ? em.GetString() ?? "Unknown"
+                            : "Unknown";
+                        emailMap[pid] = pemail;
+                    }
+                }
             }
         }
 
-        return Results.Ok(result.OrderByDescending(x => x.CreatedAt));
+        // Step 3: Build DTOs
+        foreach (var t in tokens.EnumerateArray())
+        {
+            var id = t.GetProperty("id").GetGuid();
+            var emailHint = t.TryGetProperty("email_hint", out var eh) && eh.ValueKind != JsonValueKind.Null ? eh.GetString() : null;
+            var expiresAt = t.GetProperty("expires_at").GetDateTimeOffset();
+            var usedAt = t.TryGetProperty("used_at", out var ua) && ua.ValueKind != JsonValueKind.Null ? (DateTimeOffset?)ua.GetDateTimeOffset() : null;
+            var usedBy = t.TryGetProperty("used_by", out var ub) && ub.ValueKind != JsonValueKind.Null ? (Guid?)ub.GetGuid() : null;
+            var revokedAt = t.TryGetProperty("revoked_at", out var ra) && ra.ValueKind != JsonValueKind.Null ? (DateTimeOffset?)ra.GetDateTimeOffset() : null;
+            var createdAt = t.GetProperty("created_at").GetDateTimeOffset();
+            var createdBy = t.TryGetProperty("created_by", out var cb) && cb.ValueKind != JsonValueKind.Null ? cb.GetGuid() : Guid.Empty;
+
+            emailMap.TryGetValue(createdBy, out var email);
+            result.Add(new InviteTokenDto(id, emailHint, expiresAt, usedAt, usedBy, revokedAt, createdAt, email ?? "Unknown"));
+        }
+
+        return Results.Ok(result);
     }
 
     private static async Task<IResult> CreateInviteToken(ClaimsPrincipal user, CreateInviteTokenRequest req, IConfiguration config, HttpClient httpClient)
