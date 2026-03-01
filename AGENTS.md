@@ -1,4 +1,4 @@
-# Sancho Agent Guide
+﻿# Sancho Agent Guide
 
 This repository is developed by multiple agents and humans. Use this file to coordinate work, avoid conflicts, and keep a consistent engineering bar.
 
@@ -51,6 +51,31 @@ Sancho is a **single-organization** web app for a LARP group, covering the full 
 - Shared UI in `frontend/components/`.
 - Keep server/client component boundaries explicit and minimal.
 - Use `shadcn/ui` components from `frontend/components/ui/` and keep styling token-driven in `frontend/app/globals.css`.
+
+### Frontend Routing Conventions
+
+**Event-scoped module routes** must embed **both** the event ID and the entity ID as **path segments** â€” never as query parameters.
+
+```
+/{locale}/{module}                         <- module landing / event selector
+/{locale}/{module}/{eventId}               <- module list for a specific event
+/{locale}/{module}/{eventId}/{entityId}    <- entity detail
+```
+
+Examples:
+```
+/en/characters                             <- event selector landing page
+/en/characters/{eventId}                   <- characters list for chosen event
+/en/characters/{eventId}/{characterId}     <- character detail page
+/en/logistics/{eventId}/{itemId}           <- logistics item detail
+```
+
+Query parameters are reserved for **optional UI state only** (search term, status filter, pagination).
+All required context IDs must appear in path segments.
+
+**Event selector UX**: Module landing pages (`/{locale}/{module}`) always show a central event-picker.
+Selecting an event navigates to `/{locale}/{module}/{eventId}`.
+
 
 ## Database & Supabase
 - All schema changes must go through `supabase/migrations/`. 

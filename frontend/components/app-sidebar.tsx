@@ -19,7 +19,7 @@ import { useLocale } from "next-intl"
 const items = [
     { title: "Identity & Access", url: "/identity", icon: Fingerprint, requiresSystemAdmin: true },
     { title: "Event Management", url: "/events", icon: Calendar },
-    { title: "Characters", url: "#", icon: Users },
+    { title: "Characters", url: "/characters", icon: Users },
     { title: "Narrative", url: "#", icon: BookOpen },
     { title: "Logistics", url: "#", icon: Truck },
     { title: "NPC & Org Team", url: "#", icon: ShieldAlert },

@@ -1,0 +1,214 @@
+{
+    "title": "Postavy",
+    "subtitle": "Správa postav, NPC a seznamu hráčů",
+    "noEventSelected": {
+        "title": "Vyberte událost",
+        "description": "Zvolte kontext události pro správu jejích postav."
+    },
+    "list": {
+        "searchPlaceholder": "Hledat podle jména...",
+        "statusFilter": {
+            "all": "Všechny stavy",
+            "draft": "Koncept",
+            "ready": "Připraveno",
+            "locked": "Uzamčeno"
+        },
+        "showDeleted": "Zobrazit smazané",
+        "columns": {
+            "name": "Jméno",
+            "race": "Rasa",
+            "status": "Stav",
+            "player": "Hráč",
+            "stats": "Statistiky",
+            "actions": "Akce"
+        },
+        "emptyState": "Nebyly nalezeny žádné postavy odpovídající kritériím.",
+        "newCharacter": "Nová postava",
+        "actions": {
+            "view": "Zobrazit detaily",
+            "duplicate": "Duplikovat",
+            "changeStatus": "Změnit stav",
+            "delete": "Smazat",
+            "restore": "Obnovit"
+        }
+    },
+    "status": {
+        "draft": "Koncept",
+        "ready": "Připraveno",
+        "locked": "Uzamčeno"
+    },
+    "detail": {
+        "backToList": "Zpět na postavy",
+        "actions": {
+            "edit": "Upravit profil",
+            "changeStatus": "Změnit stav",
+            "duplicate": "Duplikovat",
+            "delete": "Smazat",
+            "restore": "Obnovit"
+        },
+        "tabs": {
+            "profile": "Profil",
+            "abilities": "Schopnosti",
+            "attachments": "Přílohy",
+            "narrative": "Příběh"
+        }
+    },
+    "profile": {
+        "biography": "Životopis",
+        "internalNotes": "Interní poznámky",
+        "playerAssignment": "Přiřazený hráč"
+    },
+    "abilities": {
+        "category": "Kategorie",
+        "name": "Název",
+        "value": "Hodnota",
+        "description": "Popis",
+        "add": "Přidat schopnost",
+        "edit": "Upravit",
+        "delete": "Smazat",
+        "emptyState": "Zatím nebyly přidány žádné schopnosti.",
+        "lockedReadOnly": "Schopnosti nelze upravovat, když je postava uzamčena."
+    },
+    "attachments": {
+        "upload": "Nahrát soubor",
+        "fileName": "Název souboru",
+        "uploadedBy": "Nahrál",
+        "actions": "Akce",
+        "categories": {
+            "document": "Dokument",
+            "image": "Obrázek",
+            "other": "Jiné"
+        },
+        "emptyState": "Zatím nebyly nahrány žádné přílohy.",
+        "lockedReadOnly": "Přílohy nelze upravovat, když je postava uzamčena.",
+        "constraints": "Max 5 MB. Povolené typy: PDF, Word, obrázky, text."
+    },
+    "photo": {
+        "upload": "Nahrát fotku",
+        "replace": "Nahradit fotku",
+        "remove": "Odstranit",
+        "constraints": "Max 5 MB. JPG, PNG, WEBP."
+    },
+    "narrative": {
+        "notice": "Příběhová data jsou spravována v modulu Příběh (Narrative).",
+        "factions": {
+            "title": "Frakce",
+            "role": "Role",
+            "emptyState": "Žádné členství ve frakcích."
+        },
+        "relationships": {
+            "title": "Vztahy",
+            "type": "Typ",
+            "description": "Popis",
+            "emptyState": "Žádné vztahy."
+        },
+        "quests": {
+            "title": "Úkoly",
+            "role": "Role",
+            "status": "Stav",
+            "emptyState": "Žádné aktivní úkoly."
+        },
+        "graphLink": "Zobrazit celý graf vztahů"
+    },
+    "graph": {
+        "title": "Graf vztahů",
+        "emptyState": "Pro tuto událost zatím nebyly navázány žádné vztahy.",
+        "types": {
+            "ally": "Spojenec",
+            "enemy": "Nepřítel",
+            "family": "Rodina",
+            "romantic": "Romantika",
+            "neutral": "Neutrální"
+        }
+    },
+    "dialogs": {
+        "common": {
+            "cancel": "Zrušit"
+        },
+        "create": {
+            "title": "Vytvořit postavu",
+            "description": "Přidat novou postavu do této události.",
+            "submit": "Vytvořit postavu"
+        },
+        "edit": {
+            "title": "Upravit postavu",
+            "description": "Aktualizovat detaily profilu postavy.",
+            "submit": "Uložit změny",
+            "lockedWarning": "Postava je uzamčena. Upravovat lze pouze interní poznámky."
+        },
+        "delete": {
+            "title": "Smazat postavu",
+            "description": "Opravdu chcete tuto postavu smazat? Tuto akci bude možné později vrátit.",
+            "submit": "Smazat postavu"
+        },
+        "restore": {
+            "title": "Obnovit postavu",
+            "description": "Tímto se obnoví postava a její související data.",
+            "submit": "Obnovit postavu"
+        },
+        "duplicate": {
+            "title": "Duplikovat postavu",
+            "description": "Vytvořit kopii této postavy. Schopnosti budou zkopírovány, ale fotka a přílohy ne.",
+            "submit": "Duplikovat postavu"
+        },
+        "changeStatus": {
+            "title": "Změnit stav postavy",
+            "currentStatus": "Současný stav",
+            "targetStatus": "Cílový stav",
+            "submit": "Změnit stav",
+            "transitions": {
+                "draftToReady": "Označení postavy jako Připraveno znamená, že profil je kompletní a připraven k přiřazení hráči.",
+                "readyToLocked": "Uzamčení postavy zabrání dalším úpravám profilu, schopností a příloh. Lze upravovat pouze interní poznámky. Tuto možnost použijte při začátku události.",
+                "lockedToReady": "Odemknutí postavy znovu povolí úpravy profilu. Jste si jistí, že to chcete udělat během události nebo po ní?",
+                "readyToDraft": "Návrat postavy do stavu Koncept.",
+                "blocked": "Neplatný přechod. Musí být ve stavu Připraveno, než může být Uzamčeno."
+            },
+            "confirmUnlock": "Chápu rizika spojená s odemknutím této postavy."
+        }
+    },
+    "fields": {
+        "name": "Jméno",
+        "race": "Rasa",
+        "biography": "Životopis",
+        "notes": "Interní poznámky",
+        "player": "Hráč",
+        "newName": "Nové jméno",
+        "reason": "Důvod (volitelně)",
+        "placeholders": {
+            "searchEvent": "Vyhledat událost...",
+            "name": "např. Aragorn",
+            "race": "např. Člověk, Elf",
+            "biography": "Veřejný příběh nebo pozadí...",
+            "notes": "Soukromé poznámky (viditelné pouze organizátorům)...",
+            "abilities": {
+                "category": "např. Atributy, Dovednosti, Kouzla",
+                "name": "např. Síla, Ohnivá koule",
+                "value": "např. 18, 3k6, Mistr",
+                "description": "Text pravidla nebo vysvětlení..."
+            }
+        },
+        "descriptions": {
+            "notesPrivacy": "Tyto poznámky nejsou pro přiřazeného hráče nikdy viditelné."
+        }
+    },
+    "validation": {
+        "nameRequired": "Jméno je povinné.",
+        "raceRequired": "Rasa je povinná."
+    },
+    "notifications": {
+        "created": "Postava byla úspěšně vytvořena.",
+        "updated": "Postava byla úspěšně aktualizována.",
+        "deleted": "Postava byla úspěšně smazána.",
+        "restored": "Postava byla úspěšně obnovena.",
+        "duplicated": "Postava byla úspěšně duplikována.",
+        "statusChanged": "Stav byl úspěšně změněn.",
+        "abilityAdded": "Schopnost přidána.",
+        "abilityUpdated": "Schopnost aktualizována.",
+        "abilityDeleted": "Schopnost smazána."
+    },
+    "errors": {
+        "loadFailed": "K načtení postav nedošlo.",
+        "notFound": "Postava nebyla nalezena.",
+        "duplicateName": "Postava s tímto jménem v této události již existuje."
+    }
+}

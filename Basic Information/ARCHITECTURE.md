@@ -91,6 +91,27 @@ Example route grouping:
 - `/api/finance/*` -> Finance module
 - `/api/communications/*` -> Communications module
 
+## Frontend Routing Conventions
+
+**Event-scoped module routes** embed **both** the event ID and the entity ID as **path segments**.
+
+```
+/{locale}/{module}                         ← module landing / event selector
+/{locale}/{module}/{eventId}               ← module list scoped to that event
+/{locale}/{module}/{eventId}/{entityId}    ← entity detail
+```
+
+Examples:
+```
+/en/characters                             ← event selector landing page
+/en/characters/{eventId}                   ← characters list for chosen event
+/en/characters/{eventId}/{characterId}     ← character detail page
+```
+
+Query parameters are reserved for optional UI state only (search term, status filter, pagination). All required context IDs go in path segments.
+
+---
+
 ### Characters <> Narrative Integration Readiness
 
 - Character context exposes a dedicated integration seam: `ICharacterNarrativeService`.

@@ -1,0 +1,214 @@
+{
+    "title": "Characters",
+    "subtitle": "Manage Characters, NPCs, and Player Roster",
+    "noEventSelected": {
+        "title": "Select an Event",
+        "description": "Choose an event context to manage its characters."
+    },
+    "list": {
+        "searchPlaceholder": "Search by name...",
+        "statusFilter": {
+            "all": "All Statuses",
+            "draft": "Draft",
+            "ready": "Ready",
+            "locked": "Locked"
+        },
+        "showDeleted": "Show Deleted",
+        "columns": {
+            "name": "Name",
+            "race": "Race",
+            "status": "Status",
+            "player": "Player",
+            "stats": "Stats",
+            "actions": "Actions"
+        },
+        "emptyState": "No characters found matching the criteria.",
+        "newCharacter": "New Character",
+        "actions": {
+            "view": "View Details",
+            "duplicate": "Duplicate",
+            "changeStatus": "Change Status",
+            "delete": "Delete",
+            "restore": "Restore"
+        }
+    },
+    "status": {
+        "draft": "Draft",
+        "ready": "Ready",
+        "locked": "Locked"
+    },
+    "detail": {
+        "backToList": "Back to Characters",
+        "actions": {
+            "edit": "Edit Profile",
+            "changeStatus": "Change Status",
+            "duplicate": "Duplicate",
+            "delete": "Delete",
+            "restore": "Restore"
+        },
+        "tabs": {
+            "profile": "Profile",
+            "abilities": "Abilities",
+            "attachments": "Attachments",
+            "narrative": "Narrative"
+        }
+    },
+    "profile": {
+        "biography": "Biography",
+        "internalNotes": "Internal Notes",
+        "playerAssignment": "Assigned Player"
+    },
+    "abilities": {
+        "category": "Category",
+        "name": "Name",
+        "value": "Value",
+        "description": "Description",
+        "add": "Add Ability",
+        "edit": "Edit",
+        "delete": "Delete",
+        "emptyState": "No abilities added yet.",
+        "lockedReadOnly": "Abilities cannot be edited while the character is Locked."
+    },
+    "attachments": {
+        "upload": "Upload File",
+        "fileName": "File Name",
+        "uploadedBy": "Uploaded By",
+        "actions": "Actions",
+        "categories": {
+            "document": "Document",
+            "image": "Image",
+            "other": "Other"
+        },
+        "emptyState": "No attachments uploaded yet.",
+        "lockedReadOnly": "Attachments cannot be modified while the character is Locked.",
+        "constraints": "Max 5 MB. Allowed types: PDF, Word, images, text."
+    },
+    "photo": {
+        "upload": "Upload Photo",
+        "replace": "Replace Photo",
+        "remove": "Remove",
+        "constraints": "Max 5 MB. JPG, PNG, WEBP."
+    },
+    "narrative": {
+        "notice": "Narrative data is managed in the Narrative module.",
+        "factions": {
+            "title": "Factions",
+            "role": "Role",
+            "emptyState": "No faction memberships yet."
+        },
+        "relationships": {
+            "title": "Relationships",
+            "type": "Type",
+            "description": "Description",
+            "emptyState": "No relationships yet."
+        },
+        "quests": {
+            "title": "Quests",
+            "role": "Role",
+            "status": "Status",
+            "emptyState": "No active quests yet."
+        },
+        "graphLink": "View Full Relationship Graph"
+    },
+    "graph": {
+        "title": "Relationship Graph",
+        "emptyState": "No relationships established for this event yet.",
+        "types": {
+            "ally": "Ally",
+            "enemy": "Enemy",
+            "family": "Family",
+            "romantic": "Romantic",
+            "neutral": "Neutral"
+        }
+    },
+    "dialogs": {
+        "common": {
+            "cancel": "Cancel"
+        },
+        "create": {
+            "title": "Create Character",
+            "description": "Add a new character to this event.",
+            "submit": "Create Character"
+        },
+        "edit": {
+            "title": "Edit Character",
+            "description": "Update character profile details.",
+            "submit": "Save Changes",
+            "lockedWarning": "Character is Locked. Only internal notes can be edited."
+        },
+        "delete": {
+            "title": "Delete Character",
+            "description": "Are you sure you want to delete this character? This action can be undone later.",
+            "submit": "Delete Character"
+        },
+        "restore": {
+            "title": "Restore Character",
+            "description": "This will restore the character and their related data.",
+            "submit": "Restore Character"
+        },
+        "duplicate": {
+            "title": "Duplicate Character",
+            "description": "Create a copy of this character. Abilities will be copied, but photo and attachments will not.",
+            "submit": "Duplicate Character"
+        },
+        "changeStatus": {
+            "title": "Change Character Status",
+            "currentStatus": "Current Status",
+            "targetStatus": "Target Status",
+            "submit": "Change Status",
+            "transitions": {
+                "draftToReady": "Marking this character as Ready indicates the profile is complete and ready for player assignment.",
+                "readyToLocked": "Locking this character prevents further edits to profile, abilities, and attachments. Only internal notes can be modified. Use this when the event starts.",
+                "lockedToReady": "Unlocking this character will re-enable profile edits. Are you sure you want to do this during or after an event?",
+                "readyToDraft": "Returning the character to Draft status.",
+                "blocked": "Invalid transition. Must be Ready before it can be Locked."
+            },
+            "confirmUnlock": "I understand the risks of unlocking this character."
+        }
+    },
+    "fields": {
+        "name": "Name",
+        "race": "Race",
+        "biography": "Biography",
+        "notes": "Internal Notes",
+        "player": "Player",
+        "newName": "New Name",
+        "reason": "Reason (optional)",
+        "placeholders": {
+            "searchEvent": "Search event...",
+            "name": "e.g. Aragorn",
+            "race": "e.g. Human, Elf",
+            "biography": "Public story or background...",
+            "notes": "Private notes (viewable only by organizers)...",
+            "abilities": {
+                "category": "e.g. Attributes, Skills, Spells",
+                "name": "e.g. Strength, Fireball",
+                "value": "e.g. 18, 3d6, Master",
+                "description": "Rule text or explanation..."
+            }
+        },
+        "descriptions": {
+            "notesPrivacy": "These notes are never visible to the assigned player."
+        }
+    },
+    "validation": {
+        "nameRequired": "Name is required.",
+        "raceRequired": "Race is required."
+    },
+    "notifications": {
+        "created": "Character created successfully.",
+        "updated": "Character updated successfully.",
+        "deleted": "Character deleted successfully.",
+        "restored": "Character restored successfully.",
+        "duplicated": "Character duplicated successfully.",
+        "statusChanged": "Status changed successfully.",
+        "abilityAdded": "Ability added.",
+        "abilityUpdated": "Ability updated.",
+        "abilityDeleted": "Ability deleted."
+    },
+    "errors": {
+        "loadFailed": "Failed to load characters.",
+        "notFound": "Character not found.",
+        "duplicateName": "A character with this name already exists in this event."
+    }
+}

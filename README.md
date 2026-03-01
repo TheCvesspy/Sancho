@@ -1,12 +1,12 @@
 # Sancho — LARP Event Management Platform
 
-**Version: 0.5.0**
+**Version: 0.6.0**
 
 Sancho is a single-organization web application for managing LARP (Live Action Role-Playing) groups, covering the full event lifecycle from planning through execution. One deployment serves one organization and supports multiple events.
 
 ---
 
-## Current State (as of 2026-02-28)
+## Current State (as of 2026-03-01)
 
 ### What's Implemented
 
@@ -32,8 +32,10 @@ Sancho is a single-organization web application for managing LARP (Live Action R
 - Event manager assignment
 - Per-user, per-module permission matrix per event
 
-#### Characters (Backend v1)
-- Event-scoped character APIs under `/api/events/{eventId}/characters`
+#### Characters
+- Standalone top-level module with central event selector
+- Event-scoped character lists and profiles
+- React Flow dynamic relationship graph visualization
 - Character profile lifecycle (`Draft`, `Ready`, `Locked`)
 - Character abilities CRUD
 - Character photo + attachments with Supabase Storage signed uploads
@@ -103,7 +105,7 @@ sancho/
 | Event Management | ✅ Full | ✅ Full | ✅ Full |
 | Identity & Access | ✅ Full | ✅ Full | ✅ Full |
 | User / Profile | ✅ Full | ✅ Full | ✅ Full |
-| Characters | ✅ Backend | ⏳ None | ✅ Full |
+| Characters | ✅ Backend | ✅ Full | ✅ Full |
 | Narrative | ⏳ Stub | ⏳ None | ⏳ None |
 | Logistics | ⏳ Stub | ⏳ None | ⏳ None |
 | Finance | ⏳ Stub | ⏳ None | ⏳ None |
@@ -188,6 +190,7 @@ sancho/
 
 | Version | Date | Summary |
 |---|---|---|
+| 0.6.0 | 2026-03-01 | Characters frontend module with React Flow graph, i18n, and complete UI |
 | 0.5.0 | 2026-02-28 | Characters backend finalized and migration applied |
 | 0.4.0 | 2026-02-28 | Characters backend v1 (event-scoped APIs, DB schema, RLS, storage upload flows, narrative integration stubs) |
 | 0.3.0 | 2026-02-28 | Event management lifecycle, permissions matrix, toast notifications, activity feed |
