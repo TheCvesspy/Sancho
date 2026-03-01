@@ -48,18 +48,14 @@ export function EditCharacterDialog({ eventId, token, character }: EditCharacter
 
     const formSchema = z.object({
         name: z.string().min(1, t("validation.nameRequired")),
-        race: z.string().min(1, t("validation.raceRequired")),
-        biography: z.string().optional(),
-        notes: z.string().optional()
+        race: z.string().min(1, t("validation.raceRequired"))
     });
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
             name: character.name,
-            race: character.race,
-            biography: character.biography || "",
-            notes: character.notes || ""
+            race: character.race
         }
     });
 
@@ -70,8 +66,8 @@ export function EditCharacterDialog({ eventId, token, character }: EditCharacter
             await charactersApi.updateCharacter(token, eventId, character.id, {
                 name: values.name,
                 race: values.race,
-                biography: values.biography || null,
-                notes: values.notes || null,
+                biography: character.biography,
+                notes: character.notes,
                 playerUserId: character.playerUserId
             });
 
@@ -99,8 +95,10 @@ export function EditCharacterDialog({ eventId, token, character }: EditCharacter
                     <DialogTitle>{t("dialogs.edit.title")}</DialogTitle>
                     <DialogDescription>
                         {isLocked
-                            ? "This character is Locked. Only internal notes can be edited."
+                            ? t("dialogs.edit.lockedWarning")
                             : t("dialogs.edit.description")}
+                        <br className="mb-2" />
+                        <span className="text-muted-foreground italic">Biography and Internal Notes are edited on the Profile tab inline.</span>
                     </DialogDescription>
                 </DialogHeader>
 
@@ -132,44 +130,7 @@ export function EditCharacterDialog({ eventId, token, character }: EditCharacter
                                 </FormItem>
                             )}
                         />
-                        <FormField
-                            control={form.control}
-                            name="biography"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t("fields.biography")}</FormLabel>
-                                    <FormControl>
-                                        <Textarea
-                                            disabled={isLocked}
-                                            placeholder={t("fields.placeholders.biography")}
-                                            className="resize-none"
-                                            {...field}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="notes"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t("fields.notes")}</FormLabel>
-                                    <FormControl>
-                                        <Textarea
-                                            placeholder={t("fields.placeholders.notes")}
-                                            className="resize-none border-amber-200 focus-visible:ring-amber-400"
-                                            {...field}
-                                        />
-                                    </FormControl>
-                                    <FormDescription className="text-amber-600/80 text-xs">
-                                        {t("fields.descriptions.notesPrivacy")}
-                                    </FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+
 
                         <DialogFooter className="pt-4">
                             <Button

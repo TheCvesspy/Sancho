@@ -1,6 +1,6 @@
 # Sancho — LARP Event Management Platform
 
-**Version: 0.6.0**
+**Version: 0.6.1**
 
 Sancho is a single-organization web application for managing LARP (Live Action Role-Playing) groups, covering the full event lifecycle from planning through execution. One deployment serves one organization and supports multiple events.
 
@@ -190,6 +190,7 @@ sancho/
 
 | Version | Date | Summary |
 |---|---|---|
+| 0.6.1 | 2026-03-01 | Fix DOMPurify SSR crash, 405 Method Not Allowed on save, and API path mismatches |
 | 0.6.0 | 2026-03-01 | Characters frontend module with React Flow graph, i18n, and complete UI |
 | 0.5.0 | 2026-02-28 | Characters backend finalized and migration applied |
 | 0.4.0 | 2026-02-28 | Characters backend v1 (event-scoped APIs, DB schema, RLS, storage upload flows, narrative integration stubs) |

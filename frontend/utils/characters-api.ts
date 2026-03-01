@@ -185,7 +185,7 @@ export const charactersApi = {
 
     updateCharacter: (token: string, eventId: string, characterId: string, data: UpdateCharacterProfileRequest) =>
         fetcher<CharacterDetailDto>(`/api/events/${eventId}/characters/${characterId}`, {
-            method: "PUT",
+            method: "PATCH",
             headers: {
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
@@ -195,7 +195,7 @@ export const charactersApi = {
 
     changeStatus: (token: string, eventId: string, characterId: string, data: ChangeCharacterStatusRequest) =>
         fetcher<void>(`/api/events/${eventId}/characters/${characterId}/status`, {
-            method: "PUT",
+            method: "POST",
             headers: {
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
@@ -224,7 +224,7 @@ export const charactersApi = {
         }),
 
     undeleteCharacter: (token: string, eventId: string, characterId: string) =>
-        fetcher<void>(`/api/events/${eventId}/characters/${characterId}/restore`, {
+        fetcher<void>(`/api/events/${eventId}/characters/${characterId}/undelete`, {
             method: "POST",
             headers: { Authorization: `Bearer ${token}` },
         }),
@@ -247,7 +247,7 @@ export const charactersApi = {
 
     updateAbility: (token: string, eventId: string, characterId: string, abilityId: string, data: UpdateCharacterAbilityRequest) =>
         fetcher<CharacterAbilityDto>(`/api/events/${eventId}/characters/${characterId}/abilities/${abilityId}`, {
-            method: "PUT",
+            method: "PATCH",
             headers: {
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
