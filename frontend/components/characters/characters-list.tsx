@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
 import {
@@ -36,8 +36,21 @@ import { EventDetailDto } from "@/utils/events-api";
 import { CharacterStatusBadge } from "./character-status-badge";
 import { EventSelectorHeader } from "./event-selector-header";
 import { CreateCharacterDialog } from "./create-character-dialog";
-import { RelationshipGraph } from "./relationship-graph";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import dynamic from "next/dynamic";
+
+// Lazy-load the React Flow graph — @xyflow/react is large and only needed in graph view.
+const RelationshipGraph = dynamic(
+    () => import("./relationship-graph").then(m => ({ default: m.RelationshipGraph })),
+    {
+        ssr: false,
+        loading: () => (
+            <div className="bg-card rounded-lg border h-[600px] flex items-center justify-center text-muted-foreground animate-pulse">
+                Loading graph…
+            </div>
+        )
+    }
+);
 
 interface CharactersListProps {
     event: EventDetailDto;
@@ -56,7 +69,7 @@ export function CharactersList({ event, initialCharacters, isOrgOrSysAdmin, toke
     const [showDeleted, setShowDeleted] = useState(false);
     const [viewMode, setViewMode] = useState<"table" | "graph">("table");
 
-    const filteredCharacters = initialCharacters.filter((char) => {
+    const filteredCharacters = useMemo(() => initialCharacters.filter((char) => {
         const matchesSearch = char.name.toLowerCase().includes(search.toLowerCase()) ||
             char.race.toLowerCase().includes(search.toLowerCase());
 
@@ -68,7 +81,7 @@ export function CharactersList({ event, initialCharacters, isOrgOrSysAdmin, toke
         const matchesDeleted = showDeleted ? true : !char.deletedAt;
 
         return matchesSearch && matchesStatus && matchesDeleted;
-    });
+    }), [initialCharacters, search, statusFilter, showDeleted]);
 
     const navigateToDetail = (id: string) => {
         router.push(`/${locale}/characters/${event.id}/${id}`);
@@ -249,12 +262,11 @@ export function CharactersList({ event, initialCharacters, isOrgOrSysAdmin, toke
                     </div>
                 </>
             ) : (
-                <div className="bg-card rounded-lg border h-[600px] flex items-center justify-center text-muted-foreground flex-col gap-4">
-                    <p>React Flow Relationship Graph</p>
-                    <p className="text-sm border p-4 rounded bg-muted/50 max-w-sm text-center">
-                        This view will render the React Flow canvas to visualize relationships between characters in this event.
-                    </p>
-                </div>
+                <RelationshipGraph
+                    eventId={event.id}
+                    characters={filteredCharacters}
+                    relationships={[]}
+                />
             )}
         </div>
     );

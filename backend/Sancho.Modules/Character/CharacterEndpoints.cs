@@ -186,13 +186,23 @@ public static class CharacterEndpoints
         if (created is null) return Results.Problem("Duplicated character payload missing.");
 
         var abilities = await GetAbilities(characterId, url!, key!, httpClient);
-        foreach (var ability in abilities)
+        if (abilities.Count > 0)
         {
-            var copyReq = new HttpRequestMessage(HttpMethod.Post, $"{url}/rest/v1/character_abilities");
-            copyReq.Headers.Add("Prefer", "return=minimal");
-            AddHeaders(copyReq, key!);
-            copyReq.Content = JsonContent.Create(new { character_id = created.id, category = ability.category, name = ability.name, value = ability.value, description = ability.description, sort_order = ability.sort_order });
-            await httpClient.SendAsync(copyReq);
+            // Batch-insert all abilities in a single HTTP call instead of one per ability.
+            var abilityRows = abilities.Select(a => new
+            {
+                character_id = created.id,
+                category = a.category,
+                name = a.name,
+                value = a.value,
+                description = a.description,
+                sort_order = a.sort_order
+            }).ToList();
+            var batchReq = new HttpRequestMessage(HttpMethod.Post, $"{url}/rest/v1/character_abilities");
+            batchReq.Headers.Add("Prefer", "return=minimal");
+            AddHeaders(batchReq, key!);
+            batchReq.Content = JsonContent.Create(abilityRows);
+            await httpClient.SendAsync(batchReq);
         }
 
         return Results.Created($"/api/events/{eventId}/characters/{created.id}", ToDetail(created));

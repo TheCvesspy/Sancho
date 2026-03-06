@@ -137,3 +137,48 @@ Query parameters are reserved for optional UI state only (search term, status fi
 
 ## Data Isolation
 Authorization is enforced in Supabase using Row Level Security (RLS). Event data access must always be scoped by event membership and role-based rules, with overrides granted only via `public.event_member_permissions`.
+
+---
+
+## Performance Architecture
+
+### Caching Layers
+
+| Layer | Location | Mechanism | TTL | What It Covers |
+|-------|----------|-----------|-----|----------------|
+| Backend L1 | `SanchoClaimsTransformation` | `IMemoryCache` | 90 s | Resolved roles, permissions, org/event memberships per user |
+| Backend L2 | API pipeline | `UseResponseCompression()` | N/A | Brotli/gzip compression on all JSON responses |
+| Frontend L1 | Next.js fetch cache | `next: { revalidate: N }` | Per-route | User profile, events, characters, permissions |
+| Frontend L2 | React components | `useMemo` | Per-render | Filtered/sorted lists in client components |
+
+### Frontend Fetch TTL Policy
+
+| Endpoint | TTL | Rationale |
+|----------|-----|-----------|
+| `/api/user/me` | 60 s | Profile changes rarely mid-session |
+| `/api/events` | 30 s | Events updated infrequently |
+| Character list | 15 s | May change during active event |
+| Character detail | 10 s | Collaborative editing possible |
+| Activity log | 5 s | Near-realtime; tolerable delay |
+
+### Backend HTTP Call Budget
+
+Each endpoint handler may make a maximum of **3 outbound Supabase HTTP calls** (auth/ownership check + read + write). Claims and permission data served from `IMemoryCache` do not count. Batch inserts/updates count as 1 call regardless of record count.
+
+This budget prevents the N+1 query problem from accumulating across concurrent users. With 5–8 users, an uncached 6-call endpoint becomes 30–48 simultaneous Supabase calls.
+
+### Database Indexing Contract
+
+All columns used in RLS policy `WHERE` clauses must be indexed. Critical indexes already in place:
+
+- `event_member_permissions (user_id, event_id, module)` — user-first permission lookups
+- `event_members (user_id, event_id)` — membership checks in RLS
+- `system_admins (user_id)` — admin status checks
+- `org_members (user_id, role)` — org ownership checks
+- Partial `WHERE deleted_at IS NULL` indexes on `events` and `characters` — list queries
+
+Every new migration that adds a table referenced in an RLS policy must include the required indexes in the same migration file.
+
+### JWKS Key Loading
+
+Supabase signing keys are fetched once at application startup (async, using `IHttpClientFactory`) and cached in a static field. The `IssuerSigningKeyResolver` only reads the pre-fetched value — no HTTP call per request. If the JWKS endpoint is unavailable at startup, the error is logged and the app continues; token validation will fail until keys are loaded.

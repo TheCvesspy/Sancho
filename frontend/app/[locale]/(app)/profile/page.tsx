@@ -30,9 +30,11 @@ export default async function ProfilePage({ params }: { params: Promise<{ locale
 
     const headers = { "Authorization": `Bearer ${session.access_token}` }
 
-    // Fetch user-specific data from OUR API
-    const userResponse = await fetch(`${API_BASE_URL}/api/user/me`, { headers, cache: "no-store" })
-    const membershipsResponse = await fetch(`${API_BASE_URL}/api/user/me/memberships`, { headers, cache: "no-store" })
+    // Fetch user-specific data from OUR API in parallel — they are independent.
+    const [userResponse, membershipsResponse] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/user/me`, { headers, next: { revalidate: 60 } }),
+        fetch(`${API_BASE_URL}/api/user/me/memberships`, { headers, next: { revalidate: 60 } }),
+    ])
 
     const profileData = userResponse.ok ? await userResponse.json() : null
     const membership = membershipsResponse.ok ? await membershipsResponse.json() : null

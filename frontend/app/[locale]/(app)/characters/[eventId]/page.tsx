@@ -31,7 +31,7 @@ export default async function EventCharactersPage({
     // Get user profile for RBAC checks
     const userResponse = await fetch(`${API_BASE_URL}/api/user/me`, {
         headers: { "Authorization": `Bearer ${token}` },
-        cache: "no-store"
+        next: { revalidate: 60 }
     });
 
     if (!userResponse.ok) {
@@ -44,11 +44,11 @@ export default async function EventCharactersPage({
     const includeDeleted = sp.showDeleted === "true" && isOrgOrSysAdmin;
 
     try {
-        // Fetch event data for the header
-        const event = await eventsApi.getEvent(token, eventId);
-
-        // Fetch characters list
-        const characters = await charactersApi.listCharacters(token, eventId, includeDeleted);
+        // Fetch event and character list in parallel — they are independent.
+        const [event, characters] = await Promise.all([
+            eventsApi.getEvent(token, eventId),
+            charactersApi.listCharacters(token, eventId, includeDeleted),
+        ]);
 
         return (
             <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
