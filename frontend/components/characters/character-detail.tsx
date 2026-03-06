@@ -3,6 +3,7 @@
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import {
     CharacterDetailDto,
     CharacterAbilityDto,
@@ -27,7 +28,12 @@ import { AttachmentsPanel } from "./attachments-panel";
 import { PhotoUpload } from "./photo-upload";
 import { NarrativePanel } from "./narrative-panel";
 import { RichTextView } from "@/components/ui/rich-text-view";
-import { RichTextEditor } from "@/components/ui/rich-text-editor";
+// Lazy-load the rich-text editor: Tiptap adds ~150-200 KB to the bundle and is
+// only needed when the user actively edits biography or notes.
+const RichTextEditor = dynamic(
+    () => import("@/components/ui/rich-text-editor").then(m => ({ default: m.RichTextEditor })),
+    { ssr: false, loading: () => <div className="h-32 rounded-md border bg-muted animate-pulse" /> }
+);
 
 interface CharacterDetailProps {
     event: EventDetailDto;

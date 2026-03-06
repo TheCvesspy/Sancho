@@ -12,7 +12,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     let isSystemAdmin = false;
     if (session) {
         const headers = { "Authorization": `Bearer ${session.access_token}` }
-        const userResponse = await fetch(`${API_BASE_URL}/api/user/me`, { headers, cache: "no-store" })
+        const userResponse = await fetch(`${API_BASE_URL}/api/user/me`, { headers, next: { revalidate: 60 } })
         if (userResponse.ok) {
             const profileData = await userResponse.json()
             isSystemAdmin = profileData?.isSystemAdmin || false;

@@ -28,17 +28,16 @@ export default async function CharacterDetailPage({
     // Get user profile for RBAC checks
     const userResponse = await fetch(`${API_BASE_URL}/api/user/me`, {
         headers: { "Authorization": `Bearer ${token}` },
-        cache: "no-store"
+        next: { revalidate: 60 }
     });
 
     const isOrgOrSysAdmin = userResponse.ok ? (await userResponse.json()).isSystemAdmin : false;
 
     try {
-        // Fetch event for top nav
-        const event = await eventsApi.getEvent(token, eventId);
-
-        // Fetch character data in parallel
-        const [character, abilities, attachments, narrativeLinks] = await Promise.all([
+        // Fetch all data in parallel — event, character, abilities, attachments, and narrative links
+        // are all independent and can be resolved simultaneously.
+        const [event, character, abilities, attachments, narrativeLinks] = await Promise.all([
+            eventsApi.getEvent(token, eventId),
             charactersApi.getCharacter(token, eventId, characterId),
             charactersApi.listAbilities(token, eventId, characterId),
             charactersApi.listAttachments(token, eventId, characterId),

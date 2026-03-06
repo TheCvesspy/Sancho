@@ -27,7 +27,7 @@ export default async function EventDetailPage({
     // Get user profile for RBAC checks
     const userResponse = await fetch(`${API_BASE_URL}/api/user/me`, {
         headers: { "Authorization": `Bearer ${token}` },
-        cache: "no-store"
+        next: { revalidate: 60 }
     });
 
     if (!userResponse.ok) {
@@ -38,9 +38,12 @@ export default async function EventDetailPage({
     const isOrgOrSysAdmin = profile.isSystemAdmin || profile.orgRole === "OrgOwner";
 
     try {
-        const event = await eventsApi.getEvent(token, eventId);
-        const stats = await eventsApi.getStats(token, eventId);
-        const activity = await eventsApi.getRecentActivity(token, eventId, 20);
+        // Fetch event, stats, and activity in parallel — they are independent.
+        const [event, stats, activity] = await Promise.all([
+            eventsApi.getEvent(token, eventId),
+            eventsApi.getStats(token, eventId),
+            eventsApi.getRecentActivity(token, eventId, 20),
+        ]);
 
         return (
             <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">

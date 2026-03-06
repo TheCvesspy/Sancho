@@ -29,7 +29,7 @@ export default async function EventsPage({
     const token = session.access_token;
     const userResponse = await fetch(`${API_BASE_URL}/api/user/me`, {
         headers: { "Authorization": `Bearer ${token}` },
-        cache: "no-store"
+        next: { revalidate: 60 }
     });
 
     if (!userResponse.ok) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
 import {
@@ -51,7 +51,7 @@ export function EventsList({ initialEvents, isOrgOrSysAdmin, token }: EventsList
     const [statusFilter, setStatusFilter] = useState("all");
     const [showDeleted, setShowDeleted] = useState(false);
 
-    const filteredEvents = initialEvents.filter((ev) => {
+    const filteredEvents = useMemo(() => initialEvents.filter((ev) => {
         const matchesSearch = ev.name.toLowerCase().includes(search.toLowerCase()) ||
             (ev.location?.toLowerCase().includes(search.toLowerCase()) ?? false);
 
@@ -63,7 +63,7 @@ export function EventsList({ initialEvents, isOrgOrSysAdmin, token }: EventsList
         const matchesDeleted = showDeleted ? true : !ev.deletedAt;
 
         return matchesSearch && matchesStatus && matchesDeleted;
-    });
+    }), [initialEvents, search, statusFilter, showDeleted]);
 
     const formatDate = (dateStr: string) => {
         return new Date(dateStr).toLocaleDateString(locale, {

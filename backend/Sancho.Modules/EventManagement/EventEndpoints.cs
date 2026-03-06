@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Sancho.Shared.Roles;
 
@@ -361,7 +362,7 @@ public static class EventEndpoints
 
     private static async Task<IResult> AssignManager(
         Guid eventId, Guid userId, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient,
-        EventAuthorizationService authz, EventActivityService activity)
+        EventAuthorizationService authz, EventActivityService activity, IMemoryCache cache)
     {
         if (!authz.IsOrgOrSystemAdmin(user)) return Results.Forbid();
         if (!TryConfig(config, out var url, out var key, out var error)) return error!;
@@ -375,13 +376,14 @@ public static class EventEndpoints
         req.Content = JsonContent.Create(new { event_id = eventId, user_id = userId, role = AppRoles.EventManager, created_at = DateTimeOffset.UtcNow });
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to assign manager: {resp.StatusCode}");
+        cache.Remove($"claims:{userId}");
         await activity.LogAsync(url!, key!, eventId, UserId(user), "manager.assigned", "event_member", userId, new() { ["targetUserId"] = userId });
         return Results.NoContent();
     }
 
     private static async Task<IResult> RevokeManager(
         Guid eventId, Guid userId, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient,
-        EventAuthorizationService authz, EventActivityService activity)
+        EventAuthorizationService authz, EventActivityService activity, IMemoryCache cache)
     {
         if (!authz.IsOrgOrSystemAdmin(user)) return Results.Forbid();
         if (!TryConfig(config, out var url, out var key, out var error)) return error!;
@@ -389,6 +391,7 @@ public static class EventEndpoints
         AddHeaders(req, key!);
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to revoke manager: {resp.StatusCode}");
+        cache.Remove($"claims:{userId}");
         await activity.LogAsync(url!, key!, eventId, UserId(user), "manager.revoked", "event_member", userId, new() { ["targetUserId"] = userId });
         return Results.NoContent();
     }
@@ -416,7 +419,7 @@ public static class EventEndpoints
 
     private static async Task<IResult> UpsertPermission(
         Guid eventId, Guid userId, string module, ClaimsPrincipal user, [FromBody] UpsertEventPermissionRequest request,
-        IConfiguration config, HttpClient httpClient, EventAuthorizationService authz, EventActivityService activity)
+        IConfiguration config, HttpClient httpClient, EventAuthorizationService authz, EventActivityService activity, IMemoryCache cache)
     {
         if (!TryConfig(config, out var url, out var key, out var error)) return error!;
         if (!ModulePermissions.AllModules.Contains(module)) return Results.BadRequest("Unknown module.");
@@ -445,13 +448,14 @@ public static class EventEndpoints
         });
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to upsert permission: {resp.StatusCode}");
+        cache.Remove($"claims:{userId}");
         await activity.LogAsync(url!, key!, eventId, UserId(user), "permission.updated", "event_permission", userId, new() { ["module"] = module, ["permission"] = request.Permission });
         return Results.NoContent();
     }
 
     private static async Task<IResult> RevokePermission(
         Guid eventId, Guid userId, string module, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient,
-        EventAuthorizationService authz, EventActivityService activity)
+        EventAuthorizationService authz, EventActivityService activity, IMemoryCache cache)
     {
         if (!TryConfig(config, out var url, out var key, out var error)) return error!;
         if (!ModulePermissions.AllModules.Contains(module)) return Results.BadRequest("Unknown module.");
@@ -468,6 +472,7 @@ public static class EventEndpoints
         AddHeaders(req, key!);
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to revoke permission: {resp.StatusCode}");
+        cache.Remove($"claims:{userId}");
         await activity.LogAsync(url!, key!, eventId, UserId(user), "permission.revoked", "event_permission", userId, new() { ["module"] = module });
         return Results.NoContent();
     }

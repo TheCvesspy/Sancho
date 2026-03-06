@@ -77,3 +77,20 @@ Lightweight log of noteworthy architecture and design decisions.
   - Implemented soft-delete/restore, lifecycle transitions, storage upload flows, and locked-character edit rules.
   - Added deletion guard via `HasActiveRelationshipsAsync(eventId, characterId)` (stubbed for now).
   **Alternatives**: Block Character implementation until Narrative exists (rejected to avoid cross-context delivery bottleneck).
+
+## 2026-03-06
+
+- **Context**: Application showed unacceptable load times even for 5–8 concurrent users. Root cause analysis identified three compounding bottlenecks: missing PostgreSQL indexes causing RLS sequential scans, backend claims transformation making 5–6 serial Supabase HTTP calls per request, and frontend pages calling `/api/user/me` 3–6 times per navigation.
+  **Decision**: Applied a layered performance pass across DB, backend, and frontend to eliminate avoidable work at every tier without adding hardware.
+  **Implementation**:
+  - **Database:** New migration `20260306000000_performance_indexes.sql` adds 11 indexes targeting RLS policy columns (`event_member_permissions(user_id, event_id, module)`, `event_members(user_id, event_id)`, `system_admins(user_id)`, `org_members(user_id, role)`) and partial `WHERE deleted_at IS NULL` indexes on `events` and `characters` for soft-delete list queries.
+  - **Backend claims cache:** `SanchoClaimsTransformation` now uses `IMemoryCache` with a 90-second TTL keyed on `claims:{userId}`, collapsing 5–6 per-request Supabase calls into an in-process cache hit on repeated requests. Cache is explicitly invalidated on `AssignManager`, `RevokeManager`, `UpsertPermission`, and `RevokePermission` so permission changes take effect immediately.
+  - **JWKS async prefetch + periodic refresh:** Removed the old `new HttpClient() + .Result` blocking resolver inside `IssuerSigningKeyResolver`. Keys are now pre-fetched asynchronously before the app starts accepting requests, and refreshed every hour via a `System.Threading.Timer` using `IHttpClientFactory`, so key rotations are picked up without a restart.
+  - **Response compression:** Added brotli/gzip via `UseResponseCompression()` globally in the ASP.NET Core pipeline — zero-cost bandwidth reduction for all JSON endpoints.
+  - **Batch ability inserts:** `DuplicateCharacter` replaced N serial POST loops with a single array POST to Supabase REST, reducing per-duplicate HTTP calls from O(N abilities) to 1.
+  - **Frontend fetch deduplication:** Replaced `cache: "no-store"` with `next: { revalidate: 60 }` on `/api/user/me` across all pages. Added `Promise.all([...])` for all independent server-side data fetches (event detail, characters list, character detail, profile).
+  - **Lazy-loading heavy libraries:** `RichTextEditor` (Tiptap, ~200 KB) and `RelationshipGraph` (`@xyflow/react`) are now loaded via `next/dynamic` with `ssr: false`, removing them from the initial JS bundle.
+  - **Suspense streaming:** Added `loading.tsx` route segment files for `/events/[eventId]` and `/characters/[eventId]` so the page shell renders immediately while data fetches complete.
+  - **React `useMemo`:** Filter/sort operations in `CharactersList` and `EventsList` are memoized to avoid re-running on unrelated re-renders.
+  - **Documentation:** `AGENTS.md` and `ARCHITECTURE.md` updated with mandatory performance rules so all future modules follow the same patterns.
+  **Alternatives**: Adding more compute/RAM (rejected — goal is to run well on local hardware); per-endpoint Redis caching (rejected — single-process deployment; `IMemoryCache` is sufficient and zero-dependency).

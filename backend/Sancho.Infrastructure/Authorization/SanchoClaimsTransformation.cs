@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Net.Http.Json;
 using System.Net.Http.Headers;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using System.Text.Json.Serialization;
 using Sancho.Shared.Roles;
@@ -12,11 +13,17 @@ public class SanchoClaimsTransformation : IClaimsTransformation
 {
     private readonly HttpClient _httpClient;
     private readonly IConfiguration _config;
+    private readonly IMemoryCache _cache;
 
-    public SanchoClaimsTransformation(HttpClient httpClient, IConfiguration config)
+    // Auth data TTL: 90 seconds. Permissions rarely change mid-session; this
+    // eliminates 5-6 Supabase HTTP calls on every subsequent authenticated request.
+    private static readonly TimeSpan ClaimsCacheTtl = TimeSpan.FromSeconds(90);
+
+    public SanchoClaimsTransformation(HttpClient httpClient, IConfiguration config, IMemoryCache cache)
     {
         _httpClient = httpClient;
         _config = config;
+        _cache = cache;
     }
 
     public async Task<ClaimsPrincipal> TransformAsync(ClaimsPrincipal principal)
@@ -26,7 +33,7 @@ public class SanchoClaimsTransformation : IClaimsTransformation
             return principal;
         }
 
-        // Check if already transformed
+        // Check if already transformed in this request (guard against double invocation)
         if (identity.HasClaim(c => c.Type == "sancho:transformed"))
         {
             return principal;
@@ -41,79 +48,83 @@ public class SanchoClaimsTransformation : IClaimsTransformation
         if (string.IsNullOrEmpty(supabaseUrl) || string.IsNullOrEmpty(supabaseKey))
             return principal;
 
-        var tasks = new List<Task>
+        // Try to serve from cache first — avoids 5-6 Supabase HTTP calls per request.
+        var cacheKey = $"claims:{userId}";
+        if (!_cache.TryGetValue(cacheKey, out CachedClaimsData? cached) || cached is null)
         {
-            FetchSystemAdminStatus(userId, supabaseUrl, supabaseKey),
-            FetchOrgMembership(userId, supabaseUrl, supabaseKey),
-            FetchEventMemberships(userId, supabaseUrl, supabaseKey)
-        };
+            // Cache miss — fetch all auth data in parallel.
+            var adminTask = FetchSystemAdminStatus(userId, supabaseUrl, supabaseKey);
+            var orgTask = FetchOrgMembership(userId, supabaseUrl, supabaseKey);
+            var eventsTask = FetchEventMemberships(userId, supabaseUrl, supabaseKey);
 
-        await Task.WhenAll(tasks);
+            await Task.WhenAll(adminTask, orgTask, eventsTask);
 
-        var roles = new HashSet<string>();
+            var isAdmin = await adminTask;
+            var orgRole = await orgTask;
+            var eventMemberships = await eventsTask;
+
+            var roles = new HashSet<string>();
+            if (isAdmin) roles.Add(AppRoles.SystemAdmin);
+            if (!string.IsNullOrEmpty(orgRole)) roles.Add(orgRole);
+            foreach (var m in eventMemberships) roles.Add(m.Role);
+
+            var rolePermissions = roles.Count > 0
+                ? await FetchRolePermissions(roles, supabaseUrl, supabaseKey)
+                : [];
+            var granularPermissions = await FetchGranularPermissions(userId, supabaseUrl, supabaseKey);
+
+            cached = new CachedClaimsData(isAdmin, orgRole, eventMemberships, rolePermissions, granularPermissions);
+            _cache.Set(cacheKey, cached, ClaimsCacheTtl);
+        }
+
+        // Apply cached data to the identity.
+        var hierarchy = new Dictionary<string, int> { { "none", 0 }, { "read", 1 }, { "write", 2 } };
 
         // 1. System Admin
-        if (await (Task<bool>)tasks[0])
+        if (cached.IsSystemAdmin)
         {
             identity.AddClaim(new Claim(ClaimTypes.Role, AppRoles.SystemAdmin));
             identity.AddClaim(new Claim("sancho:system_admin", "true"));
-            roles.Add(AppRoles.SystemAdmin);
         }
 
-        // 2. Org Membership (single role in the one organization)
-        var orgRole = await (Task<string?>)tasks[1];
-        if (!string.IsNullOrEmpty(orgRole))
+        // 2. Org Membership
+        if (!string.IsNullOrEmpty(cached.OrgRole))
         {
-            identity.AddClaim(new Claim("sancho:org_role", orgRole));
-            identity.AddClaim(new Claim(ClaimTypes.Role, orgRole));
-            roles.Add(orgRole);
+            identity.AddClaim(new Claim("sancho:org_role", cached.OrgRole));
+            identity.AddClaim(new Claim(ClaimTypes.Role, cached.OrgRole));
         }
 
         // 3. Event Memberships
-        var eventMemberships = await (Task<List<EventRoleData>>)tasks[2];
-        foreach (var mem in eventMemberships)
+        foreach (var mem in cached.EventMemberships)
         {
             identity.AddClaim(new Claim("sancho:event_role", $"{mem.EventId}:{mem.Role}"));
-            roles.Add(mem.Role);
         }
 
-        // 4. Permissions (Declarative)
+        // 4. Permissions (Declarative — role-based baseline)
         var permissions = new Dictionary<string, string>();
-        var hierarchy = new Dictionary<string, int> { { "none", 0 }, { "read", 1 }, { "write", 2 } };
-
-        if (roles.Count > 0)
+        foreach (var p in cached.RolePermissions)
         {
-            var rolePermissions = await FetchRolePermissions(roles, supabaseUrl, supabaseKey);
-            foreach (var p in rolePermissions)
-            {
-                if (!permissions.ContainsKey(p.Module) || hierarchy.GetValueOrDefault(p.Permission, 0) > hierarchy.GetValueOrDefault(permissions[p.Module], 0))
-                    permissions[p.Module] = p.Permission;
-            }
+            if (!permissions.ContainsKey(p.Module) || hierarchy.GetValueOrDefault(p.Permission, 0) > hierarchy.GetValueOrDefault(permissions[p.Module], 0))
+                permissions[p.Module] = p.Permission;
         }
 
         // Apply base permissions (None, except Communications=Read)
         foreach (var module in ModulePermissions.AllModules)
         {
             if (!permissions.ContainsKey(module))
-            {
                 permissions[module] = module == ModulePermissions.Communications ? ModulePermissions.Read : ModulePermissions.None;
-            }
         }
 
         // 5. Granular Event Permissions
-        var granularPermissions = await FetchGranularPermissions(userId, supabaseUrl, supabaseKey);
-        foreach (var p in granularPermissions)
+        foreach (var p in cached.GranularPermissions)
         {
             identity.AddClaim(new Claim($"sancho:permission:{p.EventId}:{p.Module}", p.Permission));
-            
-            // Also merge into global permissions (highest wins)
+
             if (hierarchy.GetValueOrDefault(p.Permission, 0) > hierarchy.GetValueOrDefault(permissions.GetValueOrDefault(p.Module, "none"), 0))
-            {
                 permissions[p.Module] = p.Permission;
-            }
         }
 
-        // Add global claims
+        // Add global permission claims
         foreach (var kp in permissions)
         {
             identity.AddClaim(new Claim($"sancho:permission:{kp.Key}", kp.Value));
@@ -123,6 +134,14 @@ public class SanchoClaimsTransformation : IClaimsTransformation
 
         return principal;
     }
+
+    // Holds all data fetched from Supabase for a user, stored in IMemoryCache.
+    private sealed record CachedClaimsData(
+        bool IsSystemAdmin,
+        string? OrgRole,
+        List<EventRoleData> EventMemberships,
+        List<PermissionData> RolePermissions,
+        List<GranularPermissionData> GranularPermissions);
 
     private async Task<bool> FetchSystemAdminStatus(string userId, string url, string key)
     {

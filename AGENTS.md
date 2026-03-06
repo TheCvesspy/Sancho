@@ -45,12 +45,35 @@ Sancho is a **single-organization** web app for a LARP group, covering the full 
 - Favor deterministic, testable services. Avoid static singletons except configuration.
 - **Module Identifiers**: Always use `lowercase_snake_case` for module names in API paths, database strings, and constants (e.g., `npc_org`, `event_management`).
 
+## Performance Standards (Backend)
+
+These rules are mandatory for every new module and endpoint. Violations are bugs, not style issues.
+
+- **HttpClient**: Never instantiate `new HttpClient()`. Always inject `HttpClient` via DI (registered with `AddHttpClient()`). Direct instantiation causes socket exhaustion under load.
+- **Async**: Never call `.Result` or `.Wait()` on async operations. Always use `async/await` throughout. Blocking causes thread-pool starvation under concurrent load.
+- **Batch writes**: Never loop over Supabase REST `POST` calls. Collect records into a list and send the entire array in a single request — Supabase REST accepts array bodies for batch inserts.
+- **Authorization cache**: `SanchoClaimsTransformation` caches resolved roles and permissions in `IMemoryCache` (90 s TTL). New endpoints receive auth data via claims — do NOT add additional Supabase permission lookups per request.
+- **HTTP call budget per endpoint**: Maximum 3 outbound Supabase HTTP calls (auth/ownership check + read + write). Claims data from cache does not count toward the budget.
+- **Parallel calls**: When an endpoint needs data from multiple independent Supabase tables, use `await Task.WhenAll(...)`. Never sequential awaits for independent work.
+- **Response compression**: Registered globally via `UseResponseCompression()`. Never add per-endpoint workarounds.
+
 ## Coding Standards (Frontend)
 - Use Next.js App Router conventions in `frontend/app/`.
 - Feature code goes in `frontend/modules/` aligned with backend contexts.
 - Shared UI in `frontend/components/`.
 - Keep server/client component boundaries explicit and minimal.
 - Use `shadcn/ui` components from `frontend/components/ui/` and keep styling token-driven in `frontend/app/globals.css`.
+
+## Performance Standards (Frontend)
+
+These rules are mandatory for every new page and component. They directly affect response time for all users.
+
+- **No `cache: "no-store"` for stable data**: Never use `cache: "no-store"` for user profile or permission data. Use `next: { revalidate: N }` with appropriate TTL (see ARCHITECTURE.md for TTL table). `cache: "no-store"` is only acceptable for data that must always be fresh (e.g., real-time activity feeds).
+- **Single `user/me` fetch per render**: Never call `/api/user/me` more than once per page render. Fetch it once — either in the nearest shared layout, or rely on Next.js request deduplication via a stable cache key (`next: { revalidate: 60 }`).
+- **Parallel data fetching**: All independent server-side data fetches on the same page must use `Promise.all([...])`. Sequential `await` calls for independent data are forbidden — they add latency equal to the sum of all response times instead of the maximum.
+- **Lazy-load heavy client libraries**: Libraries that add >50 KB to the JS bundle (rich-text editors, graph renderers, PDF viewers, charting) must use `next/dynamic` with `ssr: false`. They must not appear in the initial page bundle.
+- **Memoize filtered/sorted lists**: Any filter or sort operation on a list in a client component must be wrapped in `useMemo` with explicit dependencies. This prevents O(n) recalculation on every parent re-render.
+- **Suspense boundaries**: Wrap slow data sections in `<Suspense fallback={<Skeleton />}>` to enable streaming. Page shells must not block on all data before rendering visible content.
 
 ### Frontend Routing Conventions
 
@@ -77,8 +100,21 @@ All required context IDs must appear in path segments.
 Selecting an event navigates to `/{locale}/{module}/{eventId}`.
 
 
+## Performance Standards (Database / Migrations)
+
+These rules are mandatory for every new migration that creates tables or RLS policies.
+
+- **Index FK columns used in RLS**: Every column referenced in an RLS policy `WHERE` clause must have an index, created in the same migration as the table or policy. The critical columns are `user_id`, `event_id`, and composites like `(user_id, event_id)` and `(user_id, event_id, module)`.
+- **Partial indexes for soft-delete**: Any table with a `deleted_at` column must have a partial index `WHERE deleted_at IS NULL` on the columns used in list queries. Without this, every list query scans deleted rows.
+- **Composite index column order**: Order by selectivity (most selective first). For permission lookups: `(user_id, event_id, module)` not `(event_id, user_id, module)`.
+- **Reuse existing RLS patterns**: New RLS policies must follow the same EXISTS subquery pattern already established for `system_admins`, `org_members`, `event_members`, and `event_member_permissions`. Do not introduce new join strategies that bypass existing indexes.
+- **Migration checklist before commit**:
+  - [ ] All FK columns in new RLS policies have indexes
+  - [ ] Soft-delete tables have partial `WHERE deleted_at IS NULL` indexes
+  - [ ] Composite index column order matches query patterns
+
 ## Database & Supabase
-- All schema changes must go through `supabase/migrations/`. 
+- All schema changes must go through `supabase/migrations/`.
 - **Migration Execution**: Always try to execute database changes and migrations via the **Supabase MCP server** tools (`apply_migration`, `execute_sql`) to ensure the live environment stays in sync with local files.
 - CORE framework (Users, Roles, Events) has been implemented via migrations. There is **no tenants table** — the application is a single-organization deployment.
 - The organization membership table is `public.org_members` (holds only `OrgOwner`).

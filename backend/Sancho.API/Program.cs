@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.IdentityModel.Tokens;
 using User.Endpoints;
 using Identity.Endpoints;
@@ -16,38 +17,43 @@ var builder = WebApplication.CreateBuilder(args);
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi("v1");
 
-// Cache of Supabase signing keys, fetched lazily from the JWKS endpoint
+// In-memory cache — used by SanchoClaimsTransformation (90 s auth data TTL).
+builder.Services.AddMemoryCache();
+
+// Response compression — brotli preferred, gzip fallback.
+builder.Services.AddResponseCompression(opts =>
+{
+    opts.EnableForHttps = true;
+    opts.Providers.Add<BrotliCompressionProvider>();
+    opts.Providers.Add<GzipCompressionProvider>();
+    opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[]
+    {
+        "application/json",
+        "application/problem+json"
+    });
+});
+
+// Cache of Supabase signing keys — pre-fetched asynchronously at startup.
 IList<SecurityKey>? _cachedKeys = null;
+
+// Extract jwksUrl to outer scope so it is accessible in the startup prefetch block.
+var supabaseUrlForJwks = builder.Configuration["Supabase:Url"]
+    ?? throw new InvalidOperationException("Supabase:Url is not configured.");
+var jwksUrl = $"{supabaseUrlForJwks.TrimEnd('/')}/auth/v1/.well-known/jwks.json";
 
 // Add JWT Authentication using Supabase Asymmetric JWT Signing Keys (JWKS)
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        var supabaseUrl = builder.Configuration["Supabase:Url"];
-        if (string.IsNullOrEmpty(supabaseUrl))
-        {
-            throw new InvalidOperationException("Supabase:Url is not configured.");
-        }
-
-        // Supabase publishes raw JWKS (not an OIDC discovery doc) at this endpoint
-        var jwksUrl = $"{supabaseUrl.TrimEnd('/')}/auth/v1/.well-known/jwks.json";
-
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
-            // Fetch and cache Supabase's public EC keys from the JWKS endpoint
+            // Keys are pre-fetched at startup; resolver only reads the cached value.
+            // No HttpClient creation or blocking .Result calls on request threads.
             IssuerSigningKeyResolver = (token, securityToken, kid, validationParameters) =>
-            {
-                if (_cachedKeys != null) return _cachedKeys;
-
-                using var http = new HttpClient();
-                var jwksJson = http.GetStringAsync(jwksUrl).Result;
-                var keySet = JsonWebKeySet.Create(jwksJson);
-                _cachedKeys = keySet.GetSigningKeys();
-                return _cachedKeys;
-            },
+                _cachedKeys ?? [],
             ValidateIssuer = true,
-            ValidIssuer = $"{supabaseUrl.TrimEnd('/')}/auth/v1",
+            ValidIssuer = $"{supabaseUrlForJwks.TrimEnd('/')}/auth/v1",
             ValidateAudience = true,
             ValidAudience = "authenticated",
             ValidateLifetime = true,
@@ -101,6 +107,48 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Pre-fetch Supabase JWKS signing keys asynchronously before accepting requests.
+// Eliminates the old blocking new HttpClient() + .Result pattern inside the resolver,
+// which caused thread-pool starvation under concurrent load.
+{
+    var httpFactory = app.Services.GetRequiredService<IHttpClientFactory>();
+    using var http = httpFactory.CreateClient();
+    try
+    {
+        var jwksJson = await http.GetStringAsync(jwksUrl);
+        var keySet = JsonWebKeySet.Create(jwksJson);
+        _cachedKeys = keySet.GetSigningKeys();
+        app.Logger.LogInformation("Supabase JWKS keys loaded ({Count} key(s)).", _cachedKeys.Count);
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "Failed to pre-fetch Supabase JWKS keys from {Url}.", jwksUrl);
+    }
+}
+
+// Periodically refresh JWKS keys every hour to pick up key rotations without restarting.
+var refreshTimer = new System.Threading.Timer(
+    async _ =>
+    {
+        try
+        {
+            var factory = app.Services.GetRequiredService<IHttpClientFactory>();
+            using var client = factory.CreateClient();
+            var json = await client.GetStringAsync(jwksUrl);
+            var ks = JsonWebKeySet.Create(json);
+            _cachedKeys = ks.GetSigningKeys();
+            app.Logger.LogInformation("Supabase JWKS keys refreshed ({Count} key(s)).", _cachedKeys.Count);
+        }
+        catch (Exception ex)
+        {
+            app.Logger.LogWarning(ex, "Failed to refresh Supabase JWKS keys. Using existing cached keys.");
+        }
+    },
+    state: null,
+    dueTime: TimeSpan.FromHours(1),
+    period: TimeSpan.FromHours(1));
+app.Lifetime.ApplicationStopping.Register(() => refreshTimer.Dispose());
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -111,6 +159,9 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
+
+// Response compression must be before all other response-producing middleware.
+app.UseResponseCompression();
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
