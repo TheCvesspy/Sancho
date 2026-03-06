@@ -154,13 +154,16 @@ export interface CharacterUploadUrlRequest {
 }
 
 export interface FileUploadUrlResponse {
-    storagePath: string;
+    filePath: string;
     uploadUrl: string;
 }
 
 export interface ConfirmUploadRequest {
-    storagePath: string;
-    displayName: string;
+    fileName: string;
+    filePath: string;
+    mimeType: string;
+    category: string;
+    displayName: string | null;
     documentStatus: string;
 }
 
@@ -343,7 +346,7 @@ export const charactersApi = {
             body: JSON.stringify(data),
         }),
 
-    confirmPhoto: (token: string, eventId: string, characterId: string, data: { storagePath: string }) =>
+    confirmPhoto: (token: string, eventId: string, characterId: string, data: { filePath: string }) =>
         fetcher<{ photoUrl: string }>(`/api/events/${eventId}/characters/${characterId}/photo/confirm`, {
             method: "POST",
             headers: {

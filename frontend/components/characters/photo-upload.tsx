@@ -45,9 +45,10 @@ export function PhotoUpload({ eventId, character, token, isOrgOrSysAdmin }: Phot
             setIsUploading(true);
 
             // 1. Get signed upload URL
-            const { uploadUrl, storagePath } = await charactersApi.createPhotoUploadUrl(token, eventId, character.id, {
+            const { uploadUrl, filePath } = await charactersApi.createPhotoUploadUrl(token, eventId, character.id, {
                 fileName: file.name,
-                mimeType: file.type
+                contentType: file.type,
+                sizeBytes: file.size
             });
 
             // 2. Upload direct to Supabase Storage
@@ -65,7 +66,7 @@ export function PhotoUpload({ eventId, character, token, isOrgOrSysAdmin }: Phot
 
             // 3. Confirm with backend
             await charactersApi.confirmPhoto(token, eventId, character.id, {
-                storagePath
+                filePath: filePath
             });
 
             toast.success("Photo uploaded successfully");

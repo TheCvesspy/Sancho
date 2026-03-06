@@ -90,11 +90,17 @@ function getFileCategory(mimeType: string): "Document" | "Image" | "Other" {
 }
 
 function DocumentStatusBadge({ status }: { status: string }) {
-    const variant =
-        status === "Final" ? "default" :
-        status === "Ready to Review" ? "secondary" :
-        "outline";
-    return <Badge variant={variant}>{status}</Badge>;
+    const statusClasses =
+        status === "Final"
+            ? "border-green-300 bg-green-100 text-green-800"
+            : status === "Ready to Review"
+                ? "border-amber-300 bg-amber-100 text-amber-800"
+                : "border-gray-300 bg-gray-100 text-gray-700";
+    return (
+        <Badge variant="outline" className={statusClasses}>
+            {status}
+        </Badge>
+    );
 }
 
 function SourceIcon({ sourceType }: { sourceType: string }) {
@@ -127,7 +133,7 @@ export function AttachmentsPanel({ eventId, character, initialAttachments, token
 
     const addUploadSchema = z.object({
         displayName: z.string().min(1, t("validation.documentNameRequired")),
-        documentStatus: z.enum(DOCUMENT_STATUSES, { required_error: t("validation.documentNameRequired") }),
+        documentStatus: z.enum(DOCUMENT_STATUSES),
         file: z
             .instanceof(typeof window !== "undefined" ? File : Object as any)
             .refine((f) => f instanceof File && f.size <= MAX_FILE_BYTES, t("validation.fileTooLarge"))
@@ -137,7 +143,7 @@ export function AttachmentsPanel({ eventId, character, initialAttachments, token
 
     const addLinkSchema = z.object({
         displayName: z.string().min(1, t("validation.documentNameRequired")),
-        documentStatus: z.enum(DOCUMENT_STATUSES, { required_error: t("validation.documentNameRequired") }),
+        documentStatus: z.enum(DOCUMENT_STATUSES),
         url: z
             .string()
             .min(1, t("validation.documentUrlInvalid"))
@@ -173,7 +179,7 @@ export function AttachmentsPanel({ eventId, character, initialAttachments, token
             const category = getFileCategory(file.type);
 
             // 1. Get signed upload URL
-            const { uploadUrl, storagePath } = await charactersApi.createAttachmentUploadUrl(token, eventId, character.id, {
+            const { uploadUrl, filePath } = await charactersApi.createAttachmentUploadUrl(token, eventId, character.id, {
                 fileName: file.name,
                 contentType: file.type,
                 sizeBytes: file.size,
@@ -189,7 +195,10 @@ export function AttachmentsPanel({ eventId, character, initialAttachments, token
 
             // 3. Confirm with backend
             const created = await charactersApi.confirmAttachment(token, eventId, character.id, {
-                storagePath,
+                fileName: file.name,
+                filePath: filePath,
+                mimeType: file.type,
+                category,
                 displayName: values.displayName,
                 documentStatus: values.documentStatus,
             });
@@ -264,7 +273,7 @@ export function AttachmentsPanel({ eventId, character, initialAttachments, token
 
             if (replaceFile && editTarget.sourceType === "Upload" && !isLocked) {
                 // 1. Get new signed URL
-                const { uploadUrl, storagePath } = await charactersApi.createAttachmentUploadUrl(token, eventId, character.id, {
+                const { uploadUrl, filePath } = await charactersApi.createAttachmentUploadUrl(token, eventId, character.id, {
                     fileName: replaceFile.name,
                     contentType: replaceFile.type,
                     sizeBytes: replaceFile.size,
@@ -276,7 +285,7 @@ export function AttachmentsPanel({ eventId, character, initialAttachments, token
                     headers: { "Content-Type": replaceFile.type },
                 });
                 if (!uploadResp.ok) throw new Error("Storage upload failed");
-                updateData.newFilePath = storagePath;
+                updateData.newFilePath = filePath;
                 updateData.oldFilePath = editTarget.fileUrl;
             } else if (values.newUrl && editTarget.sourceType === "GoogleDrive" && !isLocked) {
                 updateData.newGoogleDriveUrl = values.newUrl;

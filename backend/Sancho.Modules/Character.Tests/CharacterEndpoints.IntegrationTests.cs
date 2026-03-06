@@ -78,6 +78,37 @@ public class CharacterEndpointsIntegrationTests
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
+    [Fact]
+    public async Task Attachment_Upload_And_Confirmation_Flow()
+    {
+        var eventId = Guid.NewGuid();
+        var managerId = Guid.NewGuid();
+        var fake = new FakeSupabaseHandler();
+        fake.SeedEvent(eventId, "active");
+        fake.SeedManager(eventId, managerId);
+        var character = fake.SeedCharacter(eventId, "Test Char", "Human", CharacterStatuses.Ready);
+
+        using var client = CreateClient(fake, new StubCharacterNarrativeService());
+        AddAuthHeaders(client, managerId);
+
+        // 1. Get Upload URL
+        var uploadUrlResp = await client.PostAsJsonAsync($"/api/events/{eventId}/characters/{character.Id}/attachments/upload-url", 
+            new CharacterUploadUrlRequest("test.pdf", "application/pdf", 1024));
+        Assert.Equal(HttpStatusCode.OK, uploadUrlResp.StatusCode);
+        var uploadUrlData = await uploadUrlResp.Content.ReadFromJsonAsync<AttachmentUploadUrlResponse>();
+        Assert.NotNull(uploadUrlData);
+
+        // 2. Confirm Attachment
+        var confirmResp = await client.PostAsJsonAsync($"/api/events/{eventId}/characters/{character.Id}/attachments/confirm",
+            new ConfirmCharacterAttachmentRequest("test.pdf", uploadUrlData.FilePath, "application/pdf", CharacterAttachmentCategories.Document, "Docs", CharacterAttachmentDocumentStatuses.Draft));
+        Assert.Equal(HttpStatusCode.Created, confirmResp.StatusCode);
+        
+        var attachment = await confirmResp.Content.ReadFromJsonAsync<CharacterAttachmentDto>();
+        Assert.NotNull(attachment);
+        Assert.Equal("Docs", attachment.DisplayName);
+        Assert.Equal(CharacterAttachmentSourceTypes.Upload, attachment.SourceType);
+    }
+
     private static HttpClient CreateClient(FakeSupabaseHandler fakeSupabase, ICharacterNarrativeService narrative)
     {
         var builder = new WebHostBuilder()
@@ -280,7 +311,24 @@ internal sealed class FakeSupabaseHandler : HttpMessageHandler
         if (path.EndsWith("/rest/v1/character_attachments", StringComparison.OrdinalIgnoreCase))
         {
             if (request.Method == HttpMethod.Get) return JsonOk(Array.Empty<object>());
-            if (request.Method == HttpMethod.Post) return JsonOk(new[] { new { id = Guid.NewGuid(), character_id = Guid.NewGuid(), file_name = "f", file_url = "u", mime_type = "image/png", category = "Image", uploaded_by = (Guid?)null, uploaded_at = DateTimeOffset.UtcNow } });
+            if (request.Method == HttpMethod.Post)
+            {
+                using var doc = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
+                var attachment = new {
+                    id = Guid.NewGuid(),
+                    character_id = Guid.NewGuid(),
+                    file_name = (doc.RootElement.TryGetProperty("file_name", out var fn) ? fn.GetString() : null) ?? "f",
+                    file_url = (doc.RootElement.TryGetProperty("file_url", out var fp) ? fp.GetString() : null) ?? "u",
+                    mime_type = (doc.RootElement.TryGetProperty("mime_type", out var mt) ? mt.GetString() : null) ?? "application/octet-stream",
+                    category = (doc.RootElement.TryGetProperty("category", out var ct) ? ct.GetString() : null) ?? "Other",
+                    display_name = doc.RootElement.TryGetProperty("display_name", out var dn) && dn.ValueKind != JsonValueKind.Null ? dn.GetString() : null,
+                    uploaded_by = (Guid?)null,
+                    uploaded_at = DateTimeOffset.UtcNow,
+                    document_status = (doc.RootElement.TryGetProperty("document_status", out var ds) ? ds.GetString() : null) ?? "Draft",
+                    source_type = "Upload"
+                };
+                return JsonOk(new[] { attachment });
+            }
             if (request.Method == HttpMethod.Delete) return new HttpResponseMessage(HttpStatusCode.NoContent);
         }
 

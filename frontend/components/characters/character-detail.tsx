@@ -347,8 +347,8 @@ export function CharacterDetail({
 
                 <TabsContent value="narrative" className="mt-6">
                     <NarrativePanel
-                        eventId={event.id}
-                        characterId={character.id}
+                        eventName={event.name}
+                        characterName={character.name}
                         links={initialNarrativeLinks}
                     />
                 </TabsContent>
