@@ -22,7 +22,7 @@ Characters consumes Narrative read data (factions, relationships, quests) via:
 
 - `ICharacterNarrativeService`
 
-Current implementation is stubbed (`StubCharacterNarrativeService`) and returns empty collections.
+Current implementation is concrete (`NarrativeCharacterNarrativeService`) and resolves data from Narrative tables.
 
 ## Deletion Guard
 
@@ -30,7 +30,7 @@ Before soft-delete, Character invokes:
 
 - `ICharacterNarrativeService.HasActiveRelationshipsAsync(eventId, characterId)`
 
-Current stub returns `false`; once Narrative is implemented, this should be replaced by a concrete provider.
+Deletion guard is now active via Narrative provider and checks for active narrative relationships before soft-delete.
 
 ## Event-Specific Scope
 
@@ -39,4 +39,3 @@ All API routes are event scoped:
 - `/api/events/{eventId}/characters/...`
 
 This supports future "globally selected event" behavior in clients while keeping backend ownership explicit.
-

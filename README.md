@@ -1,6 +1,6 @@
 # Sancho — LARP Event Management Platform
 
-**Version: 0.7.0**
+**Version: 0.8.0**
 
 Sancho is a single-organization web application for managing LARP (Live Action Role-Playing) groups, covering the full event lifecycle from planning through execution. One deployment serves one organization and supports multiple events.
 
@@ -42,9 +42,15 @@ Sancho is a single-organization web application for managing LARP (Live Action R
 - **Character Documents:** file upload (PDF, Word, Excel, images, text) and Google Drive links
 - **Document status workflow:** `Draft` → `Ready to Review` → `Final`
 - Full CRUD on attachments — upload new version replaces file in storage; delete removes from storage
-- Related Documents placeholder (pending Narrative module)
 - Soft-delete and restore
-- Narrative integration seam via stub provider (ready for Narrative module)
+- Narrative links endpoint backed by Narrative module provider
+
+#### Narrative (Backend + DB)
+- Event-scoped narrative domain implemented for quests, plotlines, plots, factions, and items
+- Status workflow implemented for narrative entities (`Draft` -> `ReadyToReview` -> `Final`) with reverse transitions
+- Soft-delete and restore implemented across narrative entities
+- Google Drive document links supported for quests, factions, and items (shared validator/service pattern)
+- Character integration seam activated via `ICharacterNarrativeService` concrete implementation
 
 #### Identity & Access (Admin UI)
 - User listing and role assignment
@@ -73,33 +79,32 @@ Sancho is a single-organization web application for managing LARP (Live Action R
 
 ```
 sancho/
-├── backend/                   # .NET 9 modular monolith
-│   ├── Sancho.API/            # ASP.NET Core Web API gateway
-│   ├── Sancho.Infrastructure/ # Authorization, RBAC, claims
-│   ├── Sancho.Shared/         # Common types, role definitions
-│   └── Sancho.Modules/        # Bounded-context class libraries
-│       ├── EventManagement/   # ✅ Implemented
-│       ├── Identity/          # ✅ Implemented
-│       ├── User/              # ✅ Implemented
-│       ├── Characters/        # ⏳ Stub
-│       ├── Communications/    # ⏳ Stub
-│       ├── Finance/           # ⏳ Stub
-│       ├── Logistics/         # ⏳ Stub
-│       ├── Narrative/         # ⏳ Stub
-│       └── NpcOrg/            # ⏳ Stub
-├── frontend/                  # Next.js 15 app
-│   ├── app/                   # App Router pages and layouts
-│   └── modules/               # Feature modules (aligned with backend contexts)
-├── supabase/                  # Supabase config and migrations
-│   └── migrations/            # 8 migrations applied
-├── docs/                      # Architecture, API, and bounded-context docs
-│   ├── architecture/          # RBAC model, auth model, decision log
-│   ├── api/                   # Endpoint documentation
-│   └── bounded-contexts/      # Module-level docs
-├── Basic Information/         # Project intro and UI guidelines
-└── AGENTS.md                  # Agent collaboration guide
++-- backend/                   # .NET 9 modular monolith
+|   +-- Sancho.API/            # ASP.NET Core Web API gateway
+|   +-- Sancho.Infrastructure/ # Authorization, RBAC, claims
+|   +-- Sancho.Shared/         # Common types, role definitions
+|   `-- Sancho.Modules/        # Bounded-context class libraries
+|       +-- EventManagement/   # Implemented
+|       +-- Identity/          # Implemented
+|       +-- User/              # Implemented
+|       +-- Character/         # Implemented
+|       +-- Narrative/         # Backend implemented
+|       +-- Communications/    # Stub
+|       +-- Finance/           # Stub
+|       +-- Logistics/         # Stub
+|       `-- NpcOrg/            # Stub
++-- frontend/                  # Next.js 15 app
+|   +-- app/                   # App Router pages and layouts
+|   `-- modules/               # Feature modules (aligned with backend contexts)
++-- supabase/                  # Supabase config and migrations
+|   `-- migrations/
++-- docs/                      # Architecture, API, and bounded-context docs
+|   +-- architecture/
+|   +-- api/
+|   `-- bounded-contexts/
++-- Basic Information/
+`-- AGENTS.md
 ```
-
 ---
 
 ## Module Implementation Status
@@ -110,7 +115,7 @@ sancho/
 | Identity & Access | ✅ Full | ✅ Full | ✅ Full |
 | User / Profile | ✅ Full | ✅ Full | ✅ Full |
 | Characters | ✅ Backend | ✅ Full | ✅ Full |
-| Narrative | ⏳ Stub | ⏳ None | ⏳ None |
+| Narrative | Full | None | Full |
 | Logistics | ⏳ Stub | ⏳ None | ⏳ None |
 | Finance | ⏳ Stub | ⏳ None | ⏳ None |
 | NPC / Org | ⏳ Stub | ⏳ None | ⏳ None |
@@ -134,8 +139,20 @@ sancho/
 | `characters` | Event-scoped character profiles |
 | `character_abilities` | Flexible key-value abilities per character |
 | `character_attachments` | Character file metadata stored in Supabase Storage |
+| `narrative_quests` | Event-scoped quests with lifecycle and notes |
+| `narrative_quest_steps` | Ordered quest steps |
+| `narrative_quest_step_items` | Step item requirements/loot links |
+| `narrative_plotlines` | Mid-level narrative structure above quests |
+| `narrative_plotline_phases` | Ordered plotline phases |
+| `narrative_plots` | Top-level story arcs (optional) |
+| `narrative_factions` | Faction metadata and lifecycle |
+| `narrative_items` | Narrative item definitions and lifecycle |
+| `narrative_quest_documents` | Quest Google Drive document links |
+| `narrative_faction_documents` | Faction Google Drive document links |
+| `narrative_item_documents` | Item Google Drive document links |
+| `narrative_*_links` | Character/faction/item relationships across narrative entities |
 
-**Applied Migrations:** 11 (latest: `20260306000000_performance_indexes`)
+**Applied Migrations:** 16 (latest: `20260306140000_narrative_direct_links`)
 
 ---
 
@@ -177,21 +194,42 @@ sancho/
 ### Characters (`/api/events/{eventId}/characters`)
 - `GET /api/events/{eventId}/characters`
 - `POST /api/events/{eventId}/characters`
-- `GET /api/events/{eventId}/characters/{characterId}`
-- `PATCH /api/events/{eventId}/characters/{characterId}`
-- `POST /api/events/{eventId}/characters/{characterId}/status`
-- `POST /api/events/{eventId}/characters/{characterId}/duplicate`
-- `DELETE /api/events/{eventId}/characters/{characterId}` (soft-delete)
-- `POST /api/events/{eventId}/characters/{characterId}/undelete`
-- `GET/POST/PATCH/DELETE /api/events/{eventId}/characters/{characterId}/abilities...`
-- `GET/POST/DELETE /api/events/{eventId}/characters/{characterId}/photo...`
-- `GET /api/events/{eventId}/characters/{characterId}/attachments`
-- `POST /api/events/{eventId}/characters/{characterId}/attachments/upload-url`
-- `POST /api/events/{eventId}/characters/{characterId}/attachments/confirm`
-- `POST /api/events/{eventId}/characters/{characterId}/attachments/google-drive`
-- `PATCH /api/events/{eventId}/characters/{characterId}/attachments/{attachmentId}`
-- `DELETE /api/events/{eventId}/characters/{characterId}/attachments/{attachmentId}`
-- `GET /api/events/{eventId}/characters/{characterId}/narrative-links`
+|-- Characters/        # Implemented
+|-- Characters/        # Implemented
+|-- Characters/        # Implemented
+|-- Characters/        # Implemented
+|-- Characters/        # Implemented
+|-- Characters/        # Implemented
+|-- Characters/        # Implemented
+|-- Characters/        # Implemented
+|-- Characters/        # Implemented
+|-- Characters/        # Implemented
+|-- Characters/        # Implemented
+|-- Characters/        # Implemented
+|-- Characters/        # Implemented
+|-- Characters/        # Implemented
+|-- Characters/        # Implemented
+
+### Narrative (`/api/events/{eventId}/narrative`)
+- Quests: CRUD, status transitions, soft-delete, restore
+- Quest steps: CRUD with ordered summaries
+- Quest step items: link/unlink required and loot items
+- Quest links: character, faction, and item linking
+- Quest documents: Google Drive link add/list/delete
+- Factions: CRUD, status transitions, soft-delete, restore
+- Faction members: add/remove/list character members
+- Faction relationships: directional and auto-mirrored modes
+- Faction documents: Google Drive link add/list/delete
+- Items: CRUD, status transitions, soft-delete, restore
+- Item assignments: add/remove/list character assignments with copy-limit enforcement
+- Item documents: Google Drive link add/list/delete
+- Plotlines: CRUD, status transitions, soft-delete, restore
+- Plotline phases: CRUD
+- Plotline quest links and direct links (character/faction/item)
+- Plotline inherited link read model
+- Plots: CRUD, status transitions, soft-delete, restore
+- Plot plotline links and direct links (character/faction/item)
+- Plot inherited link read model
 
 ---
 
@@ -199,6 +237,7 @@ sancho/
 
 | Version | Date | Summary |
 |---|---|---|
+| 0.8.0 | 2026-03-06 | Narrative backend + DB implemented (quests/plotlines/plots/factions/items), Character-Narrative seam activated, and backend integration tests added/fixed |
 | 0.7.0 | 2026-03-06 | Performance pass: DB indexes for RLS, backend claims cache, async JWKS prefetch, response compression, batch ability inserts, frontend fetch parallelization and revalidation, lazy-load Tiptap, useMemo lists |
 | 0.6.0 | 2026-03-01 | Characters frontend module with React Flow graph, i18n, and complete UI |
 | 0.5.0 | 2026-02-28 | Characters backend finalized and migration applied |
@@ -264,3 +303,4 @@ cd backend && dotnet run --project Sancho.API
 - **Invite-only** — registration requires a valid invite token; Google OAuth is for existing users only
 
 See `docs/architecture/` for detailed RBAC model, auth model, and design decisions.
+

@@ -4,6 +4,19 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-  </PropertyGroup>
+</PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <ProjectReference Include="..\Character\Character.csproj" />
+    <ProjectReference Include="..\..\Sancho.Shared\Sancho.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="*Tests.cs" />
+    <Compile Remove="*.IntegrationTests.cs" />
+    <Compile Remove="obj.tests\**\*.cs" />
+    <Compile Remove="bin.tests\**\*.cs" />
+  </ItemGroup>
 
 </Project>

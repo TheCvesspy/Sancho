@@ -112,6 +112,7 @@ public class EventEndpointsIntegrationTests
                 services.AddAuthentication("Test")
                     .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>("Test", _ => { });
                 services.AddAuthorization();
+                services.AddMemoryCache();
 
                 services.AddSingleton(fakeSupabase);
                 services.AddSingleton<HttpMessageHandler>(fakeSupabase);

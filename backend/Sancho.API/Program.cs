@@ -5,11 +5,13 @@ using User.Endpoints;
 using Identity.Endpoints;
 using EventManagement.Endpoints;
 using Character.Endpoints;
+using Narrative.Endpoints;
 using Microsoft.AspNetCore.Authentication;
 using Sancho.Infrastructure.Authorization;
 using Sancho.Shared.Roles;
 using EventManagement.Services;
 using Character.Services;
+using Narrative.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -91,7 +93,9 @@ builder.Services.AddScoped<EventActivityService>();
 builder.Services.AddScoped<EventStatsService>();
 builder.Services.AddScoped<CharacterAuthorizationService>();
 builder.Services.AddScoped<CharacterStorageService>();
-builder.Services.AddScoped<ICharacterNarrativeService, StubCharacterNarrativeService>();
+builder.Services.AddScoped<NarrativeAuthorizationService>();
+builder.Services.AddScoped<NarrativeDocumentLinkService>();
+builder.Services.AddScoped<ICharacterNarrativeService, NarrativeCharacterNarrativeService>();
 
 builder.Services.AddHttpClient();
 
@@ -171,6 +175,7 @@ app.MapUserEndpoints();
 app.MapIdentityEndpoints();
 app.MapEventEndpoints();
 app.MapCharacterEndpoints();
+app.MapNarrativeEndpoints();
 
 var summaries = new[]
 {

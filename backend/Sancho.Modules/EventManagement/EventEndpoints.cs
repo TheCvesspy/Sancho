@@ -362,7 +362,7 @@ public static class EventEndpoints
 
     private static async Task<IResult> AssignManager(
         Guid eventId, Guid userId, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient,
-        EventAuthorizationService authz, EventActivityService activity, IMemoryCache cache)
+        EventAuthorizationService authz, EventActivityService activity, [FromServices] IMemoryCache cache)
     {
         if (!authz.IsOrgOrSystemAdmin(user)) return Results.Forbid();
         if (!TryConfig(config, out var url, out var key, out var error)) return error!;
@@ -383,7 +383,7 @@ public static class EventEndpoints
 
     private static async Task<IResult> RevokeManager(
         Guid eventId, Guid userId, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient,
-        EventAuthorizationService authz, EventActivityService activity, IMemoryCache cache)
+        EventAuthorizationService authz, EventActivityService activity, [FromServices] IMemoryCache cache)
     {
         if (!authz.IsOrgOrSystemAdmin(user)) return Results.Forbid();
         if (!TryConfig(config, out var url, out var key, out var error)) return error!;
@@ -419,7 +419,7 @@ public static class EventEndpoints
 
     private static async Task<IResult> UpsertPermission(
         Guid eventId, Guid userId, string module, ClaimsPrincipal user, [FromBody] UpsertEventPermissionRequest request,
-        IConfiguration config, HttpClient httpClient, EventAuthorizationService authz, EventActivityService activity, IMemoryCache cache)
+        IConfiguration config, HttpClient httpClient, EventAuthorizationService authz, EventActivityService activity, [FromServices] IMemoryCache cache)
     {
         if (!TryConfig(config, out var url, out var key, out var error)) return error!;
         if (!ModulePermissions.AllModules.Contains(module)) return Results.BadRequest("Unknown module.");
@@ -455,7 +455,7 @@ public static class EventEndpoints
 
     private static async Task<IResult> RevokePermission(
         Guid eventId, Guid userId, string module, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient,
-        EventAuthorizationService authz, EventActivityService activity, IMemoryCache cache)
+        EventAuthorizationService authz, EventActivityService activity, [FromServices] IMemoryCache cache)
     {
         if (!TryConfig(config, out var url, out var key, out var error)) return error!;
         if (!ModulePermissions.AllModules.Contains(module)) return Results.BadRequest("Unknown module.");

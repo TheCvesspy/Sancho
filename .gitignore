@@ -50,3 +50,5 @@ next-env.d.ts
 # Project Specific
 database_credentials.md
 supabase/.temp/
+.claude/
+*obj.tests/

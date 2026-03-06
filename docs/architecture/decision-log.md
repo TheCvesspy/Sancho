@@ -94,3 +94,16 @@ Lightweight log of noteworthy architecture and design decisions.
   - **React `useMemo`:** Filter/sort operations in `CharactersList` and `EventsList` are memoized to avoid re-running on unrelated re-renders.
   - **Documentation:** `AGENTS.md` and `ARCHITECTURE.md` updated with mandatory performance rules so all future modules follow the same patterns.
   **Alternatives**: Adding more compute/RAM (rejected — goal is to run well on local hardware); per-endpoint Redis caching (rejected — single-process deployment; `IMemoryCache` is sufficient and zero-dependency).
+
+- **Context**: Narrative was previously a planned context while Character APIs already exposed narrative links and deletion guards via `ICharacterNarrativeService`.
+  **Decision**: Implement Narrative backend and DB now, and activate the Character integration seam with a concrete provider.
+  **Implementation**:
+  - Added Narrative event-scoped endpoints under `/api/events/{eventId}/narrative` for quests, plotlines, plots, factions, and items.
+  - Added Narrative migrations:
+    - `20260306120000_narrative_context_v1.sql`
+    - `20260306130000_narrative_plotline_plot_links.sql`
+    - `20260306140000_narrative_direct_links.sql`
+  - Implemented `NarrativeCharacterNarrativeService` and wired it as `ICharacterNarrativeService` in API DI.
+  - Reused shared Google Drive URL validation to avoid duplicate validation logic across modules.
+  - Added/updated integration tests for Narrative and EventManagement bindings.
+  **Alternatives**: Keep Character seam stubbed longer (rejected due to missing production narrative links and deletion guard enforcement).

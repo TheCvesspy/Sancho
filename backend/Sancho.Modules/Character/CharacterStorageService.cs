@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Character.Models;
+using Sancho.Shared;
 
 namespace Character.Services;
 
@@ -46,15 +47,6 @@ public sealed class CharacterStorageService
         { ".xlsx", ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"] }
     };
 
-    private static readonly HashSet<string> AllowedGoogleDriveHosts =
-    [
-        "drive.google.com",
-        "docs.google.com",
-        "sheets.google.com",
-        "slides.google.com",
-        "forms.google.com"
-    ];
-
     private readonly HttpClient _httpClient;
 
     public CharacterStorageService(HttpClient httpClient)
@@ -92,12 +84,7 @@ public sealed class CharacterStorageService
 
     public void ValidateGoogleDriveUrl(string url)
     {
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)
-            || !string.Equals(uri.Scheme, "https", StringComparison.OrdinalIgnoreCase)
-            || !AllowedGoogleDriveHosts.Contains(uri.Host.ToLowerInvariant()))
-        {
-            throw new InvalidOperationException("Not a valid Google Drive URL. Accepted hosts: drive.google.com, docs.google.com, sheets.google.com, slides.google.com, forms.google.com.");
-        }
+        GoogleDriveUrlValidator.ValidateOrThrow(url);
     }
 
     public async Task DeleteObjectAsync(string supabaseUrl, string supabaseKey, string filePath)

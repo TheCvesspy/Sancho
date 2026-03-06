@@ -25,6 +25,7 @@
     <ProjectReference Include="..\Sancho.Modules\Identity\Identity.csproj" />
     <ProjectReference Include="..\Sancho.Modules\EventManagement\EventManagement.csproj" />
     <ProjectReference Include="..\Sancho.Modules\Character\Character.csproj" />
+    <ProjectReference Include="..\Sancho.Modules\Narrative\Narrative.csproj" />
     <ProjectReference Include="..\Sancho.Infrastructure\Sancho.Infrastructure.csproj" />
   </ItemGroup>
 

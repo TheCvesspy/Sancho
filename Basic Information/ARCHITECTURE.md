@@ -85,7 +85,7 @@ Example route grouping:
 - `/api/identity/*` -> Identity and Access module
 - `/api/events/*` -> Event Management module
 - `/api/events/{eventId}/characters/*` -> Characters module (event-scoped)
-- `/api/narrative/*` -> Narrative module
+- `/api/events/{eventId}/narrative/*` -> Narrative module (event-scoped)
 - `/api/logistics/*` -> Logistics module
 - `/api/npc-org/*` -> NPC/Org module
 - `/api/finance/*` -> Finance module
@@ -112,16 +112,16 @@ Query parameters are reserved for optional UI state only (search term, status fi
 
 ---
 
-### Characters <> Narrative Integration Readiness
+### Characters <> Narrative Integration
 
 - Character context exposes a dedicated integration seam: `ICharacterNarrativeService`.
-- Current implementation is stubbed (`StubCharacterNarrativeService`) and returns empty collections for:
+- The concrete provider is now implemented by Narrative (`NarrativeCharacterNarrativeService`).
+- Character narrative links endpoint now returns live narrative data for:
   - factions
   - relationships
   - quests
-- Character deletion guard is already pluggable and calls:
+- Character deletion guard remains pluggable and calls:
   - `HasActiveRelationshipsAsync(eventId, characterId)`
-- When Narrative context is implemented, replace the stub with a concrete provider without changing Character API contracts.
 
 ## Current Project Initialization
 - Backend solution and projects created under `backend/`.
