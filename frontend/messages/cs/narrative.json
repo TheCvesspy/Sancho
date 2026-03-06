@@ -49,7 +49,8 @@
         "noEventFound": "Žádná akce nenalezena."
     },
     "notifications": {
-        "updated": "Úspěšně aktualizováno"
+        "updated": "Úspěšně aktualizováno",
+        "created": "Úspěšně vytvořeno"
     },
     "documentsPanel": {
         "title": "Dokumenty",
@@ -185,9 +186,11 @@
         "update": "Upravit frakci",
         "list": {
             "empty": "Nenalezeny žádné frakce.",
+            "searchPlaceholder": "Hledat frakce...",
             "columns": {
                 "name": "Název",
-                "status": "Stav"
+                "status": "Stav",
+                "createdAt": "Vytvořeno"
             }
         },
         "detail": {
@@ -208,13 +211,16 @@
                 "label": "Obrázek erbu/znaku"
             },
             "description": {
-                "label": "Popis"
+                "label": "Popis",
+                "placeholder": "Zadejte popis frakce"
             },
             "goals": {
-                "label": "Cíle"
+                "label": "Cíle",
+                "placeholder": "Zadejte cíle frakce"
             },
             "internalNotes": {
-                "label": "Interní poznámky"
+                "label": "Interní poznámky",
+                "placeholder": "Zadejte interní poznámky (pouze pro adminy)..."
             }
         },
         "members": {
@@ -253,6 +259,10 @@
             "assignedItems": "Přiřazené předměty"
         },
         "dialogs": {
+            "create": {
+                "title": "Vytvořit frakci",
+                "description": "Přidat novou frakci k této akci."
+            },
             "delete": {
                 "title": "Smazat frakci",
                 "description": "Opravdu chcete tuto frakci smazat?"
@@ -281,10 +291,12 @@
         "update": "Upravit předmět",
         "list": {
             "empty": "Nenalezeny žádné předměty.",
+            "searchPlaceholder": "Hledat předměty...",
             "columns": {
                 "name": "Název",
                 "status": "Stav",
-                "copies": "Kopie"
+                "copies": "Kopie",
+                "createdAt": "Vytvořeno"
             }
         },
         "detail": {
@@ -300,10 +312,12 @@
                 "placeholder": "Zadejte název předmětu"
             },
             "description": {
-                "label": "Popis"
+                "label": "Popis",
+                "placeholder": "Přidat popis předmětu..."
             },
             "internalNotes": {
-                "label": "Interní poznámky"
+                "label": "Interní poznámky",
+                "placeholder": "Soukromé poznámky (viditelné pouze pro organizátory)..."
             },
             "isMultiCopy": {
                 "label": "Může mít více kopií",
@@ -333,6 +347,10 @@
             "created": "Vytvořeno {date}"
         },
         "dialogs": {
+            "create": {
+                "title": "Vytvořit předmět",
+                "description": "Přidat nový předmět k této akci."
+            },
             "delete": {
                 "title": "Smazat předmět",
                 "description": "Opravdu chcete tento předmět smazat?"
@@ -358,9 +376,11 @@
         "update": "Upravit dějovou linku",
         "list": {
             "empty": "Nenalezeny žádné dějové linky.",
+            "searchPlaceholder": "Hledat dějové linky...",
             "columns": {
                 "title": "Název",
-                "status": "Stav"
+                "status": "Stav",
+                "createdAt": "Vytvořeno"
             }
         },
         "detail": {
@@ -377,10 +397,12 @@
                 "placeholder": "Zadejte název dějové linky"
             },
             "description": {
-                "label": "Popis"
+                "label": "Popis",
+                "placeholder": "Zadejte popis dějové linky"
             },
             "internalNotes": {
-                "label": "Interní poznámky"
+                "label": "Interní poznámky",
+                "placeholder": "Zadejte interní poznámky (pouze pro adminy)..."
             }
         },
         "phases": {
@@ -404,6 +426,10 @@
             "direct": "Přímo navázané entity"
         },
         "dialogs": {
+            "create": {
+                "title": "Vytvořit dějovou linku",
+                "description": "Přidat novou dějovou linku k této akci."
+            },
             "delete": {
                 "title": "Smazat dějovou linku",
                 "description": "Opravdu chcete dějovou linku smazat?"
@@ -432,9 +458,11 @@
         "update": "Upravit zápletku",
         "list": {
             "empty": "Nenalezeny žádné zápletky.",
+            "searchPlaceholder": "Hledat zápletky...",
             "columns": {
                 "title": "Název",
-                "status": "Stav"
+                "status": "Stav",
+                "createdAt": "Vytvořeno"
             }
         },
         "detail": {
@@ -451,10 +479,12 @@
                 "placeholder": "Zadejte název zápletky"
             },
             "description": {
-                "label": "Popis"
+                "label": "Popis",
+                "placeholder": "Zadejte popis zápletky"
             },
             "internalNotes": {
-                "label": "Interní poznámky"
+                "label": "Interní poznámky",
+                "placeholder": "Zadejte interní poznámky (pouze pro adminy)..."
             }
         },
         "plotlines": {
@@ -463,6 +493,10 @@
             "empty": "Této zápletce zatím nejsou přiřazeny žádné dějové linky."
         },
         "dialogs": {
+            "create": {
+                "title": "Vytvořit zápletku",
+                "description": "Přidat novou zápletku k této akci."
+            },
             "delete": {
                 "title": "Smazat zápletku",
                 "description": "Opravdu chcete tuto zápletku smazat?"

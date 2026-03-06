@@ -93,35 +93,38 @@ export function PlotDetail({
             </div>
 
             {/* ─── Tabs ─────────────────────────────────────────────────── */}
-            <Tabs defaultValue="overview" className="w-full">
-                <TabsList className="mb-4 flex flex-wrap h-auto">
-                    <TabsTrigger value="overview">{t("plots.detail.tabs.overview")}</TabsTrigger>
-                    <TabsTrigger value="plotlines">{t("plots.detail.tabs.plotlines")}</TabsTrigger>
-                    <TabsTrigger value="links">{t("plots.detail.tabs.links")}</TabsTrigger>
-                    <TabsTrigger value="documents">{t("plots.detail.tabs.documents")}</TabsTrigger>
+            <Tabs defaultValue="overview" className="space-y-6">
+                <TabsList className="bg-muted/50 w-full justify-start h-auto flex-wrap p-1">
+                    <TabsTrigger value="overview" className="flex-1 sm:flex-none py-2 px-4 shadow-none data-[state=active]:bg-background">{t("plots.detail.tabs.overview")}</TabsTrigger>
+                    <TabsTrigger value="plotlines" className="flex-1 sm:flex-none py-2 px-4 shadow-none data-[state=active]:bg-background">{t("plots.detail.tabs.plotlines")}</TabsTrigger>
+                    <TabsTrigger value="links" className="flex-1 sm:flex-none py-2 px-4 shadow-none data-[state=active]:bg-background">{t("plots.detail.tabs.links")}</TabsTrigger>
+                    <TabsTrigger value="documents" className="flex-1 sm:flex-none py-2 px-4 shadow-none data-[state=active]:bg-background">{t("plots.detail.tabs.documents")}</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="overview" className="space-y-6">
-                    <section className="space-y-4">
-                        <h2 className="text-xl font-semibold tracking-tight">{t("plots.fields.description.label")}</h2>
+                    <div className="rounded-lg border bg-card p-6 space-y-4">
+                        <h3 className="text-lg font-semibold">{t("plots.fields.description.label")}</h3>
                         <EditableRichText
                             initialHtml={plot.description || ""}
                             onSave={async (val) => await handleUpdate({ description: val })}
                             isReadOnly={!isOrgOrSysAdmin}
-                            placeholder={t("plots.fields.description.label")}
+                            placeholder={t("plots.fields.description.placeholder")}
                         />
-                    </section>
+                    </div>
 
                     {isOrgOrSysAdmin && (
-                        <section className="space-y-4">
-                            <h2 className="text-xl font-semibold tracking-tight">{t("plots.fields.internalNotes.label")}</h2>
+                        <div className="rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 p-6 space-y-4">
+                            <h3 className="text-lg font-semibold flex items-center gap-2">
+                                {t("plots.fields.internalNotes.label")}
+                                <span className="text-xs font-normal text-amber-700 dark:text-amber-600 opacity-80">{t("common.adminOnly")}</span>
+                            </h3>
                             <EditableRichText
                                 initialHtml={plot.internalNotes || ""}
                                 onSave={async (val) => await handleUpdate({ internalNotes: val })}
-                                isReadOnly={false}
-                                placeholder={t("plots.fields.internalNotes.label")}
+                                isReadOnly={!isOrgOrSysAdmin}
+                                placeholder={t("plots.fields.internalNotes.placeholder")}
                             />
-                        </section>
+                        </div>
                     )}
                 </TabsContent>
 

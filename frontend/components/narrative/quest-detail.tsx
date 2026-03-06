@@ -175,10 +175,10 @@ export function QuestDetail({
                             </div>
 
                             {isOrgOrSysAdmin && (
-                                <div className="rounded-lg border bg-secondary/20 p-6 space-y-4">
+                                <div className="rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 p-6 space-y-4">
                                     <h3 className="text-lg font-semibold flex items-center gap-2">
                                         {t("quests.fields.internalNotes.label")}
-                                        <span className="text-xs font-normal text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">Admin Only</span>
+                                        <span className="text-xs font-normal text-amber-700 dark:text-amber-600 opacity-80">{t("common.adminOnly")}</span>
                                     </h3>
                                     <EditableRichText
                                         initialHtml={quest.internalNotes || ""}
