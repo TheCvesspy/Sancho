@@ -101,37 +101,42 @@ export function ItemDetail({
                 )}
             </div>
 
-            <Tabs defaultValue="overview" className="space-y-4">
-                <TabsList>
-                    <TabsTrigger value="overview">{t("items.detail.tabs.overview")}</TabsTrigger>
-                    <TabsTrigger value="assignments">
+            <Tabs defaultValue="overview" className="space-y-6">
+                <TabsList className="bg-muted/50 w-full justify-start h-auto flex-wrap p-1">
+                    <TabsTrigger value="overview" className="flex-1 sm:flex-none py-2 px-4 shadow-none data-[state=active]:bg-background">{t("items.detail.tabs.overview")}</TabsTrigger>
+                    <TabsTrigger value="assignments" className="flex-1 sm:flex-none py-2 px-4 shadow-none data-[state=active]:bg-background">
                         {t("items.detail.tabs.assignments")}
                     </TabsTrigger>
-                    <TabsTrigger value="documents">
+                    <TabsTrigger value="documents" className="flex-1 sm:flex-none py-2 px-4 shadow-none data-[state=active]:bg-background">
                         {t("items.detail.tabs.documents")}
                     </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="overview" className="space-y-8 mt-4">
-                    <section className="space-y-4">
-                        <h2 className="text-xl font-semibold tracking-tight">{t("items.fields.description.label")}</h2>
+                <TabsContent value="overview" className="space-y-6">
+                    <div className="rounded-lg border bg-card p-6 space-y-4">
+                        <h3 className="text-lg font-semibold">{t("items.fields.description.label")}</h3>
                         <EditableRichText
                             initialHtml={item.description || ""}
                             onSave={async (val) => await handleUpdate({ description: val })}
                             isReadOnly={!isOrgOrSysAdmin}
-                            placeholder="Add item description..."
+                            placeholder={t("items.fields.description.placeholder")}
                         />
-                    </section>
+                    </div>
 
-                    <section className="space-y-4">
-                        <h2 className="text-xl font-semibold tracking-tight">{t("items.fields.internalNotes.label")}</h2>
-                        <EditableRichText
-                            initialHtml={item.internalNotes || ""}
-                            onSave={async (val) => await handleUpdate({ internalNotes: val })}
-                            isReadOnly={!isOrgOrSysAdmin}
-                            placeholder="Private notes (viewable only by organizers)..."
-                        />
-                    </section>
+                    {isOrgOrSysAdmin && (
+                        <div className="rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 p-6 space-y-4">
+                            <h3 className="text-lg font-semibold flex items-center gap-2">
+                                {t("items.fields.internalNotes.label")}
+                                <span className="text-xs font-normal text-amber-700 dark:text-amber-600 opacity-80">{t("common.adminOnly")}</span>
+                            </h3>
+                            <EditableRichText
+                                initialHtml={item.internalNotes || ""}
+                                onSave={async (val) => await handleUpdate({ internalNotes: val })}
+                                isReadOnly={!isOrgOrSysAdmin}
+                                placeholder={t("items.fields.internalNotes.placeholder")}
+                            />
+                        </div>
+                    )}
                 </TabsContent>
 
                 <TabsContent value="assignments">

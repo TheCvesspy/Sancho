@@ -75,18 +75,18 @@ export function ChangeNarrativeItemStatusDialog({
                 <DialogHeader>
                     <DialogTitle>{t("common.changeStatus")}</DialogTitle>
                     <DialogDescription>
-                        Update the lifecycle status of this item.
+                        {t("common.itemStatusDescription")}
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="grid gap-4 py-4">
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="status" className="text-right">
-                            Status
+                            {t("common.statusLabel")}
                         </Label>
                         <Select value={status} onValueChange={setStatus}>
                             <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="Select status" />
+                                <SelectValue placeholder={t("common.selectStatus")} />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="Draft">{t("itemStatus.draft") || "Draft"}</SelectItem>

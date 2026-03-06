@@ -14,7 +14,22 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
+} from "@/components/ui/select";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { MoreHorizontal, Search, Eye, Trash2, RotateCcw } from "lucide-react";
@@ -68,27 +83,47 @@ export function FactionsList({ eventId, initialFactions, isOrgOrSysAdmin, token 
 
     return (
         <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-end">
-                <div className="flex flex-1 gap-4 w-full sm:w-auto">
-                    <div className="space-y-1 flex-1 sm:max-w-[300px]">
-                        <Label htmlFor="search-factions">{t("common.search")}</Label>
-                        <div className="relative">
-                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                id="search-factions"
-                                placeholder={t("factions.list.searchPlaceholder")}
-                                className="pl-8"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
-                        </div>
-                    </div>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center rounded-lg border bg-card p-4">
+                <div className="relative flex-1 max-w-sm">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder={t("factions.list.searchPlaceholder")}
+                        className="pl-8"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
                 </div>
+
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder={t("common.allStatuses")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">{t("common.allStatuses")}</SelectItem>
+                        <SelectItem value="draft">{t("status.draft")}</SelectItem>
+                        <SelectItem value="ready">{t("status.ready")}</SelectItem>
+                        <SelectItem value="locked">{t("status.locked")}</SelectItem>
+                    </SelectContent>
+                </Select>
+
                 {isOrgOrSysAdmin && (
-                    <div className="shrink-0 w-full sm:w-auto">
-                        <CreateFactionDialog eventId={eventId} token={token} onCreated={(f) => setFactions(prev => [f, ...prev])} />
+                    <div className="flex items-center space-x-2 px-2">
+                        <Checkbox
+                            id="show-deleted-factions"
+                            checked={showDeleted}
+                            onCheckedChange={(checked: boolean) => setShowDeleted(checked)}
+                        />
+                        <Label htmlFor="show-deleted-factions" className="text-sm font-medium leading-none cursor-pointer text-muted-foreground">
+                            {t("common.showDeleted")}
+                        </Label>
                     </div>
                 )}
+
+                <div className="ml-auto">
+                    {isOrgOrSysAdmin && (
+                        <CreateFactionDialog eventId={eventId} token={token} onCreated={(f) => setFactions(prev => [f, ...prev])} />
+                    )}
+                </div>
             </div>
 
             <div className="rounded-md border bg-card">
@@ -137,6 +172,8 @@ export function FactionsList({ eventId, initialFactions, isOrgOrSysAdmin, token 
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
+                                                <DropdownMenuLabel>{t("common.actions")}</DropdownMenuLabel>
+                                                <DropdownMenuSeparator />
                                                 <DropdownMenuItem onClick={() => router.push(`/${locale}/narrative/${eventId}/factions/${faction.id}`)}>
                                                     <Eye className="mr-2 h-4 w-4" />
                                                     {t("common.view")}

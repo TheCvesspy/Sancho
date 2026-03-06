@@ -106,10 +106,10 @@ export function QuestsList({ eventId, initialQuests, isOrgOrSysAdmin, token }: Q
 
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                     <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="All Statuses" />
+                        <SelectValue placeholder={t("common.allStatuses")} />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">All Statuses</SelectItem>
+                        <SelectItem value="all">{t("common.allStatuses")}</SelectItem>
                         <SelectItem value="draft">{t("status.draft")}</SelectItem>
                         <SelectItem value="ready">{t("status.ready")}</SelectItem>
                         <SelectItem value="locked">{t("status.locked")}</SelectItem>
@@ -124,7 +124,7 @@ export function QuestsList({ eventId, initialQuests, isOrgOrSysAdmin, token }: Q
                             onCheckedChange={(checked: boolean) => setShowDeleted(checked)}
                         />
                         <Label htmlFor="show-deleted-quests" className="text-sm font-medium leading-none cursor-pointer text-muted-foreground">
-                            Show Deleted
+                            {t("common.showDeleted")}
                         </Label>
                     </div>
                 )}
@@ -166,9 +166,9 @@ export function QuestsList({ eventId, initialQuests, isOrgOrSysAdmin, token }: Q
                                     </TableCell>
                                     <TableCell>
                                         {quest.hasFixedPlayers ? (
-                                            <span className="text-emerald-600 font-medium">Yes</span>
+                                            <span className="text-emerald-600 font-medium">{t("common.yes")}</span>
                                         ) : (
-                                            <span className="text-muted-foreground">No</span>
+                                            <span className="text-muted-foreground">{t("common.no")}</span>
                                         )}
                                     </TableCell>
                                     <TableCell onClick={(e) => e.stopPropagation()}>
