@@ -97,8 +97,15 @@ async function fetcher<T>(url: string, token: string, options?: RequestInit): Pr
     });
 
     if (!response.ok) {
+        let errorMsg = `Error ${response.status}`;
         const text = await response.text();
-        throw new Error(text || `Error ${response.status}`);
+        try {
+            const errorData = JSON.parse(text);
+            errorMsg = errorData.message || errorData.detail || errorData.title || errorMsg;
+        } catch {
+            errorMsg = text || errorMsg;
+        }
+        throw new Error(errorMsg);
     }
 
     if (response.status === 204) return {} as T;

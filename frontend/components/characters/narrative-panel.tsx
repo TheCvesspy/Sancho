@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import dynamic from "next/dynamic";
 import {
     CharacterNarrativeLinksDto,
     NarrativeFactionDto,
@@ -10,7 +11,19 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Swords, Scroll, Shield, Sparkles } from "lucide-react";
-import { NarrativeGraph, type SampleCharacterNode, type SampleQuestNode } from "./narrative-graph";
+import type { SampleCharacterNode, SampleQuestNode } from "./narrative-graph";
+
+const NarrativeGraph = dynamic(
+    () => import("./narrative-graph").then((m) => ({ default: m.NarrativeGraph })),
+    {
+        ssr: false,
+        loading: () => (
+            <div className="h-[600px] w-full border rounded-lg bg-card/50 flex items-center justify-center">
+                <div className="text-muted-foreground text-sm">Loading relationship map…</div>
+            </div>
+        ),
+    }
+);
 
 interface NarrativePanelProps {
     eventName: string;
@@ -116,8 +129,8 @@ export function NarrativePanel({ eventName, characterName, links }: NarrativePan
             type: char.relationshipType,
             description: char.description,
         }));
-    const factions = links.factions.length > 0 ? links.factions : SAMPLE_FACTIONS;
-    const quests: NarrativeQuestDto[] = links.quests.length > 0 ? links.quests : SAMPLE_QUEST_NODES;
+    const factions = hasRealData ? links.factions : SAMPLE_FACTIONS;
+    const quests: NarrativeQuestDto[] = hasRealData ? links.quests : SAMPLE_QUEST_NODES;
     const questNodes: SampleQuestNode[] = useMemo(() => {
         if (hasRealData) {
             return quests.map((quest) => ({

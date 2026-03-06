@@ -17,7 +17,7 @@ async function fetcher<T>(url: string, options?: RequestInit): Promise<T> {
         let errorMsg = "An error occurred while fetching the data.";
         try {
             const errorData = await response.json();
-            errorMsg = errorData.message || errorData.title || errorMsg;
+            errorMsg = errorData.message || errorData.detail || errorData.title || errorMsg;
         } catch (e) {
             errorMsg = response.statusText || errorMsg;
         }

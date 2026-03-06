@@ -1,0 +1,503 @@
+{
+    "title": "Příběh a události",
+    "subtitle": "Správa příběhu, frakcí a unikátních předmětů",
+    "noEventSelected": "Není vybrána žádná akce. Prosím počkejte nebo se vraťte zpět.",
+    "hub": {
+        "tabs": {
+            "quests": "Úkoly",
+            "plotlines": "Dějové linky",
+            "plots": "Zápletky",
+            "factions": "Frakce",
+            "items": "Předměty"
+        }
+    },
+    "status": {
+        "draft": "Koncept",
+        "ready": "Připraveno",
+        "locked": "Zamčeno"
+    },
+    "itemStatus": {
+        "draft": "Koncept",
+        "readyToReview": "Ke schválení",
+        "final": "Finální"
+    },
+    "common": {
+        "cancel": "Zrušit",
+        "save": "Uložit",
+        "create": "Vytvořit",
+        "delete": "Smazat",
+        "restore": "Obnovit",
+        "edit": "Upravit",
+        "actions": "Akce",
+        "search": "Hledat...",
+        "confirm": "Potvrdit",
+        "changeStatus": "Změnit stav",
+        "add": "Přidat",
+        "remove": "Odebrat",
+        "addGoogleDriveLink": "Přidat odkaz na Google Drive",
+        "untitled": "Bez názvu",
+        "noDescription": "Bez popisu.",
+        "select": "Vyberte...",
+        "back": "Zpět",
+        "deleteConfirm": "Opravdu?",
+        "loading": "Načítání...",
+        "adminOnly": "Pouze admin"
+    },
+    "landing": {
+        "selectEvent": "Vyberte akci...",
+        "searchEvent": "Hledat akci...",
+        "noEventFound": "Žádná akce nenalezena."
+    },
+    "notifications": {
+        "updated": "Úspěšně aktualizováno"
+    },
+    "documentsPanel": {
+        "title": "Dokumenty",
+        "add": "Přidat odkaz na Google Drive",
+        "empty": "Zatím žádné dokumenty.",
+        "columns": {
+            "name": "Název",
+            "status": "Stav",
+            "source": "Zdroj",
+            "date": "Přidáno",
+            "actions": "Akce"
+        },
+        "statuses": {
+            "draft": "Návrh",
+            "readyToReview": "Ke schválení",
+            "final": "Finální"
+        },
+        "dialogs": {
+            "add": {
+                "title": "Přidat dokument z Google Drive",
+                "urlLabel": "URL Google Drive",
+                "urlPlaceholder": "https://docs.google.com/...",
+                "nameLabel": "Zobrazovaný název",
+                "statusLabel": "Stav dokumentu",
+                "submit": "Přidat dokument",
+                "cancel": "Zrušit"
+            },
+            "delete": {
+                "title": "Odebrat dokument",
+                "description": "Opravdu chcete odebrat tento dokument?",
+                "confirm": "Odebrat",
+                "cancel": "Zrušit"
+            }
+        },
+        "notifications": {
+            "added": "Dokument přidán",
+            "deleted": "Dokument odebrán",
+            "error": "Nastala chyba"
+        },
+        "validation": {
+            "urlInvalid": "Zadejte platnou URL adresu Google Drive",
+            "nameRequired": "Zobrazovaný název je povinný"
+        }
+    },
+    "quests": {
+        "title": "Úkoly",
+        "description": "Správa úkolů a jejich kroků",
+        "create": "Nový úkol",
+        "update": "Upravit úkol",
+        "list": {
+            "empty": "Nenalezeny žádné úkoly.",
+            "columns": {
+                "title": "Název",
+                "status": "Stav",
+                "hasFixedPlayers": "Pevní hráči"
+            }
+        },
+        "detail": {
+            "tabs": {
+                "overview": "Přehled",
+                "steps": "Kroky",
+                "links": "Vazby",
+                "documents": "Dokumenty"
+            },
+            "settings": "Nastavení"
+        },
+        "fields": {
+            "title": {
+                "label": "Název",
+                "placeholder": "Zadejte název úkolu"
+            },
+            "description": {
+                "label": "Popis",
+                "placeholder": "Zadejte popis úkolu..."
+            },
+            "internalNotes": {
+                "label": "Interní poznámky",
+                "placeholder": "Zadejte interní poznámky (pouze pro adminy)..."
+            },
+            "hasFixedPlayers": {
+                "label": "Pevně určení hráči",
+                "description": "Pokud je zaškrtnuto, úkol vyžaduje pro splnění specifické postavy."
+            }
+        },
+        "steps": {
+            "title": "Kroky úkolu",
+            "add": "Přidat krok",
+            "empty": "Zatím nejsou definovány žádné kroky.",
+            "fields": {
+                "summary": {
+                    "label": "Shrnutí",
+                    "placeholder": "Zadejte shrnutí kroku"
+                },
+                "notes": {
+                    "label": "Poznámky (Volitelné)",
+                    "placeholder": "Další detaily..."
+                }
+            },
+            "items": {
+                "required": "Požadované předměty",
+                "loot": "Odměny (Loot)"
+            }
+        },
+        "links": {
+            "characters": "Propojené postavy",
+            "factions": "Propojené frakce",
+            "items": "Propojené předměty"
+        },
+        "dialogs": {
+            "delete": {
+                "title": "Smazat úkol",
+                "description": "Opravdu chcete tento úkol smazat? Lze jej později obnovit."
+            },
+            "restore": {
+                "title": "Obnovit úkol",
+                "description": "Opravdu chcete obnovit tento úkol?"
+            }
+        },
+        "notifications": {
+            "created": "Úkol úspěšně vytvořen",
+            "updated": "Úkol úspěšně upraven",
+            "deleted": "Úkol smazán",
+            "restored": "Úkol obnoven",
+            "stepCreated": "Krok přidán",
+            "stepUpdated": "Krok upraven",
+            "stepDeleted": "Krok odebrán"
+        }
+    },
+    "factions": {
+        "title": "Frakce",
+        "description": "Správa skupin a jejich vztahů",
+        "create": "Nová frakce",
+        "update": "Upravit frakci",
+        "list": {
+            "empty": "Nenalezeny žádné frakce.",
+            "columns": {
+                "name": "Název",
+                "status": "Stav"
+            }
+        },
+        "detail": {
+            "tabs": {
+                "overview": "Přehled",
+                "members": "Členové",
+                "relationships": "Vztahy",
+                "links": "Vazby",
+                "documents": "Dokumenty"
+            }
+        },
+        "fields": {
+            "name": {
+                "label": "Název",
+                "placeholder": "Zadejte název frakce"
+            },
+            "sigilUrl": {
+                "label": "Obrázek erbu/znaku"
+            },
+            "description": {
+                "label": "Popis"
+            },
+            "goals": {
+                "label": "Cíle"
+            },
+            "internalNotes": {
+                "label": "Interní poznámky"
+            }
+        },
+        "members": {
+            "title": "Členové frakce",
+            "add": "Přidat člena",
+            "empty": "Zatím žádní členové.",
+            "character": "Postava",
+            "role": "Role (Volitelné)",
+            "rolePlaceholder": "např. Vůdce, Průzkumník..."
+        },
+        "sigil": {
+            "noSigil": "Bez znaku"
+        },
+        "relationships": {
+            "title": "Vztahy",
+            "add": "Přidat vztah",
+            "empty": "Nejsou definovány žádné vztahy.",
+            "noRelationships": "Žádné vztahy nebyly zaznamenány.",
+            "targetType": "Typ cíle",
+            "target": "Cíl",
+            "targetFaction": "Frakce",
+            "targetCharacter": "Postava",
+            "directionalShort": "Jednosměrný",
+            "mirroredShort": "Zrcadlený",
+            "fields": {
+                "target": "Cíl",
+                "type": "Typ vztahu",
+                "mode": "Režim",
+                "notes": "Poznámky"
+            }
+        },
+        "links": {
+            "quests": "Propojené úkoly",
+            "plotlines": "Propojené dějové linky",
+            "plots": "Propojené zápletky",
+            "assignedItems": "Přiřazené předměty"
+        },
+        "dialogs": {
+            "delete": {
+                "title": "Smazat frakci",
+                "description": "Opravdu chcete tuto frakci smazat?"
+            },
+            "restore": {
+                "title": "Obnovit frakci",
+                "description": "Opravdu chcete obnovit tuto frakci?"
+            }
+        },
+        "notifications": {
+            "created": "Frakce vytvořena",
+            "updated": "Frakce upravena",
+            "deleted": "Frakce smazána",
+            "restored": "Frakce obnovena",
+            "memberAdded": "Člen přidán",
+            "memberRemoved": "Člen odebrán",
+            "relationshipAdded": "Vztah přidán",
+            "relationshipUpdated": "Vztah upraven",
+            "relationshipRemoved": "Vztah odebrán"
+        }
+    },
+    "items": {
+        "title": "Předměty",
+        "description": "Správa unikátních předmětů a rekvizit",
+        "create": "Nový předmět",
+        "update": "Upravit předmět",
+        "list": {
+            "empty": "Nenalezeny žádné předměty.",
+            "columns": {
+                "name": "Název",
+                "status": "Stav",
+                "copies": "Kopie"
+            }
+        },
+        "detail": {
+            "tabs": {
+                "overview": "Přehled",
+                "assignments": "Přiřazení / Vlastníci",
+                "documents": "Dokumenty"
+            }
+        },
+        "fields": {
+            "name": {
+                "label": "Název",
+                "placeholder": "Zadejte název předmětu"
+            },
+            "description": {
+                "label": "Popis"
+            },
+            "internalNotes": {
+                "label": "Interní poznámky"
+            },
+            "isMultiCopy": {
+                "label": "Může mít více kopií",
+                "description": "Pokud je zaškrtnuto, může tento předmět fyzicky existovat ve více kopiích."
+            },
+            "maxCopies": {
+                "label": "Maximální počet kopií (Volitelné)",
+                "placeholder": "Nechte prázdné pro neomezeno"
+            }
+        },
+        "assignments": {
+            "title": "Přiřazení předmětu",
+            "add": "Přiřadit předmět",
+            "empty": "Předmět zatím není nikomu přiřazen.",
+            "limitReached": "Byl dosažen maximální počet kopií tohoto předmětu.",
+            "notes": "Poznámky k přiřazení",
+            "assignedBy": "Přiřadil(a): {name}",
+            "assignedAt": "Kdy: {date}",
+            "character": "Postava",
+            "notesPlaceholder": "Volitelné poznámky k přiřazení..."
+        },
+        "copyInfo": {
+            "multiCopy": "Více kopií",
+            "multiCopyMax": "Max: {max}",
+            "multiCopyUnlimited": "Neomezeno",
+            "singleItem": "Jediný kus",
+            "created": "Vytvořeno {date}"
+        },
+        "dialogs": {
+            "delete": {
+                "title": "Smazat předmět",
+                "description": "Opravdu chcete tento předmět smazat?"
+            },
+            "restore": {
+                "title": "Obnovit předmět",
+                "description": "Opravdu chcete obnovit tento předmět?"
+            }
+        },
+        "notifications": {
+            "created": "Předmět vytvořen",
+            "updated": "Předmět upraven",
+            "deleted": "Předmět smazán",
+            "restored": "Předmět obnoven",
+            "assigned": "Předmět přiřazen",
+            "unassigned": "Přiřazení odstraněno"
+        }
+    },
+    "plotlines": {
+        "title": "Dějové linky",
+        "description": "Seskupování úkolů do příběhových linií",
+        "create": "Nová dějová linka",
+        "update": "Upravit dějovou linku",
+        "list": {
+            "empty": "Nenalezeny žádné dějové linky.",
+            "columns": {
+                "title": "Název",
+                "status": "Stav"
+            }
+        },
+        "detail": {
+            "tabs": {
+                "overview": "Přehled",
+                "phases": "Fáze & Úkoly",
+                "links": "Přímé vazby",
+                "documents": "Dokumenty"
+            }
+        },
+        "fields": {
+            "title": {
+                "label": "Název",
+                "placeholder": "Zadejte název dějové linky"
+            },
+            "description": {
+                "label": "Popis"
+            },
+            "internalNotes": {
+                "label": "Interní poznámky"
+            }
+        },
+        "phases": {
+            "title": "Fáze",
+            "add": "Přidat fázi",
+            "empty": "Zatím nejsou vytvořeny žádné fáze. Úkoly lze přidávat i bez fází.",
+            "fields": {
+                "title": {
+                    "label": "Název",
+                    "placeholder": "Zadejte název fáze"
+                },
+                "summary": {
+                    "label": "Shrnutí"
+                }
+            },
+            "addQuest": "Přidat úkol do fáze",
+            "unphasedQuests": "Nezařazené úkoly"
+        },
+        "links": {
+            "inherited": "Zděděné vazby (z úkolů)",
+            "direct": "Přímo navázané entity"
+        },
+        "dialogs": {
+            "delete": {
+                "title": "Smazat dějovou linku",
+                "description": "Opravdu chcete dějovou linku smazat?"
+            },
+            "restore": {
+                "title": "Obnovit dějovou linku",
+                "description": "Opravdu chcete dějovou linku obnovit?"
+            }
+        },
+        "notifications": {
+            "created": "Dějová linka vytvořena",
+            "updated": "Dějová linka upravena",
+            "deleted": "Dějová linka smazána",
+            "restored": "Dějová linka obnovena",
+            "phaseCreated": "Fáze přidána",
+            "phaseUpdated": "Fáze upravena",
+            "phaseDeleted": "Fáze smazána",
+            "questLinked": "Úkol navázán",
+            "questUnlinked": "Vazba úkolu odstraněna"
+        }
+    },
+    "plots": {
+        "title": "Zápletky",
+        "description": "Hlavní zápletky a velká témata sdružující dějové linky",
+        "create": "Nová zápletka",
+        "update": "Upravit zápletku",
+        "list": {
+            "empty": "Nenalezeny žádné zápletky.",
+            "columns": {
+                "title": "Název",
+                "status": "Stav"
+            }
+        },
+        "detail": {
+            "tabs": {
+                "overview": "Přehled",
+                "plotlines": "Dějové linky",
+                "links": "Přímé vazby",
+                "documents": "Dokumenty"
+            }
+        },
+        "fields": {
+            "title": {
+                "label": "Název",
+                "placeholder": "Zadejte název zápletky"
+            },
+            "description": {
+                "label": "Popis"
+            },
+            "internalNotes": {
+                "label": "Interní poznámky"
+            }
+        },
+        "plotlines": {
+            "title": "Přiřazené dějové linky",
+            "add": "Přidat dějovou linku",
+            "empty": "Této zápletce zatím nejsou přiřazeny žádné dějové linky."
+        },
+        "dialogs": {
+            "delete": {
+                "title": "Smazat zápletku",
+                "description": "Opravdu chcete tuto zápletku smazat?"
+            },
+            "restore": {
+                "title": "Obnovit zápletku",
+                "description": "Opravdu chcete obnovit tuto zápletku?"
+            }
+        },
+        "notifications": {
+            "created": "Zápletka vytvořena",
+            "updated": "Zápletka upravena",
+            "deleted": "Zápletka smazána",
+            "restored": "Zápletka obnovena",
+            "plotlineLinked": "Dějová linka navázána",
+            "plotlineUnlinked": "Vazba dějové linky odstraněna"
+        }
+    },
+    "relationships": {
+        "types": {
+            "ally": "Spojenec",
+            "enemy": "Nepřítel",
+            "neutral": "Neutrální",
+            "info-source": "Zdroj informací",
+            "custom": "Vlastní"
+        },
+        "modes": {
+            "directional": "Jednosměrný (A -> B)",
+            "autoMirrored": "Automaticky zrcadlený (A <-> B)"
+        }
+    },
+    "stepItems": {
+        "linkTypes": {
+            "required": "Požadováno",
+            "loot": "Odměna (Loot)"
+        }
+    }
+}

@@ -1,6 +1,6 @@
 # Sancho — LARP Event Management Platform
 
-**Version: 0.8.0**
+**Version: 0.9.0**
 
 Sancho is a single-organization web application for managing LARP (Live Action Role-Playing) groups, covering the full event lifecycle from planning through execution. One deployment serves one organization and supports multiple events.
 
@@ -45,12 +45,13 @@ Sancho is a single-organization web application for managing LARP (Live Action R
 - Soft-delete and restore
 - Narrative links endpoint backed by Narrative module provider
 
-#### Narrative (Backend + DB)
+#### Narrative
 - Event-scoped narrative domain implemented for quests, plotlines, plots, factions, and items
 - Status workflow implemented for narrative entities (`Draft` -> `ReadyToReview` -> `Final`) with reverse transitions
 - Soft-delete and restore implemented across narrative entities
 - Google Drive document links supported for quests, factions, and items (shared validator/service pattern)
 - Character integration seam activated via `ICharacterNarrativeService` concrete implementation
+- **Frontend UI**: Complete narrative module with 11 panels for all narrative entities including Plotlines, Factions, Quests, and Items with deep linking.
 
 #### Identity & Access (Admin UI)
 - User listing and role assignment
@@ -115,7 +116,7 @@ sancho/
 | Identity & Access | ✅ Full | ✅ Full | ✅ Full |
 | User / Profile | ✅ Full | ✅ Full | ✅ Full |
 | Characters | ✅ Backend | ✅ Full | ✅ Full |
-| Narrative | Full | None | Full |
+| Narrative | ✅ Full | ✅ Full | ✅ Full |
 | Logistics | ⏳ Stub | ⏳ None | ⏳ None |
 | Finance | ⏳ Stub | ⏳ None | ⏳ None |
 | NPC / Org | ⏳ Stub | ⏳ None | ⏳ None |
@@ -150,9 +151,10 @@ sancho/
 | `narrative_quest_documents` | Quest Google Drive document links |
 | `narrative_faction_documents` | Faction Google Drive document links |
 | `narrative_item_documents` | Item Google Drive document links |
+| `narrative_faction_relationships` | Faction vs Faction and Faction vs Character relationships |
 | `narrative_*_links` | Character/faction/item relationships across narrative entities |
 
-**Applied Migrations:** 16 (latest: `20260306140000_narrative_direct_links`)
+**Applied Migrations:** 17 (latest: `20260306150000_narrative_faction_relationships`)
 
 ---
 
@@ -237,6 +239,8 @@ sancho/
 
 | Version | Date | Summary |
 |---|---|---|
+| 0.9.0 | 2026-03-06 | Narrative frontend UI complete, API integration finalized, and missing database migrations applied. |
+| 0.8.1 | 2026-03-06 | Fix: install missing `d3-force` package; lazy-load `NarrativeGraph` via `next/dynamic` (ssr:false) to comply with AGENTS.md >50 KB bundle rule |
 | 0.8.0 | 2026-03-06 | Narrative backend + DB implemented (quests/plotlines/plots/factions/items), Character-Narrative seam activated, and backend integration tests added/fixed |
 | 0.7.0 | 2026-03-06 | Performance pass: DB indexes for RLS, backend claims cache, async JWKS prefetch, response compression, batch ability inserts, frontend fetch parallelization and revalidation, lazy-load Tiptap, useMemo lists |
 | 0.6.0 | 2026-03-01 | Characters frontend module with React Flow graph, i18n, and complete UI |

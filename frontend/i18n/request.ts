@@ -15,6 +15,7 @@ export default getRequestConfig(async ({ requestLocale }) => {
       identity: (await import(`../messages/${resolvedLocale}/identity.json`)).default,
       events: (await import(`../messages/${resolvedLocale}/events.json`)).default,
       characters: (await import(`../messages/${resolvedLocale}/characters.json`)).default,
+      narrative: (await import(`../messages/${resolvedLocale}/narrative.json`)).default,
     },
   };
 });
