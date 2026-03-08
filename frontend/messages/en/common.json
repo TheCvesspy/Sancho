@@ -27,5 +27,10 @@
     "email": "Email Address",
     "authProvider": "Authentication Provider",
     "lastSignIn": "Last Sign In"
+  },
+  "errors": {
+    "unauthorized": "You must be logged in to access this page.",
+    "forbidden": "You do not have permission to view this content.",
+    "general": "An unexpected error occurred."
   }
 }

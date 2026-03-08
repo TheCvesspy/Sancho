@@ -33,6 +33,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Narrative.Tests", "Sancho.M
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventManagement.Tests", "Sancho.Modules\EventManagement.Tests\EventManagement.Tests.csproj", "{1701FC90-0BFE-4A5A-8981-0FE90E74070E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Identity.Tests", "Sancho.Modules\Identity.Tests\Identity.Tests.csproj", "{60FAEDA6-9B1F-4238-A542-D72FFB16A3EA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -211,6 +213,18 @@ Global
 		{1701FC90-0BFE-4A5A-8981-0FE90E74070E}.Release|x64.Build.0 = Release|Any CPU
 		{1701FC90-0BFE-4A5A-8981-0FE90E74070E}.Release|x86.ActiveCfg = Release|Any CPU
 		{1701FC90-0BFE-4A5A-8981-0FE90E74070E}.Release|x86.Build.0 = Release|Any CPU
+		{60FAEDA6-9B1F-4238-A542-D72FFB16A3EA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{60FAEDA6-9B1F-4238-A542-D72FFB16A3EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{60FAEDA6-9B1F-4238-A542-D72FFB16A3EA}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{60FAEDA6-9B1F-4238-A542-D72FFB16A3EA}.Debug|x64.Build.0 = Debug|Any CPU
+		{60FAEDA6-9B1F-4238-A542-D72FFB16A3EA}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{60FAEDA6-9B1F-4238-A542-D72FFB16A3EA}.Debug|x86.Build.0 = Debug|Any CPU
+		{60FAEDA6-9B1F-4238-A542-D72FFB16A3EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{60FAEDA6-9B1F-4238-A542-D72FFB16A3EA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{60FAEDA6-9B1F-4238-A542-D72FFB16A3EA}.Release|x64.ActiveCfg = Release|Any CPU
+		{60FAEDA6-9B1F-4238-A542-D72FFB16A3EA}.Release|x64.Build.0 = Release|Any CPU
+		{60FAEDA6-9B1F-4238-A542-D72FFB16A3EA}.Release|x86.ActiveCfg = Release|Any CPU
+		{60FAEDA6-9B1F-4238-A542-D72FFB16A3EA}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -227,5 +241,6 @@ Global
 		{2508D1DC-0EE3-47B1-B9C7-2A3E73B14F59} = {0DCD476A-4403-6650-C269-41A447A0F790}
 		{2A74C0A3-120A-4217-B7C8-D5BF4686983E} = {0DCD476A-4403-6650-C269-41A447A0F790}
 		{1701FC90-0BFE-4A5A-8981-0FE90E74070E} = {0DCD476A-4403-6650-C269-41A447A0F790}
+		{60FAEDA6-9B1F-4238-A542-D72FFB16A3EA} = {0DCD476A-4403-6650-C269-41A447A0F790}
 	EndGlobalSection
 EndGlobal

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { narrativeApi } from "@/utils/narrative-api";
 import { eventsApi } from "@/utils/events-api";
 import { PlotDetail } from "@/components/narrative/plot-detail";
+import { fetchEventPermissions, resolveModuleAccess } from "@/utils/permissions";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5293";
 
@@ -25,23 +26,39 @@ export default async function PlotDetailPage({
 
     const token = session.access_token;
 
-    // Get user profile for RBAC checks
-    const userResponse = await fetch(`${API_BASE_URL}/api/user/me`, {
-        headers: { "Authorization": `Bearer ${token}` },
-        next: { revalidate: 60 }
-    });
+    // Get user profile and event-scoped permissions in parallel
+    const [userResponse, permissions] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/user/me`, {
+            headers: { "Authorization": `Bearer ${token}` },
+            next: { revalidate: 60 }
+        }),
+        fetchEventPermissions(token, eventId),
+    ]);
 
     if (!userResponse.ok) {
         return <div className="p-10 text-destructive">Error loading user profile.</div>;
     }
 
     const profile = await userResponse.json();
-    const isOrgOrSysAdmin = profile.isSystemAdmin || profile.orgRole === "OrgOwner";
+    const { canWrite, isOrgOrSysAdmin } = resolveModuleAccess(profile, permissions, "narrative");
 
     try {
-        const [event, plot] = await Promise.all([
+        const [
+            event,
+            plot,
+            plotlineLinks,
+            documents,
+            characterLinks,
+            factionLinks,
+            itemLinks
+        ] = await Promise.all([
             eventsApi.getEvent(token, eventId),
             narrativeApi.getPlot(token, eventId, plotId),
+            narrativeApi.listPlotPlotlines(token, eventId, plotId),
+            narrativeApi.listPlotDocuments(token, eventId, plotId),
+            narrativeApi.listPlotCharacters(token, eventId, plotId),
+            narrativeApi.listPlotFactions(token, eventId, plotId),
+            narrativeApi.listPlotItems(token, eventId, plotId),
         ]);
 
         return (
@@ -56,7 +73,12 @@ export default async function PlotDetailPage({
                 <PlotDetail
                     event={event}
                     initialPlot={plot}
-                    isOrgOrSysAdmin={isOrgOrSysAdmin}
+                    initialPlotlineLinks={plotlineLinks}
+                    initialDocuments={documents}
+                    initialCharacterLinks={characterLinks}
+                    initialFactionLinks={factionLinks}
+                    initialItemLinks={itemLinks}
+                    canWrite={canWrite}
                     token={token}
                 />
             </div>

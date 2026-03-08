@@ -19,11 +19,11 @@ interface ItemAssignmentsPanelProps {
     eventId: string;
     item: NarrativeItemDto;
     initialAssignments: NarrativeItemAssignmentDto[];
-    isOrgOrSysAdmin: boolean;
+    canWrite: boolean;
     token: string;
 }
 
-export function ItemAssignmentsPanel({ eventId, item, initialAssignments, isOrgOrSysAdmin, token }: ItemAssignmentsPanelProps) {
+export function ItemAssignmentsPanel({ eventId, item, initialAssignments, canWrite, token }: ItemAssignmentsPanelProps) {
     const t = useTranslations("narrative");
     const [assignments, setAssignments] = useState<NarrativeItemAssignmentDto[]>(initialAssignments);
     const [allChars, setAllChars] = useState<CharacterListItemDto[]>([]);
@@ -103,7 +103,7 @@ export function ItemAssignmentsPanel({ eventId, item, initialAssignments, isOrgO
                                     {t("items.assignments.assignedAt", { date: format(new Date(a.assignedAt), "PPp") })}
                                 </p>
                             </div>
-                            {isOrgOrSysAdmin && (
+                            {canWrite && (
                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => handleUnassign(a.characterId)}>
                                     <Trash2 className="h-3.5 w-3.5" />
                                 </Button>
@@ -113,7 +113,7 @@ export function ItemAssignmentsPanel({ eventId, item, initialAssignments, isOrgO
                 </div>
             )}
 
-            {isOrgOrSysAdmin && (
+            {canWrite && (
                 <div className="space-y-2 p-4 rounded-lg border bg-muted/30">
                     {atMaxCopies ? (
                         <p className="text-sm text-amber-600 font-medium">{t("items.assignments.limitReached")}</p>

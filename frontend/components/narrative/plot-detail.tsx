@@ -25,7 +25,7 @@ interface PlotDetailProps {
     initialCharacterLinks: NarrativeEntityCharacterLinkDto[];
     initialFactionLinks: NarrativeEntityFactionLinkDto[];
     initialItemLinks: NarrativeEntityItemLinkDto[];
-    isOrgOrSysAdmin: boolean;
+    canWrite: boolean;
     token: string;
 }
 
@@ -37,7 +37,7 @@ export function PlotDetail({
     initialCharacterLinks,
     initialFactionLinks,
     initialItemLinks,
-    isOrgOrSysAdmin,
+    canWrite,
     token
 }: PlotDetailProps) {
     const t = useTranslations("narrative");
@@ -74,7 +74,7 @@ export function PlotDetail({
                         <NarrativeStatusBadge status={plot.status} />
                     </div>
                 </div>
-                {isOrgOrSysAdmin && (
+                {canWrite && (
                     <div className="flex items-center gap-2">
                         <ChangeNarrativeStatusDialog
                             eventId={event.id}
@@ -107,12 +107,12 @@ export function PlotDetail({
                             title={t("plots.fields.description.label")}
                             initialHtml={plot.description || ""}
                             onSave={async (val) => await handleUpdate({ description: val })}
-                            isReadOnly={!isOrgOrSysAdmin}
+                            isReadOnly={!canWrite}
                             placeholder={t("plots.fields.description.placeholder")}
                         />
                     </div>
 
-                    {isOrgOrSysAdmin && (
+                    {canWrite && (
                         <div className="rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 p-6">
                             <EditableRichText
                                 title={t("plots.fields.internalNotes.label")}
@@ -120,7 +120,7 @@ export function PlotDetail({
                                 variant="amber"
                                 initialHtml={plot.internalNotes || ""}
                                 onSave={async (val) => await handleUpdate({ internalNotes: val })}
-                                isReadOnly={!isOrgOrSysAdmin}
+                                isReadOnly={!canWrite}
                                 placeholder={t("plots.fields.internalNotes.placeholder")}
                             />
                         </div>
@@ -132,7 +132,7 @@ export function PlotDetail({
                         eventId={event.id}
                         plot={plot}
                         initialPlotlineLinks={initialPlotlineLinks}
-                        isOrgOrSysAdmin={isOrgOrSysAdmin}
+                        canWrite={canWrite}
                         token={token}
                     />
                 </TabsContent>
@@ -144,7 +144,7 @@ export function PlotDetail({
                         initialCharacterLinks={initialCharacterLinks}
                         initialFactionLinks={initialFactionLinks}
                         initialItemLinks={initialItemLinks}
-                        isOrgOrSysAdmin={isOrgOrSysAdmin}
+                        canWrite={canWrite}
                         token={token}
                     />
                 </TabsContent>
@@ -154,7 +154,7 @@ export function PlotDetail({
                         eventId={event.id}
                         plotId={plot.id}
                         initialDocuments={initialDocuments}
-                        isOrgOrSysAdmin={isOrgOrSysAdmin}
+                        canWrite={canWrite}
                         token={token}
                     />
                 </TabsContent>

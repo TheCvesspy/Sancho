@@ -20,11 +20,12 @@ interface EventDetailProps {
     event: EventDetailDto;
     stats: EventStatsDto;
     initialActivity: RecentActivityItemDto[];
+    canWrite: boolean;
     isOrgOrSysAdmin: boolean;
     token: string;
 }
 
-export function EventDetail({ event, stats, initialActivity, isOrgOrSysAdmin, token }: EventDetailProps) {
+export function EventDetail({ event, stats, initialActivity, canWrite, isOrgOrSysAdmin, token }: EventDetailProps) {
     const t = useTranslations("events");
     const locale = useLocale();
     const [activeTab, setActiveTab] = useState("overview");
@@ -67,7 +68,7 @@ export function EventDetail({ event, stats, initialActivity, isOrgOrSysAdmin, to
                     </div>
 
                     <div className="flex items-center gap-2">
-                        {isOrgOrSysAdmin && (
+                        {canWrite && (
                             <EditEventDialog event={event} token={token} />
                         )}
 

@@ -25,7 +25,7 @@ interface QuestLinksPanelProps {
     initialCharacterLinks: NarrativeQuestCharacterLinkDto[];
     initialFactionLinks: NarrativeEntityFactionLinkDto[];
     initialItemLinks: NarrativeEntityItemLinkDto[];
-    isOrgOrSysAdmin: boolean;
+    canWrite: boolean;
     token: string;
 }
 
@@ -35,7 +35,7 @@ export function QuestLinksPanel({
     initialCharacterLinks,
     initialFactionLinks,
     initialItemLinks,
-    isOrgOrSysAdmin,
+    canWrite,
     token,
 }: QuestLinksPanelProps) {
     const t = useTranslations("narrative");
@@ -183,7 +183,7 @@ export function QuestLinksPanel({
                                     <span className="font-medium">{getName(allCharacters, link.characterId)}</span>
                                     {link.role && <span className="ml-2 text-sm text-muted-foreground">({link.role})</span>}
                                 </div>
-                                {isOrgOrSysAdmin && (
+                                {canWrite && (
                                     <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeCharacter(link.characterId)}>
                                         <Trash2 className="h-3.5 w-3.5" />
                                     </Button>
@@ -193,7 +193,7 @@ export function QuestLinksPanel({
                     </div>
                 )}
 
-                {isOrgOrSysAdmin && (
+                {canWrite && (
                     <div className="flex gap-2 flex-wrap">
                         <select
                             className="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm flex-1 min-w-[160px]"
@@ -232,7 +232,7 @@ export function QuestLinksPanel({
                         {factionLinks.map((link) => (
                             <div key={link.factionId} className="flex items-center justify-between px-4 py-3">
                                 <span className="font-medium">{getName(allFactions, link.factionId)}</span>
-                                {isOrgOrSysAdmin && (
+                                {canWrite && (
                                     <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeFaction(link.factionId)}>
                                         <Trash2 className="h-3.5 w-3.5" />
                                     </Button>
@@ -242,7 +242,7 @@ export function QuestLinksPanel({
                     </div>
                 )}
 
-                {isOrgOrSysAdmin && (
+                {canWrite && (
                     <div className="flex gap-2">
                         <select
                             className="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm flex-1"
@@ -275,7 +275,7 @@ export function QuestLinksPanel({
                         {itemLinks.map((link) => (
                             <div key={link.itemId} className="flex items-center justify-between px-4 py-3">
                                 <span className="font-medium">{getName(allItems, link.itemId)}</span>
-                                {isOrgOrSysAdmin && (
+                                {canWrite && (
                                     <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeItem(link.itemId)}>
                                         <Trash2 className="h-3.5 w-3.5" />
                                     </Button>
@@ -285,7 +285,7 @@ export function QuestLinksPanel({
                     </div>
                 )}
 
-                {isOrgOrSysAdmin && (
+                {canWrite && (
                     <div className="flex gap-2">
                         <select
                             className="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm flex-1"

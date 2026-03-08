@@ -40,11 +40,11 @@ import { CreateFactionDialog } from "./create-faction-dialog";
 interface FactionsListProps {
     eventId: string;
     initialFactions: NarrativeFactionDto[];
-    isOrgOrSysAdmin: boolean;
+    canWrite: boolean;
     token: string;
 }
 
-export function FactionsList({ eventId, initialFactions, isOrgOrSysAdmin, token }: FactionsListProps) {
+export function FactionsList({ eventId, initialFactions, canWrite, token }: FactionsListProps) {
     const t = useTranslations("narrative");
     const locale = useLocale();
     const router = useRouter();
@@ -106,7 +106,7 @@ export function FactionsList({ eventId, initialFactions, isOrgOrSysAdmin, token 
                     </SelectContent>
                 </Select>
 
-                {isOrgOrSysAdmin && (
+                {canWrite && (
                     <div className="flex items-center space-x-2 px-2">
                         <Checkbox
                             id="show-deleted-factions"
@@ -120,7 +120,7 @@ export function FactionsList({ eventId, initialFactions, isOrgOrSysAdmin, token 
                 )}
 
                 <div className="ml-auto">
-                    {isOrgOrSysAdmin && (
+                    {canWrite && (
                         <CreateFactionDialog eventId={eventId} token={token} onCreated={(f) => setFactions(prev => [f, ...prev])} />
                     )}
                 </div>
@@ -178,7 +178,7 @@ export function FactionsList({ eventId, initialFactions, isOrgOrSysAdmin, token 
                                                     <Eye className="mr-2 h-4 w-4" />
                                                     {t("common.view")}
                                                 </DropdownMenuItem>
-                                                {isOrgOrSysAdmin && (
+                                                {canWrite && (
                                                     <>
                                                         {!faction.deletedAt ? (
                                                             <DropdownMenuItem onClick={() => handleDelete(faction.id)} className="text-destructive focus:text-destructive">

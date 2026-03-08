@@ -8,11 +8,11 @@ interface FactionDocumentsPanelProps {
     eventId: string;
     factionId: string;
     initialDocuments: NarrativeDocumentLinkDto[];
-    isOrgOrSysAdmin: boolean;
+    canWrite: boolean;
     token: string;
 }
 
-export function FactionDocumentsPanel({ eventId, factionId, initialDocuments, isOrgOrSysAdmin, token }: FactionDocumentsPanelProps) {
+export function FactionDocumentsPanel({ eventId, factionId, initialDocuments, canWrite, token }: FactionDocumentsPanelProps) {
     const t = useTranslations("narrative");
 
     const tl: DocumentLinkTranslations = {
@@ -70,7 +70,7 @@ export function FactionDocumentsPanel({ eventId, factionId, initialDocuments, is
     return (
         <DocumentLinkPanel
             initialDocuments={initialDocuments as DocumentItem[]}
-            isReadOnly={!isOrgOrSysAdmin}
+            isReadOnly={!canWrite}
             onAdd={handleAdd}
             onDelete={handleDelete}
             translations={tl}

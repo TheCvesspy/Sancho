@@ -27,5 +27,10 @@
     "email": "E-mailová adresa",
     "authProvider": "Poskytovatel ověření",
     "lastSignIn": "Poslední přihlášení"
+  },
+  "errors": {
+    "unauthorized": "Pro přístup k této stránce musíte být přihlášeni.",
+    "forbidden": "Nemáte oprávnění k prohlížení tohoto obsahu.",
+    "general": "Nastala neočekávaná chyba."
   }
 }

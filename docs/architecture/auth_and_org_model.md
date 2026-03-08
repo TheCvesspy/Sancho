@@ -1,6 +1,7 @@
 # Authentication & Organization Model
 
 This document describes how Sancho identifies users, manages their sessions, and enforces access control.
+Canonical source: [authorization_guidelines.md](/D:/Sancho/docs/architecture/authorization_guidelines.md).
 
 ## Technology Stack
 - **Provider**: [Supabase Auth](https://supabase.com/auth)
@@ -30,6 +31,13 @@ Sancho operates as a **single-organization** deployment. There is no `tenants` t
 
 ### RLS Implementation
 Every table containing event-specific data (e.g., characters) MUST have an `event_id` column.
+RLS must reflect the same precedence as the authorization contract:
+
+1. `system_admins` (platform access)
+2. `org_members` (`OrgOwner`)
+3. `event_members` (`EventManager`) for matching `event_id`
+4. explicit `event_member_permissions` for matching `(user_id, event_id, module)`
+
 Org-level access is controlled via `org_members`:
 ```sql
 CREATE POLICY "Org members can view" ON some_table
@@ -45,6 +53,17 @@ FOR SELECT USING (
     SELECT event_id FROM public.event_members WHERE user_id = auth.uid()
   )
 );
+```
+Module-level access is controlled via `event_member_permissions` with module-specific checks, for example:
+```sql
+EXISTS (
+  SELECT 1
+  FROM public.event_member_permissions emp
+  WHERE emp.user_id = auth.uid()
+    AND emp.event_id = some_table.event_id
+    AND emp.module = 'characters'
+    AND emp.permission IN ('read', 'write')
+)
 ```
 
 ## Route Protection (Middleware)

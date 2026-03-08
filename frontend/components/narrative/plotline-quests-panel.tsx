@@ -6,11 +6,11 @@ import { NarrativePlotlineDto } from "@/utils/narrative-api";
 interface PlotlineQuestsPanelProps {
     eventId: string;
     plotline: NarrativePlotlineDto;
-    isOrgOrSysAdmin: boolean;
+    canWrite: boolean;
     token: string;
 }
 
-export function PlotlineQuestsPanel({ eventId, plotline, isOrgOrSysAdmin, token }: PlotlineQuestsPanelProps) {
+export function PlotlineQuestsPanel({ eventId, plotline, canWrite, token }: PlotlineQuestsPanelProps) {
     const t = useTranslations("narrative");
 
     return (

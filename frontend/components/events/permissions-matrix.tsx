@@ -129,6 +129,27 @@ export function PermissionsMatrix({ eventId, token, isOrgOrSysAdmin }: Permissio
         }
     };
 
+    const handleRemoveUser = async (userId: string) => {
+        if (!confirm(t("removeConfirm"))) return;
+
+        try {
+            // Find all active permissions for this user
+            const userPerms = permissions.filter(p => p.userId === userId && p.permission !== "none");
+
+            // Revoke them all concurrently
+            await Promise.all(
+                userPerms.map(p => eventsApi.revokePermission(token, eventId, userId, p.module))
+            );
+
+            toast.success(t("removeSuccess"));
+            fetchPermissions();
+            router.refresh();
+        } catch (err) {
+            console.error(err);
+            toast.error(t("error"));
+        }
+    };
+
     // Group by user
     const userMap = permissions.reduce((acc, p) => {
         if (!acc[p.userId]) acc[p.userId] = { displayName: p.userDisplayName, modules: {} };
@@ -206,6 +227,7 @@ export function PermissionsMatrix({ eventId, token, isOrgOrSysAdmin }: Permissio
                         <TableRow>
                             <TableHead className="min-w-[200px]">{t("user")}</TableHead>
                             {MODULES.map(m => <TableHead key={m.key} className="text-center">{m.label}</TableHead>)}
+                            <TableHead className="w-[80px] text-center">Akce</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -236,6 +258,17 @@ export function PermissionsMatrix({ eventId, token, isOrgOrSysAdmin }: Permissio
                                             </Select>
                                         </TableCell>
                                     ))}
+                                    <TableCell className="text-center">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="text-destructive h-8 w-8"
+                                            onClick={() => handleRemoveUser(uid)}
+                                            title={t("removeUser")}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </TableCell>
                                 </TableRow>
                             ))
                         )}

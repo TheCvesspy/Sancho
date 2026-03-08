@@ -33,11 +33,11 @@ import { CreatePlotDialog } from "./create-plot-dialog";
 interface PlotsListProps {
     eventId: string;
     initialPlots: NarrativePlotDto[];
-    isOrgOrSysAdmin: boolean;
+    canWrite: boolean;
     token: string;
 }
 
-export function PlotsList({ eventId, initialPlots, isOrgOrSysAdmin, token }: PlotsListProps) {
+export function PlotsList({ eventId, initialPlots, canWrite, token }: PlotsListProps) {
     const t = useTranslations("narrative");
     const locale = useLocale();
     const router = useRouter();
@@ -98,7 +98,7 @@ export function PlotsList({ eventId, initialPlots, isOrgOrSysAdmin, token }: Plo
                     </SelectContent>
                 </Select>
 
-                {isOrgOrSysAdmin && (
+                {canWrite && (
                     <div className="flex items-center space-x-2 px-2">
                         <Checkbox
                             id="show-deleted-plots"
@@ -112,7 +112,7 @@ export function PlotsList({ eventId, initialPlots, isOrgOrSysAdmin, token }: Plo
                 )}
 
                 <div className="ml-auto">
-                    {isOrgOrSysAdmin && (
+                    {canWrite && (
                         <CreatePlotDialog eventId={eventId} token={token} onCreated={(p) => setPlots(prev => [p, ...prev])} />
                     )}
                 </div>
@@ -170,7 +170,7 @@ export function PlotsList({ eventId, initialPlots, isOrgOrSysAdmin, token }: Plo
                                                     <Eye className="mr-2 h-4 w-4" />
                                                     {t("common.view")}
                                                 </DropdownMenuItem>
-                                                {isOrgOrSysAdmin && (
+                                                {canWrite && (
                                                     <>
                                                         {!plot.deletedAt ? (
                                                             <DropdownMenuItem onClick={() => handleDelete(plot.id)} className="text-destructive focus:text-destructive">

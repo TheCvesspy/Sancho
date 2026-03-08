@@ -5,11 +5,11 @@ import { useTranslations } from "next-intl";
 interface FactionLinksPanelProps {
     eventId: string;
     factionId: string;
-    isOrgOrSysAdmin: boolean;
+    canWrite: boolean;
     token: string;
 }
 
-export function FactionLinksPanel({ eventId, factionId, isOrgOrSysAdmin, token }: FactionLinksPanelProps) {
+export function FactionLinksPanel({ eventId, factionId, canWrite, token }: FactionLinksPanelProps) {
     const t = useTranslations("narrative");
 
     return (

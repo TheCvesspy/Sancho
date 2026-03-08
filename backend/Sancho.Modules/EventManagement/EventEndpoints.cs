@@ -240,8 +240,7 @@ public static class EventEndpoints
         var ev = await GetEvent(eventId, url!, key!, httpClient);
         if (ev is null) return Results.NotFound();
 
-        var canView = authz.IsOrgOrSystemAdmin(user)
-            || await authz.CanManageEventAsync(user, eventId, url!, key!);
+        var canView = await authz.CanAccessEventAsync(user, eventId, url!, key!);
         return canView ? Results.Ok(ToDetail(ev)) : Results.Forbid();
     }
 
@@ -544,7 +543,7 @@ public static class EventEndpoints
     }
 
     private static async Task<bool> CanManageOrView(ClaimsPrincipal user, EventAuthorizationService authz, Guid eventId, string url, string key) =>
-        authz.IsOrgOrSystemAdmin(user) || await authz.CanManageEventAsync(user, eventId, url, key);
+        authz.IsOrgOrSystemAdmin(user) || await authz.HasEventManagementReadAccessAsync(user, eventId, url, key);
 
     private static void AddHeaders(HttpRequestMessage request, string key)
     {

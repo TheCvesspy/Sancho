@@ -27,22 +27,7 @@ import { QuestNode } from "./nodes/quest-node";
 import { GraphLegend } from "./graph-legend";
 import { GraphFilters, type GraphFilterState } from "./graph-filters";
 import { useForceLayout } from "./use-force-layout";
-
-// --- Types for sample data that includes cross-references ---
-
-export type SampleCharacterNode = {
-    id: string;
-    name: string;
-    relationshipType: NarrativeRelationshipDto["type"];
-    description: string;
-    factionIds: string[];
-    questIds: string[];
-};
-
-export type SampleQuestNode = NarrativeQuestDto & {
-    kind: "Quest" | "Plotline";
-    participantIds: string[];
-};
+import type { SampleCharacterNode, SampleQuestNode } from "./types";
 
 // --- Edge color map ---
 

@@ -21,11 +21,11 @@ interface PlotlinePhasesProps {
     plotline: NarrativePlotlineDto;
     initialPhases: NarrativePlotlinePhaseDto[];
     initialQuestLinks: NarrativePlotlineQuestLinkDto[];
-    isOrgOrSysAdmin: boolean;
+    canWrite: boolean;
     token: string;
 }
 
-export function PlotlinePhasesPanel({ eventId, plotline, initialPhases, initialQuestLinks, isOrgOrSysAdmin, token }: PlotlinePhasesProps) {
+export function PlotlinePhasesPanel({ eventId, plotline, initialPhases, initialQuestLinks, canWrite, token }: PlotlinePhasesProps) {
     const t = useTranslations("narrative");
     const [phases, setPhases] = useState<NarrativePlotlinePhaseDto[]>(
         [...initialPhases].sort((a, b) => a.sortOrder - b.sortOrder)
@@ -137,7 +137,7 @@ export function PlotlinePhasesPanel({ eventId, plotline, initialPhases, initialQ
             <section className="space-y-2">
                 <div className="flex items-center justify-between">
                     <h3 className="font-medium text-muted-foreground">{t("plotlines.phases.unphasedQuests")}</h3>
-                    {isOrgOrSysAdmin && (
+                    {canWrite && (
                         <Button variant="ghost" size="sm" onClick={() => setAddQuestPhaseId("__unphased__")}>
                             <Plus className="h-4 w-4 mr-1" />{t("plotlines.phases.addQuest")}
                         </Button>
@@ -156,7 +156,7 @@ export function PlotlinePhasesPanel({ eventId, plotline, initialPhases, initialQ
                                         <span className="text-xs text-muted-foreground line-clamp-1">{getQuestShortDescription(ql.questId)}</span>
                                     )}
                                 </div>
-                                {isOrgOrSysAdmin && (
+                                {canWrite && (
                                     <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeQuest(ql.questId)}>
                                         <Trash2 className="h-3.5 w-3.5" />
                                     </Button>
@@ -229,7 +229,7 @@ export function PlotlinePhasesPanel({ eventId, plotline, initialPhases, initialQ
                                             <p className="font-semibold">{phase.title}</p>
                                             {phase.summary && <p className="text-sm text-muted-foreground">{phase.summary}</p>}
                                         </div>
-                                        {isOrgOrSysAdmin && (
+                                        {canWrite && (
                                             <div className="flex gap-1 shrink-0">
                                                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditPhaseId(phase.id); setEditPhaseTitle(phase.title); setEditPhaseSummary(phase.summary || ""); }}>
                                                     <Pencil className="h-3.5 w-3.5" />
@@ -257,7 +257,7 @@ export function PlotlinePhasesPanel({ eventId, plotline, initialPhases, initialQ
                                                             <span className="text-xs text-muted-foreground line-clamp-1">{getQuestShortDescription(ql.questId)}</span>
                                                         )}
                                                     </div>
-                                                    {isOrgOrSysAdmin && (
+                                                    {canWrite && (
                                                         <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeQuest(ql.questId)}>
                                                             <Trash2 className="h-3.5 w-3.5" />
                                                         </Button>
@@ -266,7 +266,7 @@ export function PlotlinePhasesPanel({ eventId, plotline, initialPhases, initialQ
                                             ))}
                                         </div>
                                     )}
-                                    {isOrgOrSysAdmin && (
+                                    {canWrite && (
                                         addQuestPhaseId === phase.id ? (
                                             <div className="flex gap-2 mt-2">
                                                 <select
@@ -302,7 +302,7 @@ export function PlotlinePhasesPanel({ eventId, plotline, initialPhases, initialQ
             </div>
 
             {/* ── Add phase form ─────────────────────────────────────── */}
-            {isOrgOrSysAdmin && (
+            {canWrite && (
                 <div className="space-y-2 p-4 rounded-lg border bg-muted/30">
                     <p className="text-sm font-medium">{t("plotlines.phases.add")}</p>
                     <Input

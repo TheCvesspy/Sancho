@@ -24,7 +24,7 @@ interface NarrativeHubProps {
     initialPlots: NarrativePlotDto[];
     initialFactions: NarrativeFactionDto[];
     initialItems: NarrativeItemDto[];
-    isOrgOrSysAdmin: boolean;
+    canWrite: boolean;
     token: string;
 }
 
@@ -35,7 +35,7 @@ export function NarrativeHub({
     initialPlots,
     initialFactions,
     initialItems,
-    isOrgOrSysAdmin,
+    canWrite,
     token
 }: NarrativeHubProps) {
     const t = useTranslations("narrative");
@@ -72,7 +72,7 @@ export function NarrativeHub({
                     <QuestsList
                         eventId={event.id}
                         initialQuests={initialQuests}
-                        isOrgOrSysAdmin={isOrgOrSysAdmin}
+                        canWrite={canWrite}
                         token={token}
                     />
                 </TabsContent>
@@ -80,7 +80,7 @@ export function NarrativeHub({
                     <PlotlinesList
                         eventId={event.id}
                         initialPlotlines={initialPlotlines}
-                        isOrgOrSysAdmin={isOrgOrSysAdmin}
+                        canWrite={canWrite}
                         token={token}
                     />
                 </TabsContent>
@@ -88,7 +88,7 @@ export function NarrativeHub({
                     <PlotsList
                         eventId={event.id}
                         initialPlots={initialPlots}
-                        isOrgOrSysAdmin={isOrgOrSysAdmin}
+                        canWrite={canWrite}
                         token={token}
                     />
                 </TabsContent> */}
@@ -96,7 +96,7 @@ export function NarrativeHub({
                     <FactionsList
                         eventId={event.id}
                         initialFactions={initialFactions}
-                        isOrgOrSysAdmin={isOrgOrSysAdmin}
+                        canWrite={canWrite}
                         token={token}
                     />
                 </TabsContent>
@@ -104,7 +104,7 @@ export function NarrativeHub({
                     <ItemsList
                         eventId={event.id}
                         initialItems={initialItems}
-                        isOrgOrSysAdmin={isOrgOrSysAdmin}
+                        canWrite={canWrite}
                         token={token}
                     />
                 </TabsContent>

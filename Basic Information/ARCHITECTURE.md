@@ -1,6 +1,7 @@
 # Sancho Architecture Overview
 
 This document captures the current, high-level architecture and dependencies for the Sancho platform.
+Canonical authorization contract: [authorization_guidelines.md](/D:/Sancho/docs/architecture/authorization_guidelines.md).
 
 ## Purpose
 Sancho is a **single-organization** web application for a LARP group. It covers the full event lifecycle from planning through execution. One Supabase deployment equals one organization managing multiple events.
@@ -110,6 +111,33 @@ Examples:
 
 Query parameters are reserved for optional UI state only (search term, status filter, pagination). All required context IDs go in path segments.
 
+## Large Link Picker Architecture Pattern
+
+For event-scoped relation fields that can reference large candidate sets (characters, NPCs, items, users), the architecture standard is:
+
+- UI uses searchable picker (`Popover + Command`) instead of static `Select` once candidate volume exceeds ~50.
+- Search input is debounced (250-400 ms; default 300 ms).
+- Picker keeps context for rapid repeated linking (does not auto-close after each add).
+- Candidate lists must exclude already linked and soft-deleted entities.
+
+### API Contract Guidance
+
+Expose lightweight search/list endpoints suitable for picker UX:
+
+- Scope: event-scoped (`/api/events/{eventId}/...`)
+- Query params:
+  - `q` (search text)
+  - optional `type`/`module` discriminator when endpoint spans multiple entity families
+  - `limit` (default 20-30)
+  - `cursor` for incremental paging when needed
+- Response model: compact records only (`id`, `name`, optional `type`, `subtitle`)
+
+### Data Integrity Contract
+
+- Link tables enforce uniqueness for the tuple representing the relation (e.g., `(step_id, character_id)` or equivalent composite key).
+- UI de-duplicates before submit, but DB constraint is the authoritative guard.
+- RLS and event membership rules apply to both candidate search and link mutation endpoints.
+
 ---
 
 ### Characters <> Narrative Integration
@@ -135,8 +163,19 @@ Query parameters are reserved for optional UI state only (search term, status fi
 - npm 11.x
 - Supabase CLI installed as a dev dependency at repo root (`npx supabase`).
 
-## Data Isolation
-Authorization is enforced in Supabase using Row Level Security (RLS). Event data access must always be scoped by event membership and role-based rules, with overrides granted only via `public.event_member_permissions`.
+## Data Isolation and Permissions
+Authorization is enforced in Supabase using Row Level Security (RLS) as the primary data guard.
+
+### Backend Authorization
+Event data access is scoped by event membership and role-based rules:
+- `IsOrgOrSystemAdmin`: Global system admins and OrgOwners bypass module-level checks.
+- Event Managers (`public.event_members` with `role = EventManager`): Have full access to manage event settings and defaults.
+- Granular Module Permissions (`public.event_member_permissions`): Ordinary users use module-specific capability checks (e.g. `HasEventManagementWriteAccessAsync` or `HasEventManagementReadAccessAsync`) which explicitly check for `write` or `read` explicit permission grants if the user is not a manager or admin.
+
+### Frontend Authorization
+- The frontend fetches the active user's unified module permission map in parallel using `fetchEventPermissions()` which hits `/api/user/me/permissions?eventId={id}`.
+- Page components use `resolveModuleAccess()` to determine unified `canWrite`, `canRead`, and `isOrgOrSysAdmin` capabilities.
+- UI views and forms gracefully adapt, show, or hide elements based strictly on `canWrite` and `canRead`, avoiding deep-component admin checks.
 
 ---
 

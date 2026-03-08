@@ -42,7 +42,7 @@ interface CharacterDetailProps {
     initialAbilities: CharacterAbilityDto[];
     initialAttachments: CharacterAttachmentDto[];
     initialNarrativeLinks: CharacterNarrativeLinksDto;
-    isOrgOrSysAdmin: boolean;
+    canWrite: boolean;
     token: string;
 }
 
@@ -52,7 +52,7 @@ export function CharacterDetail({
     initialAbilities,
     initialAttachments,
     initialNarrativeLinks,
-    isOrgOrSysAdmin,
+    canWrite,
     token
 }: CharacterDetailProps) {
     const t = useTranslations("characters");
@@ -153,7 +153,7 @@ export function CharacterDetail({
                         eventId={event.id}
                         character={character}
                         token={token}
-                        isOrgOrSysAdmin={isOrgOrSysAdmin}
+                        canWrite={canWrite}
                     />
                 </div>
 
@@ -183,7 +183,7 @@ export function CharacterDetail({
                         )}
                     </div>
 
-                    {isOrgOrSysAdmin && (
+                    {canWrite && (
                         <div className="mt-6 flex flex-wrap items-center gap-2">
                             <EditCharacterDialog eventId={event.id} token={token} character={character} />
                             <ChangeStatusDialog eventId={event.id} token={token} character={character} />
@@ -230,21 +230,21 @@ export function CharacterDetail({
                                     title={t("detail.biography.title")}
                                     initialHtml={character.biography || ""}
                                     placeholder={t("detail.biography.empty")}
-                                    isReadOnly={!isOrgOrSysAdmin || isLocked || isDeleted}
+                                    isReadOnly={!canWrite || isLocked || isDeleted}
                                     onSave={handleSaveBio}
                                 />
                             </div>
                         </div>
 
                         <div className="space-y-6">
-                            {(isOrgOrSysAdmin || character.notes) && (
+                            {(canWrite || character.notes) && (
                                 <div className="bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-900/50 p-6">
                                     <div className="flex items-center justify-between mb-2">
                                         <h3 className="text-lg font-semibold text-amber-900 dark:text-amber-500 flex items-center gap-2">
                                             Internal Notes
                                             {isLocked && <Lock className="h-4 w-4" />}
                                         </h3>
-                                        {isOrgOrSysAdmin && !isDeleted && !isEditingNotes && (
+                                        {canWrite && !isDeleted && !isEditingNotes && (
                                             <Button variant="ghost" size="sm" onClick={startEditingNotes} className="h-8 text-amber-700 hover:text-amber-900 hover:bg-amber-100 dark:text-amber-400 dark:hover:text-amber-200 dark:hover:bg-amber-900/40">
                                                 <Edit2 className="h-4 w-4 mr-1" />
                                                 {t("detail.notes.edit")}
@@ -298,7 +298,7 @@ export function CharacterDetail({
                         character={initialCharacter}
                         initialAttachments={initialAttachments}
                         token={token}
-                        isOrgOrSysAdmin={isOrgOrSysAdmin}
+                        canWrite={canWrite}
                     />
                 </TabsContent>
 

@@ -1,13 +1,14 @@
 namespace User.Models;
 
 public record UserProfileDto(
-    Guid Id, 
-    string Email, 
+    Guid Id,
+    string Email,
     string? DisplayName,
-    string? AvatarUrl, 
-    string? Bio, 
+    string? AvatarUrl,
+    string? Bio,
     string Locale,
-    bool IsSystemAdmin = false);
+    bool IsSystemAdmin = false,
+    string? OrgRole = null);
 
 /// <summary>Represents the user's single organization-level role and their effective module permissions.</summary>
 public record OrgMembershipDto(

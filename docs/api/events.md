@@ -1,6 +1,7 @@
 # Event Management API
 
 The Event Management API owns creation and administration of multiple events in a single-organization Sancho deployment.
+Canonical source: [authorization_guidelines.md](/D:/Sancho/docs/architecture/authorization_guidelines.md).
 
 All endpoints are mounted under `/api/events` and require a valid Supabase JWT in `Authorization: Bearer <token>`.
 
@@ -27,6 +28,7 @@ All endpoints are mounted under `/api/events` and require a valid Supabase JWT i
 3. `EventManager`
 - Treated as manager only for events where membership exists in `public.event_members`.
 - Cannot create/archive/delete events.
+- Has full write access for event-scoped entities connected to events they manage.
 - Can manage per-event module permissions for their event.
 - Can read event details, stats, and recent activity.
 
@@ -199,11 +201,13 @@ Body:
 ```
 
 Allowed: `SystemAdmin`, `OrgOwner`, `EventManager`(for same event and active event only)
+Note: `EventManager` cannot grant/revoke manager roles.
 
 ### 14. Revoke per-event module permission
 `DELETE /api/events/{eventId}/permissions/{userId}/{module}`
 
 Allowed: `SystemAdmin`, `OrgOwner`, `EventManager`(for same event and active event only)
+Note: `EventManager` cannot grant/revoke manager roles.
 
 ### 15. Event stats
 `GET /api/events/{eventId}/stats`

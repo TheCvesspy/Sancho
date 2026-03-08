@@ -55,11 +55,11 @@ const RelationshipGraph = dynamic(
 interface CharactersListProps {
     event: EventDetailDto;
     initialCharacters: CharacterListItemDto[];
-    isOrgOrSysAdmin: boolean;
+    canWrite: boolean;
     token: string;
 }
 
-export function CharactersList({ event, initialCharacters, isOrgOrSysAdmin, token }: CharactersListProps) {
+export function CharactersList({ event, initialCharacters, canWrite, token }: CharactersListProps) {
     const t = useTranslations("characters");
     const locale = useLocale();
     const router = useRouter();
@@ -114,7 +114,7 @@ export function CharactersList({ event, initialCharacters, isOrgOrSysAdmin, toke
                             Graph
                         </Button>
                     </div>
-                    {isOrgOrSysAdmin && (
+                    {canWrite && (
                         <CreateCharacterDialog eventId={event.id} token={token} />
                     )}
                 </div>
@@ -145,7 +145,7 @@ export function CharactersList({ event, initialCharacters, isOrgOrSysAdmin, toke
                             </SelectContent>
                         </Select>
 
-                        {isOrgOrSysAdmin && (
+                        {canWrite && (
                             <div className="flex items-center space-x-2 px-2">
                                 <Checkbox
                                     id="show-deleted"
@@ -228,7 +228,7 @@ export function CharactersList({ event, initialCharacters, isOrgOrSysAdmin, toke
                                                             <Eye className="mr-2 h-4 w-4" />
                                                             {t("list.actions.view")}
                                                         </DropdownMenuItem>
-                                                        {isOrgOrSysAdmin && (
+                                                        {canWrite && (
                                                             <>
                                                                 <DropdownMenuItem>
                                                                     <Copy className="mr-2 h-4 w-4" />

@@ -36,10 +36,10 @@ interface AbilitiesPanelProps {
     character: CharacterDetailDto;
     initialAbilities: CharacterAbilityDto[];
     token: string;
-    isOrgOrSysAdmin: boolean;
+    canWrite: boolean;
 }
 
-export function AbilitiesPanel({ eventId, character, initialAbilities, token, isOrgOrSysAdmin }: AbilitiesPanelProps) {
+export function AbilitiesPanel({ eventId, character, initialAbilities, token, canWrite }: AbilitiesPanelProps) {
     const t = useTranslations("characters");
     const router = useRouter();
     const isLocked = character.status === "Locked";

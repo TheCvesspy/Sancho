@@ -22,11 +22,11 @@ interface PlotLinksPanelProps {
     initialCharacterLinks: NarrativeEntityCharacterLinkDto[];
     initialFactionLinks: NarrativeEntityFactionLinkDto[];
     initialItemLinks: NarrativeEntityItemLinkDto[];
-    isOrgOrSysAdmin: boolean;
+    canWrite: boolean;
     token: string;
 }
 
-export function PlotLinksPanel({ eventId, plot, initialCharacterLinks, initialFactionLinks, initialItemLinks, isOrgOrSysAdmin, token }: PlotLinksPanelProps) {
+export function PlotLinksPanel({ eventId, plot, initialCharacterLinks, initialFactionLinks, initialItemLinks, canWrite, token }: PlotLinksPanelProps) {
     const t = useTranslations("narrative");
     const [charLinks, setCharLinks] = useState(initialCharacterLinks);
     const [factionLinks, setFactionLinks] = useState(initialFactionLinks);
@@ -67,10 +67,10 @@ export function PlotLinksPanel({ eventId, plot, initialCharacterLinks, initialFa
             {items.length === 0 ? <p className="text-sm text-muted-foreground">{t("common.noDescription")}</p> : (
                 <div className="divide-y rounded-md border">{items.map((l: any) => {
                     const id = l.characterId || l.factionId || l.itemId;
-                    return (<div key={id} className="flex items-center justify-between px-4 py-3"><span>{getName(all, id)}</span>{isOrgOrSysAdmin && <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => onRemove(id)}><Trash2 className="h-3.5 w-3.5" /></Button>}</div>);
+                    return (<div key={id} className="flex items-center justify-between px-4 py-3"><span>{getName(all, id)}</span>{canWrite && <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => onRemove(id)}><Trash2 className="h-3.5 w-3.5" /></Button>}</div>);
                 })}</div>
             )}
-            {isOrgOrSysAdmin && (
+            {canWrite && (
                 <div className="flex gap-2">
                     <select className="flex h-9 flex-1 rounded-md border border-input bg-background px-3 py-1 text-sm" value={sel} onChange={e => onSel(e.target.value)}>
                         <option value="">{t("common.select")}</option>

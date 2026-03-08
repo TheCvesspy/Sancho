@@ -3,6 +3,7 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import { eventsApi } from "@/utils/events-api";
 import { EventDetail } from "@/components/events/event-detail";
+import { fetchEventPermissions, resolveModuleAccess } from "@/utils/permissions";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5293";
 
@@ -24,18 +25,21 @@ export default async function EventDetailPage({
 
     const token = session.access_token;
 
-    // Get user profile for RBAC checks
-    const userResponse = await fetch(`${API_BASE_URL}/api/user/me`, {
-        headers: { "Authorization": `Bearer ${token}` },
-        next: { revalidate: 60 }
-    });
+    // Get user profile and event-scoped permissions in parallel
+    const [userResponse, permissions] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/user/me`, {
+            headers: { "Authorization": `Bearer ${token}` },
+            next: { revalidate: 60 }
+        }),
+        fetchEventPermissions(token, eventId),
+    ]);
 
     if (!userResponse.ok) {
         return <div className="p-10 text-destructive">Error loading user profile.</div>;
     }
 
     const profile = await userResponse.json();
-    const isOrgOrSysAdmin = profile.isSystemAdmin || profile.orgRole === "OrgOwner";
+    const { canWrite, isOrgOrSysAdmin } = resolveModuleAccess(profile, permissions, "event_management");
 
     try {
         // Fetch event, stats, and activity in parallel — they are independent.
@@ -51,6 +55,7 @@ export default async function EventDetailPage({
                     event={event}
                     stats={stats}
                     initialActivity={activity}
+                    canWrite={canWrite}
                     isOrgOrSysAdmin={isOrgOrSysAdmin}
                     token={token}
                 />

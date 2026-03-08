@@ -12,11 +12,11 @@ interface FactionMembersPanelProps {
     factionId: string;
     eventId: string;
     initialMembers: NarrativeFactionMemberDto[];
-    isOrgOrSysAdmin: boolean;
+    canWrite: boolean;
     token: string;
 }
 
-export function FactionMembersPanel({ factionId, eventId, initialMembers, isOrgOrSysAdmin, token }: FactionMembersPanelProps) {
+export function FactionMembersPanel({ factionId, eventId, initialMembers, canWrite, token }: FactionMembersPanelProps) {
     const t = useTranslations("narrative");
     const [members, setMembers] = useState<NarrativeFactionMemberDto[]>(initialMembers);
     const [characters, setCharacters] = useState<CharacterListItemDto[]>([]);
@@ -80,7 +80,7 @@ export function FactionMembersPanel({ factionId, eventId, initialMembers, isOrgO
         <div className="space-y-6">
             <h2 className="text-xl font-semibold tracking-tight">{t("factions.detail.tabs.members")}</h2>
 
-            {isOrgOrSysAdmin && (
+            {canWrite && (
                 <div className="flex items-end gap-4 p-4 rounded-lg border bg-card">
                     <div className="flex-1 space-y-1">
                         <label className="text-sm font-medium">{t("factions.members.character")}</label>
@@ -118,7 +118,7 @@ export function FactionMembersPanel({ factionId, eventId, initialMembers, isOrgO
                 <div className="grid grid-cols-[1fr_1fr_auto] gap-4 p-4 font-semibold border-b bg-muted/50">
                     <div>{t("factions.members.character")}</div>
                     <div>{t("factions.members.role")}</div>
-                    {isOrgOrSysAdmin && <div className="w-10"></div>}
+                    {canWrite && <div className="w-10"></div>}
                 </div>
                 {members.length === 0 ? (
                     <div className="p-8 text-center text-muted-foreground">{t("factions.members.empty")}</div>
@@ -130,7 +130,7 @@ export function FactionMembersPanel({ factionId, eventId, initialMembers, isOrgO
                                 <div key={member.characterId} className="grid grid-cols-[1fr_1fr_auto] gap-4 p-4 items-center">
                                     <div className="font-medium">{char?.name || member.characterId}</div>
                                     <div className="text-muted-foreground">{member.role || "-"}</div>
-                                    {isOrgOrSysAdmin && (
+                                    {canWrite && (
                                         <Button variant="ghost" size="icon" onClick={() => handleRemove(member.characterId)} className="text-destructive">
                                             <Trash2 className="h-4 w-4" />
                                         </Button>

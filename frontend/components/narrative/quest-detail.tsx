@@ -48,7 +48,7 @@ interface QuestDetailProps {
     initialCharacterLinks: NarrativeQuestCharacterLinkDto[];
     initialFactionLinks: NarrativeEntityFactionLinkDto[];
     initialItemLinks: NarrativeEntityItemLinkDto[];
-    isOrgOrSysAdmin: boolean;
+    canWrite: boolean;
     token: string;
 }
 
@@ -60,7 +60,7 @@ export function QuestDetail({
     initialCharacterLinks,
     initialFactionLinks,
     initialItemLinks,
-    isOrgOrSysAdmin,
+    canWrite,
     token
 }: QuestDetailProps) {
     const SHORT_DESCRIPTION_MAX_LENGTH = 250;
@@ -194,7 +194,7 @@ export function QuestDetail({
                                             <p className="text-sm text-muted-foreground">
                                                 {quest.shortDescription || t("common.shortSummaryPlaceholder")}
                                             </p>
-                                            {isOrgOrSysAdmin && !quest.deletedAt && quest.status !== "Locked" && (
+                                            {canWrite && !quest.deletedAt && quest.status !== "Locked" && (
                                                 <Button size="sm" variant="outline" onClick={() => setIsShortDescriptionEditing(true)}>
                                                     <Pencil className="mr-2 h-4 w-4" />
                                                     {t("common.edit")}
@@ -213,7 +213,7 @@ export function QuestDetail({
                         </div>
                     </div>
 
-                    {isOrgOrSysAdmin && (
+                    {canWrite && (
                         <div className="mt-6 flex flex-wrap items-center gap-2">
                             <EditQuestNameDialog eventId={event.id} token={token} quest={quest} />
                             <ChangeNarrativeStatusDialog
@@ -279,7 +279,7 @@ export function QuestDetail({
                         questId={quest.id}
                         eventId={event.id}
                         initialSteps={initialSteps}
-                        isOrgOrSysAdmin={isOrgOrSysAdmin}
+                        canWrite={canWrite}
                         token={token}
                     />
 
@@ -289,13 +289,13 @@ export function QuestDetail({
                             title={t("quests.fields.description.label")}
                             initialHtml={quest.description || ""}
                             placeholder={t("quests.fields.description.placeholder")}
-                            isReadOnly={!isOrgOrSysAdmin || !!quest.deletedAt}
+                            isReadOnly={!canWrite || !!quest.deletedAt}
                             onSave={(html) => handleSaveField("description", html)}
                         />
                     </div>
 
                     {/* Internal Notes (admin only) */}
-                    {isOrgOrSysAdmin && (
+                    {canWrite && (
                         <div className="rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 p-6">
                             <EditableRichText
                                 title={t("quests.fields.internalNotes.label")}
@@ -317,7 +317,7 @@ export function QuestDetail({
                         initialCharacterLinks={initialCharacterLinks}
                         initialFactionLinks={initialFactionLinks}
                         initialItemLinks={initialItemLinks}
-                        isOrgOrSysAdmin={isOrgOrSysAdmin}
+                        canWrite={canWrite}
                         token={token}
                     />
                 </TabsContent>
@@ -327,7 +327,7 @@ export function QuestDetail({
                         questId={quest.id}
                         eventId={event.id}
                         initialDocuments={initialDocuments}
-                        isOrgOrSysAdmin={isOrgOrSysAdmin}
+                        canWrite={canWrite}
                         token={token}
                     />
                 </TabsContent>

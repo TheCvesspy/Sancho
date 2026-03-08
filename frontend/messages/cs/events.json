@@ -147,6 +147,9 @@
             "write": "Zápis"
         },
         "addUser": "Přidat uživatele",
+        "removeUser": "Odebrat z události",
+        "removeConfirm": "Opravdu chcete odebrat oprávnění tohoto uživatele k události?",
+        "removeSuccess": "Uživatel byl z události odebrán.",
         "success": "Oprávnění byla aktualizována.",
         "error": "Nepodařilo se aktualizovat oprávnění."
     },

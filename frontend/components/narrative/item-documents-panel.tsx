@@ -8,11 +8,11 @@ interface ItemDocumentsPanelProps {
     eventId: string;
     itemId: string;
     initialDocuments: NarrativeDocumentLinkDto[];
-    isOrgOrSysAdmin: boolean;
+    canWrite: boolean;
     token: string;
 }
 
-export function ItemDocumentsPanel({ eventId, itemId, initialDocuments, isOrgOrSysAdmin, token }: ItemDocumentsPanelProps) {
+export function ItemDocumentsPanel({ eventId, itemId, initialDocuments, canWrite, token }: ItemDocumentsPanelProps) {
     const t = useTranslations("narrative");
 
     const tl: DocumentLinkTranslations = {
@@ -70,7 +70,7 @@ export function ItemDocumentsPanel({ eventId, itemId, initialDocuments, isOrgOrS
     return (
         <DocumentLinkPanel
             initialDocuments={initialDocuments as DocumentItem[]}
-            isReadOnly={!isOrgOrSysAdmin}
+            isReadOnly={!canWrite}
             onAdd={handleAdd}
             onDelete={handleDelete}
             translations={tl}

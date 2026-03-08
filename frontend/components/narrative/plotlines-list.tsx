@@ -40,11 +40,11 @@ import { CreatePlotlineDialog } from "./create-plotline-dialog";
 interface PlotlinesListProps {
     eventId: string;
     initialPlotlines: NarrativePlotlineDto[];
-    isOrgOrSysAdmin: boolean;
+    canWrite: boolean;
     token: string;
 }
 
-export function PlotlinesList({ eventId, initialPlotlines, isOrgOrSysAdmin, token }: PlotlinesListProps) {
+export function PlotlinesList({ eventId, initialPlotlines, canWrite, token }: PlotlinesListProps) {
     const t = useTranslations("narrative");
     const locale = useLocale();
     const router = useRouter();
@@ -105,7 +105,7 @@ export function PlotlinesList({ eventId, initialPlotlines, isOrgOrSysAdmin, toke
                     </SelectContent>
                 </Select>
 
-                {isOrgOrSysAdmin && (
+                {canWrite && (
                     <div className="flex items-center space-x-2 px-2">
                         <Checkbox
                             id="show-deleted-plotlines"
@@ -119,7 +119,7 @@ export function PlotlinesList({ eventId, initialPlotlines, isOrgOrSysAdmin, toke
                 )}
 
                 <div className="ml-auto">
-                    {isOrgOrSysAdmin && (
+                    {canWrite && (
                         <CreatePlotlineDialog eventId={eventId} token={token} onCreated={(p) => setPlotlines(prev => [p, ...prev])} />
                     )}
                 </div>
@@ -177,7 +177,7 @@ export function PlotlinesList({ eventId, initialPlotlines, isOrgOrSysAdmin, toke
                                                     <Eye className="mr-2 h-4 w-4" />
                                                     {t("common.view")}
                                                 </DropdownMenuItem>
-                                                {isOrgOrSysAdmin && (
+                                                {canWrite && (
                                                     <>
                                                         {!plotline.deletedAt ? (
                                                             <DropdownMenuItem onClick={() => handleDelete(plotline.id)} className="text-destructive focus:text-destructive">

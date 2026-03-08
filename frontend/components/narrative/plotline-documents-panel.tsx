@@ -8,11 +8,11 @@ interface PlotlineDocumentsPanelProps {
     eventId: string;
     plotlineId: string;
     initialDocuments: NarrativeDocumentLinkDto[];
-    isOrgOrSysAdmin: boolean;
+    canWrite: boolean;
     token: string;
 }
 
-export function PlotlineDocumentsPanel({ eventId, plotlineId, initialDocuments, isOrgOrSysAdmin, token }: PlotlineDocumentsPanelProps) {
+export function PlotlineDocumentsPanel({ eventId, plotlineId, initialDocuments, canWrite, token }: PlotlineDocumentsPanelProps) {
     const t = useTranslations("narrative");
 
     const tl: DocumentLinkTranslations = {
@@ -70,7 +70,7 @@ export function PlotlineDocumentsPanel({ eventId, plotlineId, initialDocuments, 
     return (
         <DocumentLinkPanel
             initialDocuments={initialDocuments as DocumentItem[]}
-            isReadOnly={!isOrgOrSysAdmin}
+            isReadOnly={!canWrite}
             onAdd={handleAdd}
             onDelete={handleDelete}
             translations={tl}

@@ -30,7 +30,7 @@ interface ItemDetailProps {
     initialItem: NarrativeItemDto;
     initialAssignments: NarrativeItemAssignmentDto[];
     initialDocuments: NarrativeDocumentLinkDto[];
-    isOrgOrSysAdmin: boolean;
+    canWrite: boolean;
     token: string;
 }
 
@@ -39,7 +39,7 @@ export function ItemDetail({
     initialItem,
     initialAssignments,
     initialDocuments,
-    isOrgOrSysAdmin,
+    canWrite,
     token
 }: ItemDetailProps) {
     const t = useTranslations("narrative");
@@ -84,7 +84,7 @@ export function ItemDetail({
                         )}
                     </div>
                 </div>
-                {isOrgOrSysAdmin && (
+                {canWrite && (
                     <div className="flex items-center gap-2">
                         <ChangeNarrativeItemStatusDialog
                             eventId={event.id}
@@ -118,12 +118,12 @@ export function ItemDetail({
                             title={t("items.fields.description.label")}
                             initialHtml={item.description || ""}
                             onSave={async (val) => await handleUpdate({ description: val })}
-                            isReadOnly={!isOrgOrSysAdmin}
+                            isReadOnly={!canWrite}
                             placeholder={t("items.fields.description.placeholder")}
                         />
                     </div>
 
-                    {isOrgOrSysAdmin && (
+                    {canWrite && (
                         <div className="rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 p-6">
                             <EditableRichText
                                 title={t("items.fields.internalNotes.label")}
@@ -131,7 +131,7 @@ export function ItemDetail({
                                 variant="amber"
                                 initialHtml={item.internalNotes || ""}
                                 onSave={async (val) => await handleUpdate({ internalNotes: val })}
-                                isReadOnly={!isOrgOrSysAdmin}
+                                isReadOnly={!canWrite}
                                 placeholder={t("items.fields.internalNotes.placeholder")}
                             />
                         </div>
@@ -143,7 +143,7 @@ export function ItemDetail({
                         eventId={event.id}
                         item={item}
                         initialAssignments={initialAssignments}
-                        isOrgOrSysAdmin={isOrgOrSysAdmin}
+                        canWrite={canWrite}
                         token={token}
                     />
                 </TabsContent>
@@ -153,7 +153,7 @@ export function ItemDetail({
                         eventId={event.id}
                         itemId={item.id}
                         initialDocuments={initialDocuments}
-                        isOrgOrSysAdmin={isOrgOrSysAdmin}
+                        canWrite={canWrite}
                         token={token}
                     />
                 </TabsContent>

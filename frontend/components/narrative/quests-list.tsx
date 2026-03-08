@@ -38,11 +38,11 @@ import { CreateQuestDialog } from "./create-quest-dialog";
 interface QuestsListProps {
     eventId: string;
     initialQuests: NarrativeQuestDto[];
-    isOrgOrSysAdmin: boolean;
+    canWrite: boolean;
     token: string;
 }
 
-export function QuestsList({ eventId, initialQuests, isOrgOrSysAdmin, token }: QuestsListProps) {
+export function QuestsList({ eventId, initialQuests, canWrite, token }: QuestsListProps) {
     const t = useTranslations("narrative");
     const locale = useLocale();
     const router = useRouter();
@@ -116,7 +116,7 @@ export function QuestsList({ eventId, initialQuests, isOrgOrSysAdmin, token }: Q
                     </SelectContent>
                 </Select>
 
-                {isOrgOrSysAdmin && (
+                {canWrite && (
                     <div className="flex items-center space-x-2 px-2">
                         <Checkbox
                             id="show-deleted-quests"
@@ -130,7 +130,7 @@ export function QuestsList({ eventId, initialQuests, isOrgOrSysAdmin, token }: Q
                 )}
 
                 <div className="ml-auto">
-                    {isOrgOrSysAdmin && (
+                    {canWrite && (
                         <CreateQuestDialog eventId={eventId} token={token} />
                     )}
                 </div>
@@ -177,7 +177,7 @@ export function QuestsList({ eventId, initialQuests, isOrgOrSysAdmin, token }: Q
                                                     <Eye className="mr-2 h-4 w-4" />
                                                     {t("common.edit")}
                                                 </DropdownMenuItem>
-                                                {isOrgOrSysAdmin && (
+                                                {canWrite && (
                                                     <>
                                                         {!quest.deletedAt ? (
                                                             <DropdownMenuItem onClick={(e) => handleDelete(e, quest.id)} className="text-destructive focus:text-destructive font-medium">

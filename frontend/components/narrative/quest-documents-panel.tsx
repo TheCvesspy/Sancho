@@ -8,11 +8,11 @@ interface QuestDocumentsPanelProps {
     eventId: string;
     questId: string;
     initialDocuments: NarrativeDocumentLinkDto[];
-    isOrgOrSysAdmin: boolean;
+    canWrite: boolean;
     token: string;
 }
 
-export function QuestDocumentsPanel({ eventId, questId, initialDocuments, isOrgOrSysAdmin, token }: QuestDocumentsPanelProps) {
+export function QuestDocumentsPanel({ eventId, questId, initialDocuments, canWrite, token }: QuestDocumentsPanelProps) {
     const t = useTranslations("narrative");
 
     const tl: DocumentLinkTranslations = {
@@ -70,7 +70,7 @@ export function QuestDocumentsPanel({ eventId, questId, initialDocuments, isOrgO
     return (
         <DocumentLinkPanel
             initialDocuments={initialDocuments as DocumentItem[]}
-            isReadOnly={!isOrgOrSysAdmin}
+            isReadOnly={!canWrite}
             onAdd={handleAdd}
             onDelete={handleDelete}
             translations={tl}

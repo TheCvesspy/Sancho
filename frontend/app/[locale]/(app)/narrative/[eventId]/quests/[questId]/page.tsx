@@ -5,6 +5,7 @@ import { narrativeApi } from "@/utils/narrative-api";
 import { eventsApi } from "@/utils/events-api";
 import { QuestDetail } from "@/components/narrative/quest-detail";
 import { Skeleton } from "@/components/ui/skeleton";
+import { fetchEventPermissions, resolveModuleAccess } from "@/utils/permissions";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5293";
 
@@ -26,18 +27,21 @@ export default async function QuestDetailPage({
 
     const token = session.access_token;
 
-    // Get user profile for RBAC checks
-    const userResponse = await fetch(`${API_BASE_URL}/api/user/me`, {
-        headers: { "Authorization": `Bearer ${token}` },
-        next: { revalidate: 60 }
-    });
+    // Get user profile and event-scoped permissions in parallel
+    const [userResponse, permissions] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/user/me`, {
+            headers: { "Authorization": `Bearer ${token}` },
+            next: { revalidate: 60 }
+        }),
+        fetchEventPermissions(token, eventId),
+    ]);
 
     if (!userResponse.ok) {
         return <div className="p-10 text-destructive">Error loading user profile.</div>;
     }
 
     const profile = await userResponse.json();
-    const isOrgOrSysAdmin = profile.isSystemAdmin || profile.orgRole === "OrgOwner";
+    const { canWrite, isOrgOrSysAdmin } = resolveModuleAccess(profile, permissions, "narrative");
 
     try {
         const [event, quest, steps, documents, charLinks, factionLinks, itemLinks] = await Promise.all([
@@ -60,7 +64,7 @@ export default async function QuestDetailPage({
                     initialCharacterLinks={charLinks}
                     initialFactionLinks={factionLinks}
                     initialItemLinks={itemLinks}
-                    isOrgOrSysAdmin={isOrgOrSysAdmin}
+                    canWrite={canWrite}
                     token={token}
                 />
             </div>

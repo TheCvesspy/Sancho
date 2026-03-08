@@ -157,3 +157,65 @@ Use for fields like Internal Notes that are restricted to organizers/admins.
 - Avoid one-off styling; prefer shared tokens and variants.
 - Keep components small and composable to align with modular monolith boundaries.
 
+## 14. Searchable Link Picker Pattern (Large Option Sets)
+
+Use this pattern for "link entity" fields when the option set is large (typically >50, and mandatory above ~100).
+Detailed reusable spec: `docs/architecture/searchable_link_picker.md`.
+
+### 14.1 When to use
+
+- Quest step involved characters/NPCs
+- Faction member assignment
+- Item holder assignment
+- Any event-scoped relation where options can grow through the event lifecycle
+
+If the list is small and stable (<50), `Select` is acceptable. Otherwise use this pattern.
+
+### 14.2 Required interaction model
+
+1. Trigger button opens a popover-based picker.
+2. Search input is focused immediately.
+3. Input is debounced (250-400 ms; use 300 ms default).
+4. Results exclude already linked entities.
+5. Selecting an item links it immediately.
+6. Picker stays open after selection for rapid multi-add.
+7. Linked entities are rendered as removable chips/badges.
+8. Cancel closes picker and clears transient search state.
+
+### 14.3 Required states
+
+- `loading`: shown while search/filter is in-flight
+- `empty`: clear no-results message
+- `saving`: disable selection while link request is pending
+- `error`: toast message from normalized error handler
+
+### 14.4 Component recipe (shadcn/ui)
+
+- Use `Popover`, `PopoverTrigger`, `PopoverContent`
+- Use `Command`, `CommandInput`, `CommandList`, `CommandItem`
+- Use `Badge` chips for linked entities and inline remove action
+- Keep copy in translation keys (`common.search`, `common.loading`, `common.noResults`, module-specific labels)
+
+### 14.5 Data rules
+
+- De-dup in UI before submit (exclude linked IDs from candidates).
+- Backend must still enforce uniqueness (entity link unique key).
+- Exclude soft-deleted entities from picker results.
+- Prefer lightweight candidate payloads (`id`, `name`, optional type/subtitle).
+
+### 14.6 Reproduction checklist
+
+- Add local state:
+  - `pickerOpen`
+  - `search`, `debouncedSearch`
+  - `isFiltering`, `isSaving`
+- Add a debounce `useEffect` (300 ms default).
+- Filter candidate list by `debouncedSearch`.
+- Replace old `Select` block with `Popover + Command` block.
+- On `CommandItem` select:
+  - call upsert API
+  - update linked state
+  - clear search
+  - keep picker open
+- Add/confirm i18n keys for all new labels and states.
+- Verify keyboard flow (type, arrows, Enter, Esc) works.

@@ -17,11 +17,11 @@ interface PlotPlotlinesPanelProps {
     eventId: string;
     plot: NarrativePlotDto;
     initialPlotlineLinks: NarrativePlotPlotlineLinkDto[];
-    isOrgOrSysAdmin: boolean;
+    canWrite: boolean;
     token: string;
 }
 
-export function PlotPlotlinesPanel({ eventId, plot, initialPlotlineLinks, isOrgOrSysAdmin, token }: PlotPlotlinesPanelProps) {
+export function PlotPlotlinesPanel({ eventId, plot, initialPlotlineLinks, canWrite, token }: PlotPlotlinesPanelProps) {
     const t = useTranslations("narrative");
     const [links, setLinks] = useState<NarrativePlotPlotlineLinkDto[]>(initialPlotlineLinks);
     const [allPlotlines, setAllPlotlines] = useState<NarrativePlotlineDto[]>([]);
@@ -77,7 +77,7 @@ export function PlotPlotlinesPanel({ eventId, plot, initialPlotlineLinks, isOrgO
                                     <NarrativeStatusBadge status={getPlotlineStatus(link.plotlineId)!} />
                                 )}
                             </div>
-                            {isOrgOrSysAdmin && (
+                            {canWrite && (
                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleRemove(link.plotlineId)}>
                                     <Trash2 className="h-3.5 w-3.5" />
                                 </Button>
@@ -87,7 +87,7 @@ export function PlotPlotlinesPanel({ eventId, plot, initialPlotlineLinks, isOrgO
                 </div>
             )}
 
-            {isOrgOrSysAdmin && (
+            {canWrite && (
                 <div className="flex gap-2">
                     <select
                         className="flex h-9 flex-1 rounded-md border border-input bg-background px-3 py-1 text-sm"

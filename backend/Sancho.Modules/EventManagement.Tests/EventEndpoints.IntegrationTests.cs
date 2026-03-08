@@ -95,6 +95,22 @@ public class EventEndpointsIntegrationTests
             p => p.EventId == eventId && p.UserId == targetUser && p.Module == "characters" && p.Permission == "write");
     }
 
+    [Fact]
+    public async Task User_With_EventPermission_Can_Get_Event_Detail()
+    {
+        var eventId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        var fake = new FakeSupabaseHandler();
+        fake.SeedEvent(eventId, status: "active");
+        fake.SeedPermission(eventId, userId, "characters", "read");
+
+        using var client = CreateClient(fake);
+        AddAuthHeaders(client, userId);
+
+        var response = await client.GetAsync($"/api/events/{eventId}");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
     private static HttpClient CreateClient(FakeSupabaseHandler fakeSupabase)
     {
         var builder = new WebHostBuilder()
@@ -217,6 +233,8 @@ internal sealed class FakeSupabaseHandler : HttpMessageHandler
     }
 
     public void SeedManager(Guid eventId, Guid userId) => Managers.Add((eventId, userId));
+    public void SeedPermission(Guid eventId, Guid userId, string module, string permission)
+        => EventPermissions.Add(new EventPermissionState(eventId, userId, module, permission, null, DateTimeOffset.UtcNow));
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
@@ -267,6 +285,19 @@ internal sealed class FakeSupabaseHandler : HttpMessageHandler
 
         if (path.EndsWith("/rest/v1/event_member_permissions", StringComparison.OrdinalIgnoreCase))
         {
+            if (request.Method == HttpMethod.Get)
+            {
+                var eventId = TryReadGuidFilter(query, "event_id");
+                var userId = TryReadGuidFilter(query, "user_id");
+                var excludeNone = query.Contains("permission=neq.none", StringComparison.OrdinalIgnoreCase);
+                var rows = EventPermissions
+                    .Where(x => (!eventId.HasValue || x.EventId == eventId) && (!userId.HasValue || x.UserId == userId))
+                    .Where(x => !excludeNone || !string.Equals(x.Permission, "none", StringComparison.OrdinalIgnoreCase))
+                    .Select(x => new { event_id = x.EventId, user_id = x.UserId, module = x.Module, permission = x.Permission, granted_by = x.GrantedBy, granted_at = x.GrantedAt })
+                    .ToList();
+                return JsonOk(rows);
+            }
+
             if (request.Method == HttpMethod.Post)
             {
                 using var doc = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));

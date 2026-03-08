@@ -33,11 +33,11 @@ import { CreateItemDialog } from "./create-item-dialog";
 interface ItemsListProps {
     eventId: string;
     initialItems: NarrativeItemDto[];
-    isOrgOrSysAdmin: boolean;
+    canWrite: boolean;
     token: string;
 }
 
-export function ItemsList({ eventId, initialItems, isOrgOrSysAdmin, token }: ItemsListProps) {
+export function ItemsList({ eventId, initialItems, canWrite, token }: ItemsListProps) {
     const t = useTranslations("narrative");
     const locale = useLocale();
     const router = useRouter();
@@ -98,7 +98,7 @@ export function ItemsList({ eventId, initialItems, isOrgOrSysAdmin, token }: Ite
                     </SelectContent>
                 </Select>
 
-                {isOrgOrSysAdmin && (
+                {canWrite && (
                     <div className="flex items-center space-x-2 px-2">
                         <Checkbox
                             id="show-deleted-items"
@@ -112,7 +112,7 @@ export function ItemsList({ eventId, initialItems, isOrgOrSysAdmin, token }: Ite
                 )}
 
                 <div className="ml-auto">
-                    {isOrgOrSysAdmin && (
+                    {canWrite && (
                         <CreateItemDialog eventId={eventId} token={token} onCreated={(i) => setItems(prev => [i, ...prev])} />
                     )}
                 </div>
@@ -181,7 +181,7 @@ export function ItemsList({ eventId, initialItems, isOrgOrSysAdmin, token }: Ite
                                                     <Eye className="mr-2 h-4 w-4" />
                                                     {t("common.view")}
                                                 </DropdownMenuItem>
-                                                {isOrgOrSysAdmin && (
+                                                {canWrite && (
                                                     <>
                                                         {!item.deletedAt ? (
                                                             <DropdownMenuItem onClick={() => handleDelete(item.id)} className="text-destructive focus:text-destructive">

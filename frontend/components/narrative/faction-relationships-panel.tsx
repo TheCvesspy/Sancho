@@ -12,11 +12,11 @@ interface FactionRelationshipsPanelProps {
     factionId: string;
     eventId: string;
     initialRelationships: NarrativeFactionRelationshipDto[];
-    isOrgOrSysAdmin: boolean;
+    canWrite: boolean;
     token: string;
 }
 
-export function FactionRelationshipsPanel({ factionId, eventId, initialRelationships, isOrgOrSysAdmin, token }: FactionRelationshipsPanelProps) {
+export function FactionRelationshipsPanel({ factionId, eventId, initialRelationships, canWrite, token }: FactionRelationshipsPanelProps) {
     const t = useTranslations("narrative");
     const [relationships, setRelationships] = useState<NarrativeFactionRelationshipDto[]>(initialRelationships);
 
@@ -96,7 +96,7 @@ export function FactionRelationshipsPanel({ factionId, eventId, initialRelations
         <div className="space-y-6">
             <h2 className="text-xl font-semibold tracking-tight">{t("factions.detail.tabs.relationships")}</h2>
 
-            {isOrgOrSysAdmin && (
+            {canWrite && (
                 <div className="flex flex-col sm:flex-row items-end gap-4 p-4 rounded-lg border bg-card flex-wrap">
                     <div className="space-y-1 w-full sm:w-auto">
                         <label className="text-sm font-medium">{t("factions.relationships.targetType")}</label>
@@ -173,7 +173,7 @@ export function FactionRelationshipsPanel({ factionId, eventId, initialRelations
                     <div>{t("factions.relationships.target")}</div>
                     <div>{t("factions.relationships.fields.type")}</div>
                     <div>{t("factions.relationships.fields.mode")}</div>
-                    {isOrgOrSysAdmin && <div className="w-10"></div>}
+                    {canWrite && <div className="w-10"></div>}
                 </div>
                 {relationships.length === 0 ? (
                     <div className="p-8 text-center text-muted-foreground">{t("factions.relationships.noRelationships")}</div>
@@ -192,7 +192,7 @@ export function FactionRelationshipsPanel({ factionId, eventId, initialRelations
                                 <div className="text-muted-foreground text-sm">
                                     {rel.relationMode === "directional" ? t("factions.relationships.directionalShort") : t("factions.relationships.mirroredShort")}
                                 </div>
-                                {isOrgOrSysAdmin && (
+                                {canWrite && (
                                     <Button variant="ghost" size="icon" onClick={() => handleRemove(rel.id)} className="text-destructive">
                                         <Trash2 className="h-4 w-4" />
                                     </Button>

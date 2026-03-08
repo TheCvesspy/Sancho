@@ -57,7 +57,7 @@ interface AttachmentsPanelProps {
     character: CharacterDetailDto;
     initialAttachments: CharacterAttachmentDto[];
     token: string;
-    isOrgOrSysAdmin: boolean;
+    canWrite: boolean;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

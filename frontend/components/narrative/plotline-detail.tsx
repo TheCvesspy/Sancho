@@ -26,7 +26,7 @@ interface PlotlineDetailProps {
     initialCharacterLinks: NarrativeEntityCharacterLinkDto[];
     initialFactionLinks: NarrativeEntityFactionLinkDto[];
     initialItemLinks: NarrativeEntityItemLinkDto[];
-    isOrgOrSysAdmin: boolean;
+    canWrite: boolean;
     token: string;
 }
 
@@ -39,7 +39,7 @@ export function PlotlineDetail({
     initialCharacterLinks,
     initialFactionLinks,
     initialItemLinks,
-    isOrgOrSysAdmin,
+    canWrite,
     token
 }: PlotlineDetailProps) {
     const t = useTranslations("narrative");
@@ -76,7 +76,7 @@ export function PlotlineDetail({
                         <NarrativeStatusBadge status={plotline.status} />
                     </div>
                 </div>
-                {isOrgOrSysAdmin && (
+                {canWrite && (
                     <div className="flex items-center gap-2">
                         <ChangeNarrativeStatusDialog
                             eventId={event.id}
@@ -108,7 +108,7 @@ export function PlotlineDetail({
                         plotline={plotline}
                         initialPhases={initialPhases}
                         initialQuestLinks={initialQuestLinks}
-                        isOrgOrSysAdmin={isOrgOrSysAdmin}
+                        canWrite={canWrite}
                         token={token}
                     />
 
@@ -118,12 +118,12 @@ export function PlotlineDetail({
                                 title={t("plotlines.fields.description.label")}
                                 initialHtml={plotline.description || ""}
                                 onSave={async (val) => await handleUpdate({ description: val })}
-                                isReadOnly={!isOrgOrSysAdmin}
+                                isReadOnly={!canWrite}
                                 placeholder={t("plotlines.fields.description.placeholder")}
                             />
                         </div>
 
-                        {isOrgOrSysAdmin && (
+                        {canWrite && (
                             <div className="lg:col-span-1 rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 p-6">
                                 <EditableRichText
                                     title={t("plotlines.fields.internalNotes.label")}
@@ -131,7 +131,7 @@ export function PlotlineDetail({
                                     variant="amber"
                                     initialHtml={plotline.internalNotes || ""}
                                     onSave={async (val) => await handleUpdate({ internalNotes: val })}
-                                    isReadOnly={!isOrgOrSysAdmin}
+                                    isReadOnly={!canWrite}
                                     placeholder={t("plotlines.fields.internalNotes.placeholder")}
                                 />
                             </div>
@@ -146,7 +146,7 @@ export function PlotlineDetail({
                         initialCharacterLinks={initialCharacterLinks}
                         initialFactionLinks={initialFactionLinks}
                         initialItemLinks={initialItemLinks}
-                        isOrgOrSysAdmin={isOrgOrSysAdmin}
+                        canWrite={canWrite}
                         token={token}
                     />
                 </TabsContent>
@@ -156,7 +156,7 @@ export function PlotlineDetail({
                         eventId={event.id}
                         plotlineId={plotline.id}
                         initialDocuments={initialDocuments}
-                        isOrgOrSysAdmin={isOrgOrSysAdmin}
+                        canWrite={canWrite}
                         token={token}
                     />
                 </TabsContent>

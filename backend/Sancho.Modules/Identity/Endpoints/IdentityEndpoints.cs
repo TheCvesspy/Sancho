@@ -22,11 +22,11 @@ public static class IdentityEndpoints
 
         group.MapGet("/users", GetUsers)
             .WithName("GetIdentityUsers")
-            .RequireAuthorization(AppRoles.SystemAdmin);
+            .RequireAuthorization();
 
         group.MapGet("/users/{userId:guid}", GetUserDetail)
             .WithName("GetIdentityUserDetail")
-            .RequireAuthorization(AppRoles.SystemAdmin);
+            .RequireAuthorization();
 
         group.MapPost("/users/{userId:guid}/org-role", AssignOrgRole)
             .WithName("AssignOrgRole")
@@ -60,6 +60,8 @@ public static class IdentityEndpoints
 
     private static async Task<IResult> GetUsers(ClaimsPrincipal user, IConfiguration config, HttpClient httpClient, ILoggerFactory loggerFactory)
     {
+        if (!IsOrgOrSystemAdmin(user)) return Results.Forbid();
+
         var logger = loggerFactory.CreateLogger("IdentityEndpoints");
         var supabaseUrl = config["Supabase:Url"];
         var supabaseKey = config["Supabase:ServiceRoleKey"];
@@ -158,6 +160,8 @@ public static class IdentityEndpoints
 
     private static async Task<IResult> GetUserDetail(Guid userId, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient, ILoggerFactory loggerFactory)
     {
+        if (!IsOrgOrSystemAdmin(user)) return Results.Forbid();
+
         var logger = loggerFactory.CreateLogger("IdentityEndpoints");
         var supabaseUrl = config["Supabase:Url"];
         var supabaseKey = config["Supabase:ServiceRoleKey"];
@@ -441,4 +445,13 @@ public static class IdentityEndpoints
 
         return Results.NoContent();
     }
+
+    private static bool IsSystemAdmin(ClaimsPrincipal user) =>
+        user.HasClaim("sancho:system_admin", "true");
+
+    private static bool IsOrgOwner(ClaimsPrincipal user) =>
+        string.Equals(user.FindFirst("sancho:org_role")?.Value, AppRoles.OrgOwner, StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsOrgOrSystemAdmin(ClaimsPrincipal user) =>
+        IsSystemAdmin(user) || IsOrgOwner(user);
 }

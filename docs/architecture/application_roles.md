@@ -1,6 +1,7 @@
 # Sancho Application Roles & Permissions
 
 Sancho uses a **Hierarchical Role-Based Access Control (RBAC)** system combined with **Resource-Scoped Granular Permissions**. Access is resolved across three tiers: Platform, Organization, and Event.
+Canonical source: [authorization_guidelines.md](/D:/Sancho/docs/architecture/authorization_guidelines.md).
 
 ## Scope Hierarchy
 
@@ -22,6 +23,7 @@ Sancho uses a **Hierarchical Role-Based Access Control (RBAC)** system combined 
 | **`EventManager`** | Event | Total control over a specific event. Appointed by OrgOwner or SystemAdmin. |
 
 *Roles like `NarrativeTeam` or `Player` do not exist as strict DB enums. Their access patterns are achieved via granular module grants.*
+Only `SystemAdmin` can grant or revoke `OrgOwner`.
 
 ---
 

@@ -30,7 +30,7 @@ interface FactionDetailProps {
     initialMembers: NarrativeFactionMemberDto[];
     initialRelationships: NarrativeFactionRelationshipDto[];
     initialDocuments: NarrativeDocumentLinkDto[];
-    isOrgOrSysAdmin: boolean;
+    canWrite: boolean;
     token: string;
 }
 
@@ -40,7 +40,7 @@ export function FactionDetail({
     initialMembers,
     initialRelationships,
     initialDocuments,
-    isOrgOrSysAdmin,
+    canWrite,
     token
 }: FactionDetailProps) {
     const t = useTranslations("narrative");
@@ -122,8 +122,8 @@ export function FactionDetail({
                                 <div className="h-12 w-12 rounded bg-muted flex items-center justify-center text-xs text-muted-foreground border border-dashed">{t("factions.sigil.noSigil")}</div>
                             )}
                             <h1
-                                className={`text-3xl font-bold tracking-tight truncate ${isOrgOrSysAdmin ? "cursor-pointer hover:underline decoration-muted-foreground underline-offset-4" : ""}`}
-                                onClick={() => isOrgOrSysAdmin && setIsEditingTitle(true)}
+                                className={`text-3xl font-bold tracking-tight truncate ${canWrite ? "cursor-pointer hover:underline decoration-muted-foreground underline-offset-4" : ""}`}
+                                onClick={() => canWrite && setIsEditingTitle(true)}
                             >
                                 {faction.name}
                             </h1>
@@ -132,7 +132,7 @@ export function FactionDetail({
                 </div>
 
                 <div className="flex items-center gap-3">
-                    {isOrgOrSysAdmin ? (
+                    {canWrite ? (
                         <ChangeNarrativeStatusDialog
                             eventId={event.id}
                             entityId={faction.id}
@@ -183,7 +183,7 @@ export function FactionDetail({
                                     title={t("factions.fields.description.label")}
                                     initialHtml={faction.description || ""}
                                     placeholder={t("factions.fields.description.placeholder")}
-                                    isReadOnly={!isOrgOrSysAdmin}
+                                    isReadOnly={!canWrite}
                                     onSave={(html) => handleSaveField("description", html)}
                                 />
                             </div>
@@ -193,14 +193,14 @@ export function FactionDetail({
                                     title={t("factions.fields.goals.label")}
                                     initialHtml={faction.goals || ""}
                                     placeholder={t("factions.fields.goals.placeholder")}
-                                    isReadOnly={!isOrgOrSysAdmin}
+                                    isReadOnly={!canWrite}
                                     onSave={(html) => handleSaveField("goals", html)}
                                 />
                             </div>
                         </div>
 
                         <div className="space-y-6">
-                            {isOrgOrSysAdmin && (
+                            {canWrite && (
                                 <div className="rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 p-6">
                                     <EditableRichText
                                         title={t("factions.fields.internalNotes.label")}
@@ -208,7 +208,7 @@ export function FactionDetail({
                                         variant="amber"
                                         initialHtml={faction.internalNotes || ""}
                                         placeholder={t("factions.fields.internalNotes.placeholder")}
-                                        isReadOnly={!isOrgOrSysAdmin}
+                                        isReadOnly={!canWrite}
                                         onSave={(html) => handleSaveField("internalNotes", html)}
                                     />
                                 </div>
@@ -222,7 +222,7 @@ export function FactionDetail({
                         eventId={event.id}
                         factionId={faction.id}
                         initialMembers={initialMembers}
-                        isOrgOrSysAdmin={isOrgOrSysAdmin}
+                        canWrite={canWrite}
                         token={token}
                     />
                 </TabsContent>
@@ -232,7 +232,7 @@ export function FactionDetail({
                         eventId={event.id}
                         factionId={faction.id}
                         initialRelationships={initialRelationships}
-                        isOrgOrSysAdmin={isOrgOrSysAdmin}
+                        canWrite={canWrite}
                         token={token}
                     />
                 </TabsContent>
@@ -241,7 +241,7 @@ export function FactionDetail({
                     <FactionLinksPanel
                         eventId={event.id}
                         factionId={faction.id}
-                        isOrgOrSysAdmin={isOrgOrSysAdmin}
+                        canWrite={canWrite}
                         token={token}
                     />
                 </TabsContent>
@@ -251,7 +251,7 @@ export function FactionDetail({
                         eventId={event.id}
                         factionId={faction.id}
                         initialDocuments={initialDocuments}
-                        isOrgOrSysAdmin={isOrgOrSysAdmin}
+                        canWrite={canWrite}
                         token={token}
                     />
                 </TabsContent>

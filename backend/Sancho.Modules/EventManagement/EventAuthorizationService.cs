@@ -46,12 +46,94 @@ public class EventAuthorizationService
             return true;
         }
 
-        if (!Guid.TryParse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
+        var userId = TryGetUserId(user);
+        if (!userId.HasValue)
         {
             return false;
         }
 
-        return await IsEventManagerAsync(eventId, userId, supabaseUrl, supabaseKey);
+        return await IsEventManagerAsync(eventId, userId.Value, supabaseUrl, supabaseKey);
+    }
+
+    public async Task<bool> CanAccessEventAsync(
+        ClaimsPrincipal user,
+        Guid eventId,
+        string supabaseUrl,
+        string supabaseKey)
+    {
+        if (await CanManageEventAsync(user, eventId, supabaseUrl, supabaseKey))
+        {
+            return true;
+        }
+
+        var userId = TryGetUserId(user);
+        if (!userId.HasValue)
+        {
+            return false;
+        }
+
+        return await HasAnyEventPermissionAsync(eventId, userId.Value, supabaseUrl, supabaseKey);
+    }
+
+    private async Task<bool> HasAnyEventPermissionAsync(Guid eventId, Guid userId, string supabaseUrl, string supabaseKey)
+    {
+        var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"{supabaseUrl}/rest/v1/event_member_permissions?event_id=eq.{eventId}&user_id=eq.{userId}&permission=neq.none&select=module&limit=1");
+        AddSupabaseHeaders(request, supabaseKey);
+        var response = await _httpClient.SendAsync(request);
+        if (!response.IsSuccessStatusCode) return false;
+        var rows = await response.Content.ReadFromJsonAsync<List<object>>();
+        return rows?.Count > 0;
+    }
+
+    public async Task<bool> HasEventManagementWriteAccessAsync(ClaimsPrincipal user, Guid eventId, string url, string key)
+    {
+        if (await CanManageEventAsync(user, eventId, url, key))
+            return true;
+
+        var userId = TryGetUserId(user);
+        if (!userId.HasValue) return false;
+
+        var perm = await GetExplicitEventManagementPermissionAsync(eventId, userId.Value, url, key);
+        return perm == "write";
+    }
+
+    public async Task<bool> HasEventManagementReadAccessAsync(ClaimsPrincipal user, Guid eventId, string url, string key)
+    {
+        if (await CanManageEventAsync(user, eventId, url, key))
+            return true;
+
+        var userId = TryGetUserId(user);
+        if (!userId.HasValue) return false;
+
+        var perm = await GetExplicitEventManagementPermissionAsync(eventId, userId.Value, url, key);
+        return perm == "write" || perm == "read";
+    }
+
+    private async Task<string?> GetExplicitEventManagementPermissionAsync(Guid eventId, Guid userId, string supabaseUrl, string supabaseKey)
+    {
+        var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"{supabaseUrl}/rest/v1/event_member_permissions?event_id=eq.{eventId}&user_id=eq.{userId}&module=eq.event_management&select=permission&limit=1");
+        AddSupabaseHeaders(request, supabaseKey);
+        var response = await _httpClient.SendAsync(request);
+        if (!response.IsSuccessStatusCode) return null;
+        
+        var rows = await response.Content.ReadFromJsonAsync<List<PermissionRow>>();
+        return rows?.FirstOrDefault()?.permission;
+    }
+
+    private class PermissionRow
+    {
+        public string permission { get; set; } = string.Empty;
+    }
+
+    private static Guid? TryGetUserId(ClaimsPrincipal user)
+    {
+        var value = user.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? user.FindFirst("sub")?.Value;
+        return Guid.TryParse(value, out var id) ? id : null;
     }
 
     private static void AddSupabaseHeaders(HttpRequestMessage request, string key)

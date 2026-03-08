@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { charactersApi } from "@/utils/characters-api";
 import { eventsApi } from "@/utils/events-api";
 import { CharactersList } from "@/components/characters/characters-list";
+import { fetchEventPermissions, resolveModuleAccess } from "@/utils/permissions";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5293";
 
@@ -28,18 +29,21 @@ export default async function EventCharactersPage({
 
     const token = session.access_token;
 
-    // Get user profile for RBAC checks
-    const userResponse = await fetch(`${API_BASE_URL}/api/user/me`, {
-        headers: { "Authorization": `Bearer ${token}` },
-        next: { revalidate: 60 }
-    });
+    // Get user profile and event-scoped permissions in parallel
+    const [userResponse, permissions] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/user/me`, {
+            headers: { "Authorization": `Bearer ${token}` },
+            next: { revalidate: 60 }
+        }),
+        fetchEventPermissions(token, eventId),
+    ]);
 
     if (!userResponse.ok) {
         return <div className="p-10 text-destructive">Error loading user profile.</div>;
     }
 
     const profile = await userResponse.json();
-    const isOrgOrSysAdmin = profile.isSystemAdmin || profile.orgRole === "OrgOwner";
+    const { canWrite, isOrgOrSysAdmin } = resolveModuleAccess(profile, permissions, "characters");
 
     const includeDeleted = sp.showDeleted === "true" && isOrgOrSysAdmin;
 
@@ -55,7 +59,7 @@ export default async function EventCharactersPage({
                 <CharactersList
                     event={event}
                     initialCharacters={characters}
-                    isOrgOrSysAdmin={isOrgOrSysAdmin}
+                    canWrite={canWrite}
                     token={token}
                 />
             </div>

@@ -88,6 +88,7 @@ public static class UserEndpoints
         var avatarUrl = await ResolveAvatarUrlAsync(supabaseUrl!, supabaseKey!, profile.avatar_url, httpClient);
 
         var isSystemAdmin = user.HasClaim("sancho:system_admin", "true");
+        var orgRole = user.FindFirst("sancho:org_role")?.Value;
 
         return Results.Ok(new UserProfileDto(
             profile.id,
@@ -96,7 +97,8 @@ public static class UserEndpoints
             avatarUrl,
             profile.bio,
             profile.locale,
-            isSystemAdmin));
+            isSystemAdmin,
+            orgRole));
     }
 
     private static async Task<IResult> UpdateProfile(ClaimsPrincipal user, UpdateProfileRequest request, IConfiguration config, HttpClient httpClient)

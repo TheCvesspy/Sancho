@@ -64,6 +64,20 @@ These rules are mandatory for every new module and endpoint. Violations are bugs
 - Keep server/client component boundaries explicit and minimal.
 - Use `shadcn/ui` components from `frontend/components/ui/` and keep styling token-driven in `frontend/app/globals.css`.
 
+### Large Option Set Picker Pattern (Frontend)
+
+Use this pattern when linking entities (characters, NPCs, items, users, etc.) where a field can exceed ~50 options per event or is expected to grow beyond 100.
+
+- Do not use a plain `Select` for these fields.
+- Use `Popover + Command` (`CommandInput`, `CommandList`, `CommandItem`) as the default picker.
+- Support type-to-search with debounce (250-400 ms; default 300 ms).
+- Use server-side filtering when available; otherwise apply debounced client-side filtering on already loaded data.
+- Keep picker open after successful selection so organizers can add multiple links quickly.
+- Show selected links as removable chips/badges in the parent section.
+- Show explicit states: loading, no results, disabled while saving.
+- Prevent duplicate links in UI by excluding already linked IDs from available options.
+- Keep all labels/placeholders/messages in i18n files; no hardcoded user-facing strings.
+
 ## Performance Standards (Frontend)
 
 These rules are mandatory for every new page and component. They directly affect response time for all users.
@@ -74,6 +88,7 @@ These rules are mandatory for every new page and component. They directly affect
 - **Lazy-load heavy client libraries**: Libraries that add >50 KB to the JS bundle (rich-text editors, graph renderers, PDF viewers, charting) must use `next/dynamic` with `ssr: false`. They must not appear in the initial page bundle.
 - **Memoize filtered/sorted lists**: Any filter or sort operation on a list in a client component must be wrapped in `useMemo` with explicit dependencies. This prevents O(n) recalculation on every parent re-render.
 - **Suspense boundaries**: Wrap slow data sections in `<Suspense fallback={<Skeleton />}>` to enable streaming. Page shells must not block on all data before rendering visible content.
+- **Large-link pickers**: For picker fields with >50 options, use debounced search (250-400 ms) and cap result rendering to a small page (20-30 items) or virtualize long lists. Avoid rendering hundreds of static `<option>` nodes.
 
 ### Frontend Routing Conventions
 

@@ -36,17 +36,24 @@ public sealed class CharacterAuthorizationService
         }
 
         var isAdmin = IsOrgOrSystemAdmin(user);
-        if (!Guid.TryParse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
+        var isManager = user.HasClaim("sancho:event_role", $"{eventId}:{AppRoles.EventManager}");
+        var permission = user.FindFirst($"sancho:permission:{eventId}:{ModulePermissions.Characters}")?.Value;
+
+        // Claims-first authorization is the primary path. If event-scoped claims are
+        // missing (e.g. stale/misconfigured principal), fall back to authoritative DB checks.
+        if (!isAdmin && !isManager && permission is not (ModulePermissions.Read or ModulePermissions.Write))
         {
-            return CharacterAccessResult.None with { IsArchivedEvent = eventState.status == "archived" };
+            var userId = TryGetUserId(user);
+            if (userId.HasValue)
+            {
+                var managerTask = IsEventManagerAsync(eventId, userId.Value, supabaseUrl, supabaseKey);
+                var explicitPermissionTask = GetExplicitCharactersPermissionAsync(eventId, userId.Value, supabaseUrl, supabaseKey);
+                await Task.WhenAll(managerTask, explicitPermissionTask);
+
+                isManager = managerTask.Result;
+                permission = explicitPermissionTask.Result;
+            }
         }
-
-        var isManagerTask = IsEventManagerAsync(eventId, userId, supabaseUrl, supabaseKey);
-        var explicitPermissionTask = GetExplicitCharactersPermissionAsync(eventId, userId, supabaseUrl, supabaseKey);
-        await Task.WhenAll(isManagerTask, explicitPermissionTask);
-
-        var isManager = isManagerTask.Result;
-        var permission = explicitPermissionTask.Result;
 
         var canRead = isAdmin || isManager || permission is ModulePermissions.Read or ModulePermissions.Write;
         var canWrite = isAdmin || isManager || permission == ModulePermissions.Write;
@@ -63,6 +70,18 @@ public sealed class CharacterAuthorizationService
             IsManager: isManager,
             IsArchivedEvent: isArchived
         );
+    }
+
+    private async Task<SupabaseEventStatusRow?> GetEventStateAsync(Guid eventId, string supabaseUrl, string supabaseKey)
+    {
+        var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"{supabaseUrl}/rest/v1/events?id=eq.{eventId}&select=id,status,deleted_at&limit=1");
+        AddSupabaseHeaders(request, supabaseKey);
+        var response = await _httpClient.SendAsync(request);
+        if (!response.IsSuccessStatusCode) return null;
+        var rows = await response.Content.ReadFromJsonAsync<List<SupabaseEventStatusRow>>();
+        return rows?.FirstOrDefault();
     }
 
     private async Task<bool> IsEventManagerAsync(Guid eventId, Guid userId, string supabaseUrl, string supabaseKey)
@@ -89,16 +108,11 @@ public sealed class CharacterAuthorizationService
         return rows?.FirstOrDefault()?.permission;
     }
 
-    private async Task<SupabaseEventStatusRow?> GetEventStateAsync(Guid eventId, string supabaseUrl, string supabaseKey)
+    private static Guid? TryGetUserId(ClaimsPrincipal user)
     {
-        var request = new HttpRequestMessage(
-            HttpMethod.Get,
-            $"{supabaseUrl}/rest/v1/events?id=eq.{eventId}&select=id,status,deleted_at&limit=1");
-        AddSupabaseHeaders(request, supabaseKey);
-        var response = await _httpClient.SendAsync(request);
-        if (!response.IsSuccessStatusCode) return null;
-        var rows = await response.Content.ReadFromJsonAsync<List<SupabaseEventStatusRow>>();
-        return rows?.FirstOrDefault();
+        var value = user.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? user.FindFirst("sub")?.Value;
+        return Guid.TryParse(value, out var id) ? id : null;
     }
 
     private static void AddSupabaseHeaders(HttpRequestMessage request, string key)
@@ -118,4 +132,3 @@ public record CharacterAccessResult(
 {
     public static CharacterAccessResult None => new(false, false, false, false, false);
 }
-

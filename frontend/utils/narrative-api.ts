@@ -10,11 +10,9 @@ async function fetcher<T>(url: string, options?: RequestInit): Promise<T> {
     });
 
     if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-            throw new Error(`Authentication/Authorization failed: ${response.status}`);
-        }
+        if (response.status === 401) { throw new Error("errors.unauthorized"); } if (response.status === 403) { throw new Error("errors.forbidden"); }
 
-        let errorMsg = "An error occurred while fetching the data.";
+        let errorMsg = "errors.general";
         try {
             const errorData = await response.json();
             errorMsg = errorData.message || errorData.detail || errorData.title || errorMsg;

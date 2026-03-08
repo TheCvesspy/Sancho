@@ -13,15 +13,15 @@ interface PhotoUploadProps {
     eventId: string;
     character: CharacterDetailDto;
     token: string;
-    isOrgOrSysAdmin: boolean;
+    canWrite: boolean;
 }
 
-export function PhotoUpload({ eventId, character, token, isOrgOrSysAdmin }: PhotoUploadProps) {
+export function PhotoUpload({ eventId, character, token, canWrite }: PhotoUploadProps) {
     const router = useRouter();
     const isLocked = character.status === "Locked";
 
     // Only characters owners (if assigned) or admin/org can edit, plus not locked
-    const canEdit = !isLocked && isOrgOrSysAdmin; // Assuming for now only orgs upload, but rules might be open if assigned
+    const canEdit = !isLocked && canWrite; // Assuming for now only orgs upload, but rules might be open if assigned
 
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);

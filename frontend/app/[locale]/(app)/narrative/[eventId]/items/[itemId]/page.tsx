@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { narrativeApi } from "@/utils/narrative-api";
 import { eventsApi } from "@/utils/events-api";
 import { ItemDetail } from "@/components/narrative/item-detail";
+import { fetchEventPermissions, resolveModuleAccess } from "@/utils/permissions";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5293";
 
@@ -25,17 +26,21 @@ export default async function ItemDetailPage({
 
     const token = session.access_token;
 
-    const userResponse = await fetch(`${API_BASE_URL}/api/user/me`, {
-        headers: { "Authorization": `Bearer ${token}` },
-        next: { revalidate: 60 }
-    });
+    // Get user profile and event-scoped permissions in parallel
+    const [userResponse, permissions] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/user/me`, {
+            headers: { "Authorization": `Bearer ${token}` },
+            next: { revalidate: 60 }
+        }),
+        fetchEventPermissions(token, eventId),
+    ]);
 
     if (!userResponse.ok) {
         return <div className="p-10 text-destructive">Error loading user profile.</div>;
     }
 
     const profile = await userResponse.json();
-    const isOrgOrSysAdmin = profile.isSystemAdmin || profile.orgRole === "OrgOwner";
+    const { canWrite, isOrgOrSysAdmin } = resolveModuleAccess(profile, permissions, "narrative");
 
     try {
         const [event, item, assignments, documents] = await Promise.all([
@@ -52,7 +57,7 @@ export default async function ItemDetailPage({
                     initialItem={item}
                     initialAssignments={assignments}
                     initialDocuments={documents}
-                    isOrgOrSysAdmin={isOrgOrSysAdmin}
+                    canWrite={canWrite}
                     token={token}
                 />
             </div>

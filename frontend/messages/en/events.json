@@ -147,6 +147,9 @@
             "write": "Write access"
         },
         "addUser": "Add User",
+        "removeUser": "Remove from Event",
+        "removeConfirm": "Are you sure you want to remove this user's permissions from the event?",
+        "removeSuccess": "User removed from event permissions.",
         "success": "Permissions updated.",
         "error": "Failed to update permissions."
     },

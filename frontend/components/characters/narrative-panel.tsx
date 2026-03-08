@@ -11,7 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Swords, Scroll, Shield, Sparkles } from "lucide-react";
-import type { SampleCharacterNode, SampleQuestNode } from "./narrative-graph/narrative-graph";
+import type { SampleCharacterNode, SampleQuestNode } from "./narrative-graph/types";
 
 const NarrativeGraph = dynamic(
     () => import("./narrative-graph/narrative-graph").then((m) => ({ default: m.NarrativeGraph })),

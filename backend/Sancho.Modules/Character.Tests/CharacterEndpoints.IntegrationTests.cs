@@ -30,7 +30,7 @@ public class CharacterEndpointsIntegrationTests
         fake.SetPermission(eventId, userId, "write");
 
         using var client = CreateClient(fake, new StubCharacterNarrativeService());
-        AddAuthHeaders(client, userId);
+        AddAuthHeaders(client, userId, eventPermissions: [$"{eventId}:characters:write"]);
 
         var response = await client.PostAsJsonAsync($"/api/events/{eventId}/characters", new CreateCharacterRequest("Aldric", "Human", "bio", "note"));
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
@@ -48,7 +48,7 @@ public class CharacterEndpointsIntegrationTests
         var character = fake.SeedCharacter(eventId, "Iris", "Elf", CharacterStatuses.Locked);
 
         using var client = CreateClient(fake, new StubCharacterNarrativeService());
-        AddAuthHeaders(client, managerId);
+        AddAuthHeaders(client, managerId, eventRoles: [$"{eventId}:EventManager"]);
 
         var blocked = await client.PatchAsJsonAsync($"/api/events/{eventId}/characters/{character.Id}", new UpdateCharacterProfileRequest("new", null, null, null, null));
         Assert.Equal(HttpStatusCode.BadRequest, blocked.StatusCode);
@@ -68,7 +68,7 @@ public class CharacterEndpointsIntegrationTests
         var character = fake.SeedCharacter(eventId, "Mara", "Human", CharacterStatuses.Ready);
 
         using var client = CreateClient(fake, new BlockingNarrativeService());
-        AddAuthHeaders(client, managerId);
+        AddAuthHeaders(client, managerId, eventRoles: [$"{eventId}:EventManager"]);
 
         var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, $"/api/events/{eventId}/characters/{character.Id}")
         {
@@ -89,7 +89,7 @@ public class CharacterEndpointsIntegrationTests
         var character = fake.SeedCharacter(eventId, "Test Char", "Human", CharacterStatuses.Ready);
 
         using var client = CreateClient(fake, new StubCharacterNarrativeService());
-        AddAuthHeaders(client, managerId);
+        AddAuthHeaders(client, managerId, eventRoles: [$"{eventId}:EventManager"]);
 
         // 1. Get Upload URL
         var uploadUrlResp = await client.PostAsJsonAsync($"/api/events/{eventId}/characters/{character.Id}/attachments/upload-url", 
@@ -107,6 +107,45 @@ public class CharacterEndpointsIntegrationTests
         Assert.NotNull(attachment);
         Assert.Equal("Docs", attachment.DisplayName);
         Assert.Equal(CharacterAttachmentSourceTypes.Upload, attachment.SourceType);
+    }
+
+    [Fact]
+    public async Task EventManager_For_Another_Event_Cannot_Create_Character()
+    {
+        var managedEventId = Guid.NewGuid();
+        var targetEventId = Guid.NewGuid();
+        var managerId = Guid.NewGuid();
+        var fake = new FakeSupabaseHandler();
+        fake.SeedEvent(managedEventId, "active");
+        fake.SeedEvent(targetEventId, "active");
+
+        using var client = CreateClient(fake, new StubCharacterNarrativeService());
+        AddAuthHeaders(client, managerId, eventRoles: [$"{managedEventId}:EventManager"]);
+
+        var response = await client.PostAsJsonAsync(
+            $"/api/events/{targetEventId}/characters",
+            new CreateCharacterRequest("Cross Event", "Human", "bio", "note"));
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task EventManager_Without_EventClaims_Can_Still_Create_Character_Via_DbFallback()
+    {
+        var eventId = Guid.NewGuid();
+        var managerId = Guid.NewGuid();
+        var fake = new FakeSupabaseHandler();
+        fake.SeedEvent(eventId, "active");
+        fake.SeedManager(eventId, managerId);
+
+        using var client = CreateClient(fake, new StubCharacterNarrativeService());
+        AddAuthHeaders(client, managerId);
+
+        var response = await client.PostAsJsonAsync(
+            $"/api/events/{eventId}/characters",
+            new CreateCharacterRequest("Fallback Manager", "Human", "bio", "note"));
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
     }
 
     private static HttpClient CreateClient(FakeSupabaseHandler fakeSupabase, ICharacterNarrativeService narrative)
@@ -145,14 +184,37 @@ public class CharacterEndpointsIntegrationTests
         return server.CreateClient();
     }
 
-    private static void AddAuthHeaders(HttpClient client, Guid userId, bool isSystemAdmin = false, string? orgRole = null)
+    private static void AddAuthHeaders(
+        HttpClient client,
+        Guid userId,
+        bool isSystemAdmin = false,
+        string? orgRole = null,
+        IEnumerable<string>? eventRoles = null,
+        IEnumerable<string>? eventPermissions = null)
     {
         client.DefaultRequestHeaders.Remove("X-Test-User-Id");
         client.DefaultRequestHeaders.Remove("X-Test-System-Admin");
         client.DefaultRequestHeaders.Remove("X-Test-Org-Role");
+        client.DefaultRequestHeaders.Remove("X-Test-Event-Role");
+        client.DefaultRequestHeaders.Remove("X-Test-Event-Permission");
         client.DefaultRequestHeaders.Add("X-Test-User-Id", userId.ToString());
         if (isSystemAdmin) client.DefaultRequestHeaders.Add("X-Test-System-Admin", "true");
         if (!string.IsNullOrWhiteSpace(orgRole)) client.DefaultRequestHeaders.Add("X-Test-Org-Role", orgRole);
+        if (eventRoles is not null)
+        {
+            foreach (var eventRole in eventRoles.Where(x => !string.IsNullOrWhiteSpace(x)))
+            {
+                client.DefaultRequestHeaders.Add("X-Test-Event-Role", eventRole);
+            }
+        }
+
+        if (eventPermissions is not null)
+        {
+            foreach (var eventPermission in eventPermissions.Where(x => !string.IsNullOrWhiteSpace(x)))
+            {
+                client.DefaultRequestHeaders.Add("X-Test-Event-Permission", eventPermission);
+            }
+        }
     }
 }
 
@@ -170,6 +232,30 @@ internal sealed class TestAuthHandler : AuthenticationHandler<AuthenticationSche
         if (string.Equals(Request.Headers["X-Test-System-Admin"], "true", StringComparison.OrdinalIgnoreCase)) claims.Add(new Claim("sancho:system_admin", "true"));
         var orgRole = Request.Headers["X-Test-Org-Role"].ToString();
         if (!string.IsNullOrWhiteSpace(orgRole)) claims.Add(new Claim("sancho:org_role", orgRole));
+        foreach (var eventRole in Request.Headers["X-Test-Event-Role"])
+        {
+            if (!string.IsNullOrWhiteSpace(eventRole))
+            {
+                claims.Add(new Claim("sancho:event_role", eventRole));
+            }
+        }
+
+        foreach (var eventPermission in Request.Headers["X-Test-Event-Permission"])
+        {
+            if (string.IsNullOrWhiteSpace(eventPermission))
+            {
+                continue;
+            }
+
+            var parts = eventPermission.Split(':', 3, StringSplitOptions.TrimEntries);
+            if (parts.Length == 3 &&
+                Guid.TryParse(parts[0], out var eventId) &&
+                !string.IsNullOrWhiteSpace(parts[1]) &&
+                !string.IsNullOrWhiteSpace(parts[2]))
+            {
+                claims.Add(new Claim($"sancho:permission:{eventId}:{parts[1]}", parts[2]));
+            }
+        }
 
         var identity = new ClaimsIdentity(claims, Scheme.Name);
         return Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(identity), Scheme.Name)));

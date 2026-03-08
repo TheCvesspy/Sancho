@@ -1,6 +1,7 @@
 # RBAC and Permission Granting Technical Reference
 
 This document details the mechanics of the role and granular permission model in the Sancho platform.
+Canonical source: [authorization_guidelines.md](/D:/Sancho/docs/architecture/authorization_guidelines.md).
 
 ## Database Entities
 
@@ -34,14 +35,15 @@ The UI should expose role and permission assignment logic based on these rules:
 
 2. **OrgOwner**
    - Cannot manage `SystemAdmin`.
-   - Cannot manage `OrgOwner` (except transferring their own ownership).
+   - Cannot manage `OrgOwner`.
    - Can grant/revoke `EventManager` for any event.
    - Can set/modify `event_member_permissions` for anyone on any event.
 
 3. **EventManager**
    - Cannot manage platform/org roles.
    - Cannot grant `EventManager`.
-   - Can set/modify `event_member_permissions` for regular users **only** within their assigned `event_id`.
+   - Can set/modify `event_member_permissions` within their assigned `event_id`.
+   - Has full write access to event-scoped entities within their assigned `event_id`.
 
 4. **Regular User**
    - Cannot grant roles or permissions.

@@ -16,27 +16,34 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Pencil, GripVertical, Check, X, Loader2, UserPlus, Users } from "lucide-react";
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from "@/components/ui/command";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
+import { Plus, Trash2, Pencil, GripVertical, Check, X, Loader2, UserPlus, Users, ChevronsUpDown } from "lucide-react";
 import { toast } from "sonner";
 
 interface QuestStepsPanelProps {
     eventId: string;
     questId: string;
     initialSteps: NarrativeQuestStepDto[];
-    isOrgOrSysAdmin: boolean;
+    canWrite: boolean;
     token: string;
 }
 
-export function QuestStepsPanel({ eventId, questId, initialSteps, isOrgOrSysAdmin, token }: QuestStepsPanelProps) {
+export function QuestStepsPanel({ eventId, questId, initialSteps, canWrite, token }: QuestStepsPanelProps) {
     const t = useTranslations("narrative");
+    const fallbackErrorMessage = t("documentsPanel.notifications.error");
 
     const [steps, setSteps] = useState<NarrativeQuestStepDto[]>(
         [...initialSteps].sort((a, b) => a.sortOrder - b.sortOrder)
@@ -62,8 +69,22 @@ export function QuestStepsPanel({ eventId, questId, initialSteps, isOrgOrSysAdmi
 
     // Per-step character adding
     const [addingCharForStep, setAddingCharForStep] = useState<string | null>(null);
-    const [selectedChar, setSelectedChar] = useState("");
+    const [charPickerOpen, setCharPickerOpen] = useState(false);
+    const [charSearch, setCharSearch] = useState("");
+    const [debouncedCharSearch, setDebouncedCharSearch] = useState("");
+    const [isFilteringChars, setIsFilteringChars] = useState(false);
     const [isSavingChar, setIsSavingChar] = useState(false);
+
+    useEffect(() => {
+        if (!addingCharForStep) return;
+        setIsFilteringChars(true);
+        const timeout = setTimeout(() => {
+            setDebouncedCharSearch(charSearch.trim().toLowerCase());
+            setIsFilteringChars(false);
+        }, 300);
+
+        return () => clearTimeout(timeout);
+    }, [addingCharForStep, charSearch]);
 
     // Load characters + existing step-character links on mount
     useEffect(() => {
@@ -106,8 +127,8 @@ export function QuestStepsPanel({ eventId, questId, initialSteps, isOrgOrSysAdmi
             setAddNotes("");
             setAddDialogOpen(false);
             toast.success(t("quests.notifications.stepCreated"));
-        } catch (err: any) {
-            toast.error(err.message || t("documentsPanel.notifications.error"));
+        } catch (err: unknown) {
+            toast.error(getErrorMessage(err));
         } finally {
             setIsAdding(false);
         }
@@ -137,8 +158,8 @@ export function QuestStepsPanel({ eventId, questId, initialSteps, isOrgOrSysAdmi
             setSteps((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
             toast.success(t("quests.notifications.stepUpdated"));
             cancelEdit();
-        } catch (err: any) {
-            toast.error(err.message || t("documentsPanel.notifications.error"));
+        } catch (err: unknown) {
+            toast.error(getErrorMessage(err));
         } finally {
             setIsSaving(false);
         }
@@ -155,25 +176,24 @@ export function QuestStepsPanel({ eventId, questId, initialSteps, isOrgOrSysAdmi
                 return next;
             });
             toast.success(t("quests.notifications.stepDeleted"));
-        } catch (err: any) {
-            toast.error(err.message || t("documentsPanel.notifications.error"));
+        } catch (err: unknown) {
+            toast.error(getErrorMessage(err));
         }
     };
 
     // --- Step characters ---
-    const handleAddCharToStep = async (stepId: string) => {
-        if (!selectedChar) return;
+    const handleAddCharToStep = async (stepId: string, characterId: string) => {
         setIsSavingChar(true);
         try {
-            const link = await narrativeApi.upsertQuestStepCharacter(token, eventId, questId, stepId, selectedChar);
+            const link = await narrativeApi.upsertQuestStepCharacter(token, eventId, questId, stepId, characterId);
             setStepCharacters((prev) => ({
                 ...prev,
-                [stepId]: [...(prev[stepId] ?? []).filter((l) => l.characterId !== selectedChar), link],
+                [stepId]: [...(prev[stepId] ?? []).filter((l) => l.characterId !== characterId), link],
             }));
-            setSelectedChar("");
-            setAddingCharForStep(null);
-        } catch (err: any) {
-            toast.error(err.message || t("documentsPanel.notifications.error"));
+            setCharSearch("");
+            setDebouncedCharSearch("");
+        } catch (err: unknown) {
+            toast.error(getErrorMessage(err));
         } finally {
             setIsSavingChar(false);
         }
@@ -186,20 +206,30 @@ export function QuestStepsPanel({ eventId, questId, initialSteps, isOrgOrSysAdmi
                 ...prev,
                 [stepId]: (prev[stepId] ?? []).filter((l) => l.characterId !== characterId),
             }));
-        } catch (err: any) {
-            toast.error(err.message || t("documentsPanel.notifications.error"));
+        } catch (err: unknown) {
+            toast.error(getErrorMessage(err));
         }
     };
 
     const charNameById = (id: string) =>
         allCharacters.find((c) => c.id === id)?.name ?? id;
 
+    const getErrorMessage = (error: unknown) =>
+        error instanceof Error ? error.message : fallbackErrorMessage;
+
+    const getFilteredAvailableCharacters = (availableCharacters: CharacterListItemDto[]) => {
+        if (!debouncedCharSearch) return availableCharacters;
+        return availableCharacters.filter((character) =>
+            character.name.toLowerCase().includes(debouncedCharSearch)
+        );
+    };
+
     return (
         <div className="space-y-4">
             {/* Section header */}
             <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold tracking-tight">{t("quests.steps.title")}</h2>
-                {isOrgOrSysAdmin && (
+                {canWrite && (
                     <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
                         <DialogTrigger asChild>
                             <Button size="sm" variant="outline">
@@ -252,6 +282,7 @@ export function QuestStepsPanel({ eventId, questId, initialSteps, isOrgOrSysAdmi
                         const stepChars = stepCharacters[step.id] ?? [];
                         const assignedCharIds = new Set(stepChars.map((l) => l.characterId));
                         const availableChars = allCharacters.filter((c) => !assignedCharIds.has(c.id));
+                        const filteredAvailableChars = getFilteredAvailableCharacters(availableChars);
                         const isEditingThis = editingId === step.id;
 
                         return (
@@ -293,7 +324,7 @@ export function QuestStepsPanel({ eventId, questId, initialSteps, isOrgOrSysAdmi
                                         </div>
                                     )}
 
-                                    {isOrgOrSysAdmin && !isEditingThis && (
+                                    {canWrite && !isEditingThis && (
                                         <div className="flex gap-1 shrink-0">
                                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(step)}>
                                                 <Pencil className="h-3.5 w-3.5" />
@@ -324,7 +355,7 @@ export function QuestStepsPanel({ eventId, questId, initialSteps, isOrgOrSysAdmi
                                             {stepChars.map((link) => (
                                                 <Badge key={link.characterId} variant="secondary" className="flex items-center gap-1 pr-1">
                                                     <span>{charNameById(link.characterId)}</span>
-                                                    {isOrgOrSysAdmin && (
+                                                    {canWrite && (
                                                         <button
                                                             onClick={() => handleRemoveCharFromStep(step.id, link.characterId)}
                                                             className="ml-0.5 hover:text-destructive transition-colors"
@@ -339,33 +370,63 @@ export function QuestStepsPanel({ eventId, questId, initialSteps, isOrgOrSysAdmi
                                     )}
 
                                     {/* Admin: add character selector */}
-                                    {isOrgOrSysAdmin && (
+                                    {canWrite && (
                                         <>
                                             {addingCharForStep === step.id ? (
-                                                <div className="flex items-center gap-2">
-                                                    <Select value={selectedChar} onValueChange={setSelectedChar}>
-                                                        <SelectTrigger className="h-8 text-sm flex-1 max-w-[200px]">
-                                                            <SelectValue placeholder={t("common.select")} />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            {availableChars.map((c) => (
-                                                                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                    <Button
-                                                        size="sm"
-                                                        className="h-8"
-                                                        onClick={() => handleAddCharToStep(step.id)}
-                                                        disabled={!selectedChar || isSavingChar}
-                                                    >
-                                                        {isSavingChar ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-                                                    </Button>
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <Popover open={charPickerOpen} onOpenChange={setCharPickerOpen}>
+                                                        <PopoverTrigger asChild>
+                                                            <Button
+                                                                variant="outline"
+                                                                role="combobox"
+                                                                aria-expanded={charPickerOpen}
+                                                                className="h-8 text-sm w-full sm:w-[260px] justify-between"
+                                                            >
+                                                                {t("quests.steps.characters.add")}
+                                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                            </Button>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent className="w-[320px] p-0" align="start">
+                                                            <Command shouldFilter={false}>
+                                                                <CommandInput
+                                                                    value={charSearch}
+                                                                    onValueChange={setCharSearch}
+                                                                    placeholder={t("common.search")}
+                                                                />
+                                                                <CommandList>
+                                                                    {isFilteringChars ? (
+                                                                        <div className="py-6 text-center text-sm text-muted-foreground">
+                                                                            {t("common.loading")}
+                                                                        </div>
+                                                                    ) : (
+                                                                        <CommandEmpty>{t("common.noResults")}</CommandEmpty>
+                                                                    )}
+                                                                    <CommandGroup>
+                                                                        {filteredAvailableChars.map((character) => (
+                                                                            <CommandItem
+                                                                                key={character.id}
+                                                                                value={character.name}
+                                                                                onSelect={() => handleAddCharToStep(step.id, character.id)}
+                                                                                disabled={isSavingChar}
+                                                                            >
+                                                                                {character.name}
+                                                                            </CommandItem>
+                                                                        ))}
+                                                                    </CommandGroup>
+                                                                </CommandList>
+                                                            </Command>
+                                                        </PopoverContent>
+                                                    </Popover>
                                                     <Button
                                                         size="sm"
                                                         variant="ghost"
                                                         className="h-8"
-                                                        onClick={() => { setAddingCharForStep(null); setSelectedChar(""); }}
+                                                        onClick={() => {
+                                                            setAddingCharForStep(null);
+                                                            setCharPickerOpen(false);
+                                                            setCharSearch("");
+                                                            setDebouncedCharSearch("");
+                                                        }}
                                                     >
                                                         <X className="h-3.5 w-3.5" />
                                                     </Button>
@@ -375,7 +436,12 @@ export function QuestStepsPanel({ eventId, questId, initialSteps, isOrgOrSysAdmi
                                                     variant="ghost"
                                                     size="sm"
                                                     className="h-7 text-xs text-muted-foreground hover:text-foreground px-2"
-                                                    onClick={() => { setAddingCharForStep(step.id); setSelectedChar(""); }}
+                                                    onClick={() => {
+                                                        setAddingCharForStep(step.id);
+                                                        setCharPickerOpen(true);
+                                                        setCharSearch("");
+                                                        setDebouncedCharSearch("");
+                                                    }}
                                                 >
                                                     <UserPlus className="h-3.5 w-3.5 mr-1.5" />
                                                     {t("quests.steps.characters.add")}
