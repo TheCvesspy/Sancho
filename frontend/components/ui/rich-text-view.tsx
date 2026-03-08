@@ -13,7 +13,7 @@ export function RichTextView({ html, className }: RichTextViewProps) {
     const sanitizedHtml = useMemo(() => {
         if (!html) return "";
         return DOMPurify.sanitize(html, {
-            ALLOWED_TAGS: ['p', 'strong', 'em', 'u', 's', 'h1', 'h2', 'h3', 'h4', 'ul', 'ol', 'li', 'blockquote', 'br', 'span', 'div'],
+            ALLOWED_TAGS: ['p', 'strong', 'em', 'u', 's', 'h1', 'h2', 'h3', 'h4', 'ul', 'ol', 'li', 'blockquote', 'br', 'span', 'div', 'mark'],
             ALLOWED_ATTR: ['style', 'class'],
             FORBID_TAGS: ['script', 'style_tag'],
             FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover']

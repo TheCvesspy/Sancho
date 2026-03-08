@@ -2,7 +2,6 @@
 
 import { useEditor, EditorContent, Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import Underline from "@tiptap/extension-underline";
 import Placeholder from "@tiptap/extension-placeholder";
 import { TextStyle } from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
@@ -186,7 +185,6 @@ export function RichTextEditor({
             StarterKit.configure({
                 heading: { levels: [1, 2, 3, 4] }
             }),
-            Underline,
             TextStyle,
             Color,
             Highlight.configure({ multicolor: true }),

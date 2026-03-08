@@ -107,6 +107,9 @@ public static class NarrativeEndpoints
         group.MapPut("/plotlines/{plotlineId:guid}/links/items/{itemId:guid}", UpsertPlotlineItem);
         group.MapDelete("/plotlines/{plotlineId:guid}/links/items/{itemId:guid}", DeletePlotlineItem);
         group.MapGet("/plotlines/{plotlineId:guid}/links/inherited", GetPlotlineInheritedLinks);
+        group.MapGet("/plotlines/{plotlineId:guid}/documents", ListPlotlineDocuments);
+        group.MapPost("/plotlines/{plotlineId:guid}/documents/google-drive", AddPlotlineGoogleDriveDocument);
+        group.MapDelete("/plotlines/{plotlineId:guid}/documents/{documentId:guid}", DeletePlotlineDocument);
 
         group.MapGet("/plots", ListPlots);
         group.MapPost("/plots", CreatePlot);
@@ -1916,6 +1919,64 @@ public static class NarrativeEndpoints
             FactionIds: factions.Select(x => x.faction_id).Distinct().ToList(),
             ItemIds: items.Select(x => x.item_id).Distinct().ToList()
         ));
+    }
+
+    private static async Task<IResult> ListPlotlineDocuments(Guid eventId, Guid plotlineId, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
+    {
+        if (!TryConfig(config, out var url, out var key, out var error)) return error!;
+        var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
+        if (!access.CanRead) return Results.Forbid();
+        if (!await PlotlineExists(eventId, plotlineId, url!, key!, httpClient, includeDeleted: true)) return Results.NotFound();
+
+        var req = new HttpRequestMessage(HttpMethod.Get, $"{url}/rest/v1/narrative_document_links?event_id=eq.{eventId}&entity_type=eq.plotline&entity_id=eq.{plotlineId}&select=id,event_id,entity_type,entity_id,display_name,url,document_status,source_type,created_by,created_at&order=created_at.desc");
+        AddHeaders(req, key!);
+        var resp = await httpClient.SendAsync(req);
+        if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to list plotline documents: {resp.StatusCode}");
+        var rows = await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativeDocumentLinkRow>>() ?? [];
+        return Results.Ok(rows.Select(ToDocumentDto));
+    }
+
+    private static async Task<IResult> AddPlotlineGoogleDriveDocument(Guid eventId, Guid plotlineId, ClaimsPrincipal user, [FromBody] AddNarrativeGoogleDriveLinkRequest request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz, NarrativeDocumentLinkService documentLinks)
+    {
+        if (!TryConfig(config, out var url, out var key, out var error)) return error!;
+        var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
+        if (!access.CanWrite) return Results.Forbid();
+        if (!await PlotlineExists(eventId, plotlineId, url!, key!, httpClient, includeDeleted: false)) return Results.NotFound();
+
+        if (string.IsNullOrWhiteSpace(request.DisplayName)) return Results.BadRequest("Display name is required.");
+        documentLinks.ValidateGoogleDriveUrl(request.Url);
+
+        var req = new HttpRequestMessage(HttpMethod.Post, $"{url}/rest/v1/narrative_document_links");
+        req.Headers.Add("Prefer", "return=representation");
+        AddHeaders(req, key!);
+        req.Content = JsonContent.Create(new
+        {
+            event_id = eventId,
+            entity_type = "plotline",
+            entity_id = plotlineId,
+            display_name = request.DisplayName.Trim(),
+            url = request.Url,
+            document_status = request.DocumentStatus,
+            source_type = "GoogleDrive",
+            created_by = UserId(user)
+        });
+        var resp = await httpClient.SendAsync(req);
+        if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to add Google Drive link: {resp.StatusCode}");
+        var created = (await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativeDocumentLinkRow>>())?.FirstOrDefault();
+        return created is null ? Results.Problem("Document link saved but payload missing.") : Results.Created($"/api/events/{eventId}/narrative/plotlines/{plotlineId}/documents/{created.id}", ToDocumentDto(created));
+    }
+
+    private static async Task<IResult> DeletePlotlineDocument(Guid eventId, Guid plotlineId, Guid documentId, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
+    {
+        if (!TryConfig(config, out var url, out var key, out var error)) return error!;
+        var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
+        if (!access.CanWrite) return Results.Forbid();
+        if (!await PlotlineExists(eventId, plotlineId, url!, key!, httpClient, includeDeleted: false)) return Results.NotFound();
+
+        var req = new HttpRequestMessage(HttpMethod.Delete, $"{url}/rest/v1/narrative_document_links?id=eq.{documentId}&event_id=eq.{eventId}&entity_type=eq.plotline&entity_id=eq.{plotlineId}");
+        AddHeaders(req, key!);
+        var resp = await httpClient.SendAsync(req);
+        return resp.IsSuccessStatusCode ? Results.NoContent() : Results.Problem($"Failed to delete document link: {resp.StatusCode}");
     }
 
     private static async Task<IResult> ListPlots(Guid eventId, ClaimsPrincipal user, [FromQuery] bool includeDeleted, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
