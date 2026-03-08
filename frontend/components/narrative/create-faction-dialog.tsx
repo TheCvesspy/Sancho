@@ -90,7 +90,7 @@ export function CreateFactionDialog({ eventId, token, onCreated }: CreateFaction
             <DialogTrigger asChild>
                 <Button>
                     <PlusCircle className="mr-2 h-4 w-4" />
-                    {t("factions.list.create")}
+                    {t("factions.create")}
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">

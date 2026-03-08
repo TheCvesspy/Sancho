@@ -24,10 +24,14 @@
     "common": {
         "cancel": "Zrušit",
         "save": "Uložit",
+        "error": "Nastala chyba",
+        "duplicate": "Duplikovat",
+        "editTitle": "Upravit název úkolu",
         "create": "Vytvořit",
         "delete": "Smazat",
         "restore": "Obnovit",
         "edit": "Upravit",
+        "view": "Zobrazit",
         "actions": "Akce",
         "search": "Hledat...",
         "confirm": "Potvrdit",
@@ -37,11 +41,29 @@
         "addGoogleDriveLink": "Přidat odkaz na Google Drive",
         "untitled": "Bez názvu",
         "noDescription": "Bez popisu.",
+        "noResults": "Žádné výsledky.",
         "select": "Vyberte...",
         "back": "Zpět",
         "deleteConfirm": "Opravdu?",
         "loading": "Načítání...",
-        "adminOnly": "Pouze admin"
+        "adminOnly": "Pouze admin",
+        "internalNotesHint": "Viditelné pouze pro organizátory. Používá se pro tajemství GM, zápletky atd.",
+        "deleted": "Smazáno",
+        "yes": "Ano",
+        "no": "Ne",
+        "showDeleted": "Zobrazit smazané",
+        "allStatuses": "Všechny stavy",
+        "shortSummaryPlaceholder": "Krátké shrnutí...",
+        "type": "Typ",
+        "statusLabel": "Stav",
+        "selectStatus": "Vyberte stav",
+        "entityStatusDescription": "Aktualizujte stav této entity.",
+        "itemStatusDescription": "Aktualizujte stav tohoto předmětu.",
+        "rolePlaceholder": "Role (volitelné)",
+        "multiCopy": "Více kopií",
+        "single": "Jeden kus",
+        "unlimited": "Neomezeno",
+        "created": "Vytvořeno"
     },
     "landing": {
         "selectEvent": "Vyberte akci...",
@@ -104,18 +126,15 @@
             "empty": "Nenalezeny žádné úkoly.",
             "columns": {
                 "title": "Název",
-                "status": "Stav",
-                "hasFixedPlayers": "Pevní hráči"
+                "status": "Stav"
             }
         },
         "detail": {
             "tabs": {
-                "overview": "Přehled",
-                "steps": "Kroky",
+                "details": "Detaily",
                 "links": "Vazby",
                 "documents": "Dokumenty"
-            },
-            "settings": "Nastavení"
+            }
         },
         "fields": {
             "title": {
@@ -129,10 +148,6 @@
             "internalNotes": {
                 "label": "Interní poznámky",
                 "placeholder": "Zadejte interní poznámky (pouze pro adminy)..."
-            },
-            "hasFixedPlayers": {
-                "label": "Pevně určení hráči",
-                "description": "Pokud je zaškrtnuto, úkol vyžaduje pro splnění specifické postavy."
             }
         },
         "steps": {
@@ -152,12 +167,24 @@
             "items": {
                 "required": "Požadované předměty",
                 "loot": "Odměny (Loot)"
+            },
+            "characters": {
+                "title": "Zúčastněné postavy / NPCs",
+                "add": "Přidat postavu",
+                "empty": "K tomuto kroku nejsou přiřazeny žádné postavy.",
+                "remove": "Odebrat"
+            },
+            "addDialog": {
+                "title": "Přidat krok úkolu",
+                "description": "Přidat nový krok k tomuto úkolu.",
+                "submit": "Přidat krok"
             }
         },
         "links": {
             "characters": "Propojené postavy",
             "factions": "Propojené frakce",
-            "items": "Propojené předměty"
+            "items": "Propojené předměty",
+            "stepCharacters": "Zúčastněné postavy / NPCs (podle kroků)"
         },
         "dialogs": {
             "delete": {
@@ -167,7 +194,24 @@
             "restore": {
                 "title": "Obnovit úkol",
                 "description": "Opravdu chcete obnovit tento úkol?"
+            },
+            "duplicate": {
+                "title": "Duplikovat úkol",
+                "description": "Vytvořit kopii tohoto úkolu.",
+                "newTitle": "Nový název úkolu",
+                "copyWarning": "Kroky úkolu, propojené postavy a předměty budou zkopírovány. Dokumenty zkopírovány NEBUDOU.",
+                "submit": "Duplikovat",
+                "copySuffix": " (Kopie)"
+            },
+            "edit": {
+                "title": "Upravit název úkolu",
+                "description": "Změňte název tohoto úkolu.",
+                "lockedWarning": "Úkol je zamčený. Lze upravovat pouze interní poznámky.",
+                "inlineNote": "Popis a interní poznámky se upravují přímo na záložce Detaily."
             }
+        },
+        "validation": {
+            "titleRequired": "Název je povinný"
         },
         "notifications": {
             "created": "Úkol úspěšně vytvořen",

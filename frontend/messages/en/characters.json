@@ -53,6 +53,7 @@
             "narrative": "Narrative"
         },
         "biography": {
+            "title": "Biography & Public Story",
             "edit": "Edit",
             "save": "Save",
             "cancel": "Cancel",

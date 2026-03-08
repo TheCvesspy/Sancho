@@ -37,7 +37,6 @@ public record NarrativeQuestDto(
     string? Description,
     string? InternalNotes,
     string Status,
-    bool HasFixedPlayers,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
     DateTimeOffset? DeletedAt
@@ -236,6 +235,13 @@ public record NarrativeQuestStepItemLinkDto(
     DateTimeOffset CreatedAt
 );
 
+public record NarrativeQuestStepCharacterDto(
+    Guid EventId,
+    Guid StepId,
+    Guid CharacterId,
+    DateTimeOffset CreatedAt
+);
+
 public record NarrativeInheritedLinksDto(
     IReadOnlyList<Guid> CharacterIds,
     IReadOnlyList<Guid> FactionIds,
@@ -260,15 +266,17 @@ public record NarrativeFactionRelationshipDto(
 public record CreateQuestRequest(
     string Title,
     string? Description,
-    string? InternalNotes,
-    bool HasFixedPlayers
+    string? InternalNotes
+);
+
+public record DuplicateQuestRequest(
+    string? Title
 );
 
 public record UpdateQuestRequest(
     string? Title,
     string? Description,
-    string? InternalNotes,
-    bool? HasFixedPlayers
+    string? InternalNotes
 );
 
 public record ChangeNarrativeStatusRequest(
@@ -411,10 +419,16 @@ internal record SupabaseNarrativeQuestRow(
     string? description,
     [property: JsonPropertyName("internal_notes")] string? internal_notes,
     string status,
-    [property: JsonPropertyName("has_fixed_players")] bool has_fixed_players,
     [property: JsonPropertyName("created_at")] DateTimeOffset created_at,
     [property: JsonPropertyName("updated_at")] DateTimeOffset updated_at,
     [property: JsonPropertyName("deleted_at")] DateTimeOffset? deleted_at
+);
+
+internal record SupabaseNarrativeQuestStepCharacterRow(
+    [property: JsonPropertyName("event_id")] Guid event_id,
+    [property: JsonPropertyName("step_id")] Guid step_id,
+    [property: JsonPropertyName("character_id")] Guid character_id,
+    [property: JsonPropertyName("created_at")] DateTimeOffset created_at
 );
 
 internal record SupabaseNarrativeQuestStepRow(

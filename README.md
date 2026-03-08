@@ -1,12 +1,12 @@
 # Sancho — LARP Event Management Platform
 
-**Version: 0.9.0**
+**Version: 0.10.0**
 
 Sancho is a single-organization web application for managing LARP (Live Action Role-Playing) groups, covering the full event lifecycle from planning through execution. One deployment serves one organization and supports multiple events.
 
 ---
 
-## Current State (as of 2026-03-06)
+## Current State (as of 2026-03-08)
 
 ### What's Implemented
 
@@ -52,6 +52,11 @@ Sancho is a single-organization web application for managing LARP (Live Action R
 - Google Drive document links supported for quests, factions, and items (shared validator/service pattern)
 - Character integration seam activated via `ICharacterNarrativeService` concrete implementation
 - **Frontend UI**: Complete narrative module with 11 panels for all narrative entities including Plotlines, Factions, Quests, and Items with deep linking.
+- **Quest Step Characters**: Support for linking multiple characters/NPCs to specific quest steps (replacing legacy `has_fixed_players` flag).
+
+#### Shared UI Components
+- **Rich Text Editor (TipTap)**: Enhanced with full headings (H1-H4), text alignment (left, center, right, justify), text color, and highlight controls.
+- **Rich Text View**: Sanitized rendering of enhanced formatting.
 
 #### Identity & Access (Admin UI)
 - User listing and role assignment
@@ -142,6 +147,7 @@ sancho/
 | `character_attachments` | Character file metadata stored in Supabase Storage |
 | `narrative_quests` | Event-scoped quests with lifecycle and notes |
 | `narrative_quest_steps` | Ordered quest steps |
+| `narrative_quest_step_characters` | Per-step character/NPC involvements |
 | `narrative_quest_step_items` | Step item requirements/loot links |
 | `narrative_plotlines` | Mid-level narrative structure above quests |
 | `narrative_plotline_phases` | Ordered plotline phases |
@@ -154,7 +160,7 @@ sancho/
 | `narrative_faction_relationships` | Faction vs Faction and Faction vs Character relationships |
 | `narrative_*_links` | Character/faction/item relationships across narrative entities |
 
-**Applied Migrations:** 17 (latest: `20260306150000_narrative_faction_relationships`)
+**Applied Migrations:** 18 (latest: `20260308100000_quest_step_characters`)
 
 ---
 
@@ -239,6 +245,7 @@ sancho/
 
 | Version | Date | Summary |
 |---|---|---|
+| 0.10.0 | 2026-03-08 | Enhanced Rich Text Editor (colors, alignment), Quest Step character links, and frontend fix pass (loading, labels, i18n). |
 | 0.9.0 | 2026-03-06 | Narrative frontend UI complete, API integration finalized, and missing database migrations applied. |
 | 0.8.1 | 2026-03-06 | Fix: install missing `d3-force` package; lazy-load `NarrativeGraph` via `next/dynamic` (ssr:false) to comply with AGENTS.md >50 KB bundle rule |
 | 0.8.0 | 2026-03-06 | Narrative backend + DB implemented (quests/plotlines/plots/factions/items), Character-Narrative seam activated, and backend integration tests added/fixed |

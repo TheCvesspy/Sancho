@@ -4,7 +4,16 @@ import { useEditor, EditorContent, Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Placeholder from "@tiptap/extension-placeholder";
-import { Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Heading2, Heading3 } from "lucide-react";
+import { TextStyle } from "@tiptap/extension-text-style";
+import { Color } from "@tiptap/extension-color";
+import { Highlight } from "@tiptap/extension-highlight";
+import { TextAlign } from "@tiptap/extension-text-align";
+import {
+    Bold, Italic, Underline as UnderlineIcon, List, ListOrdered,
+    Heading1, Heading2, Heading3, Heading4,
+    Palette, Highlighter,
+    AlignLeft, AlignCenter, AlignRight, AlignJustify
+} from "lucide-react";
 import { Toggle } from "@/components/ui/toggle";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
@@ -56,6 +65,14 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
 
             <Toggle
                 size="sm"
+                pressed={editor.isActive("heading", { level: 1 })}
+                onPressedChange={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                className="h-8 w-8 p-0"
+            >
+                <Heading1 className="h-4 w-4" />
+            </Toggle>
+            <Toggle
+                size="sm"
                 pressed={editor.isActive("heading", { level: 2 })}
                 onPressedChange={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
                 className="h-8 w-8 p-0"
@@ -69,6 +86,49 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
                 className="h-8 w-8 p-0"
             >
                 <Heading3 className="h-4 w-4" />
+            </Toggle>
+            <Toggle
+                size="sm"
+                pressed={editor.isActive("heading", { level: 4 })}
+                onPressedChange={() => editor.chain().focus().toggleHeading({ level: 4 }).run()}
+                className="h-8 w-8 p-0"
+            >
+                <Heading4 className="h-4 w-4" />
+            </Toggle>
+
+            <div className="w-[1px] h-4 bg-border mx-1" />
+
+            <Toggle
+                size="sm"
+                pressed={editor.isActive({ textAlign: "left" })}
+                onPressedChange={() => editor.chain().focus().setTextAlign("left").run()}
+                className="h-8 w-8 p-0"
+            >
+                <AlignLeft className="h-4 w-4" />
+            </Toggle>
+            <Toggle
+                size="sm"
+                pressed={editor.isActive({ textAlign: "center" })}
+                onPressedChange={() => editor.chain().focus().setTextAlign("center").run()}
+                className="h-8 w-8 p-0"
+            >
+                <AlignCenter className="h-4 w-4" />
+            </Toggle>
+            <Toggle
+                size="sm"
+                pressed={editor.isActive({ textAlign: "right" })}
+                onPressedChange={() => editor.chain().focus().setTextAlign("right").run()}
+                className="h-8 w-8 p-0"
+            >
+                <AlignRight className="h-4 w-4" />
+            </Toggle>
+            <Toggle
+                size="sm"
+                pressed={editor.isActive({ textAlign: "justify" })}
+                onPressedChange={() => editor.chain().focus().setTextAlign("justify").run()}
+                className="h-8 w-8 p-0"
+            >
+                <AlignJustify className="h-4 w-4" />
             </Toggle>
 
             <div className="w-[1px] h-4 bg-border mx-1" />
@@ -89,6 +149,27 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
             >
                 <ListOrdered className="h-4 w-4" />
             </Toggle>
+
+            <div className="w-[1px] h-4 bg-border mx-1" />
+
+            <div className="flex items-center gap-1">
+                <input
+                    type="color"
+                    onInput={event => editor.chain().focus().setColor((event.target as HTMLInputElement).value).run()}
+                    value={editor.getAttributes("textStyle").color || "#000000"}
+                    className="w-6 h-6 p-0 border-none bg-transparent cursor-pointer"
+                    title="Text Color"
+                />
+                <Toggle
+                    size="sm"
+                    pressed={editor.isActive("highlight")}
+                    onPressedChange={() => editor.chain().focus().toggleHighlight().run()}
+                    className="h-8 w-8 p-0"
+                    title="Highlight"
+                >
+                    <Highlighter className="h-4 w-4" />
+                </Toggle>
+            </div>
         </div>
     );
 };
@@ -103,9 +184,13 @@ export function RichTextEditor({
     const editor = useEditor({
         extensions: [
             StarterKit.configure({
-                heading: { levels: [2, 3] }
+                heading: { levels: [1, 2, 3, 4] }
             }),
             Underline,
+            TextStyle,
+            Color,
+            Highlight.configure({ multicolor: true }),
+            TextAlign.configure({ types: ['heading', 'paragraph'] }),
             Placeholder.configure({
                 placeholder,
                 emptyEditorClass: 'is-editor-empty',

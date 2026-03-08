@@ -142,14 +142,13 @@ export function QuestsList({ eventId, initialQuests, isOrgOrSysAdmin, token }: Q
                         <TableRow>
                             <TableHead>{t("quests.list.columns.title")}</TableHead>
                             <TableHead>{t("quests.list.columns.status")}</TableHead>
-                            <TableHead>{t("quests.list.columns.hasFixedPlayers")}</TableHead>
                             <TableHead className="w-[80px]">{t("common.actions")}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {filteredQuests.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={4} className="h-32 text-center text-muted-foreground">
+                                <TableCell colSpan={3} className="h-32 text-center text-muted-foreground">
                                     {t("quests.list.empty")}
                                 </TableCell>
                             </TableRow>
@@ -163,13 +162,6 @@ export function QuestsList({ eventId, initialQuests, isOrgOrSysAdmin, token }: Q
                                     <TableCell className="font-semibold">{quest.title}</TableCell>
                                     <TableCell>
                                         <NarrativeStatusBadge status={quest.status} />
-                                    </TableCell>
-                                    <TableCell>
-                                        {quest.hasFixedPlayers ? (
-                                            <span className="text-emerald-600 font-medium">{t("common.yes")}</span>
-                                        ) : (
-                                            <span className="text-muted-foreground">{t("common.no")}</span>
-                                        )}
                                     </TableCell>
                                     <TableCell onClick={(e) => e.stopPropagation()}>
                                         <DropdownMenu>

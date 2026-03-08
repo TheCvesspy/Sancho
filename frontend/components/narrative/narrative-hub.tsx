@@ -57,9 +57,9 @@ export function NarrativeHub({
                     <TabsTrigger value="plotlines" className="flex-1 sm:flex-none py-2 px-4 shadow-none data-[state=active]:bg-background">
                         {t("hub.tabs.plotlines")} ({initialPlotlines.length})
                     </TabsTrigger>
-                    <TabsTrigger value="plots" className="flex-1 sm:flex-none py-2 px-4 shadow-none data-[state=active]:bg-background">
+                    {/* <TabsTrigger value="plots" className="flex-1 sm:flex-none py-2 px-4 shadow-none data-[state=active]:bg-background">
                         {t("hub.tabs.plots")} ({initialPlots.length})
-                    </TabsTrigger>
+                    </TabsTrigger> */}
                     <TabsTrigger value="factions" className="flex-1 sm:flex-none py-2 px-4 shadow-none data-[state=active]:bg-background">
                         {t("hub.tabs.factions")} ({initialFactions.length})
                     </TabsTrigger>
@@ -84,14 +84,14 @@ export function NarrativeHub({
                         token={token}
                     />
                 </TabsContent>
-                <TabsContent value="plots" className="space-y-4">
+                {/* <TabsContent value="plots" className="space-y-4">
                     <PlotsList
                         eventId={event.id}
                         initialPlots={initialPlots}
                         isOrgOrSysAdmin={isOrgOrSysAdmin}
                         token={token}
                     />
-                </TabsContent>
+                </TabsContent> */}
                 <TabsContent value="factions" className="space-y-4">
                     <FactionsList
                         eventId={event.id}

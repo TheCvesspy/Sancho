@@ -4,17 +4,19 @@ import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import {
     narrativeApi,
-    NarrativeQuestDto,
     NarrativeQuestCharacterLinkDto,
     NarrativeEntityFactionLinkDto,
     NarrativeEntityItemLinkDto,
     NarrativeFactionDto,
     NarrativeItemDto,
+    NarrativeQuestStepDto,
+    NarrativeQuestStepCharacterDto,
 } from "@/utils/narrative-api";
 import { CharacterListItemDto, charactersApi } from "@/utils/characters-api";
 import { Button } from "@/components/ui/button";
-import { Trash2, Plus, Loader2, Users, Shield, Package } from "lucide-react";
+import { Trash2, Plus, Loader2, Users, Shield, Package, Users2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
 interface QuestLinksPanelProps {
@@ -42,6 +44,10 @@ export function QuestLinksPanel({
     const [factionLinks, setFactionLinks] = useState(initialFactionLinks);
     const [itemLinks, setItemLinks] = useState(initialItemLinks);
 
+    // Step characters (read-only summary)
+    const [questSteps, setQuestSteps] = useState<NarrativeQuestStepDto[]>([]);
+    const [stepCharacters, setStepCharacters] = useState<Record<string, NarrativeQuestStepCharacterDto[]>>({});
+
     // Lookup data
     const [allCharacters, setAllCharacters] = useState<CharacterListItemDto[]>([]);
     const [allFactions, setAllFactions] = useState<NarrativeFactionDto[]>([]);
@@ -59,18 +65,33 @@ export function QuestLinksPanel({
     useEffect(() => {
         const load = async () => {
             try {
-                const [chars, factions, items] = await Promise.all([
+                const [chars, factions, items, steps] = await Promise.all([
                     charactersApi.listCharacters(token, eventId),
                     narrativeApi.listFactions(token, eventId),
                     narrativeApi.listItems(token, eventId),
+                    narrativeApi.listQuestSteps(token, eventId, questId),
                 ]);
                 setAllCharacters(chars);
                 setAllFactions(factions);
                 setAllItems(items);
+                setQuestSteps(steps);
+
+                // Load step characters
+                const entries = await Promise.all(
+                    steps.map(async (step) => {
+                        try {
+                            const links = await narrativeApi.listQuestStepCharacters(token, eventId, questId, step.id);
+                            return [step.id, links] as [string, NarrativeQuestStepCharacterDto[]];
+                        } catch {
+                            return [step.id, []] as [string, NarrativeQuestStepCharacterDto[]];
+                        }
+                    })
+                );
+                setStepCharacters(Object.fromEntries(entries));
             } catch (e) { console.error(e); }
         };
         load();
-    }, [eventId, token]);
+    }, [eventId, questId, token]);
 
     const linkedCharIds = new Set(characterLinks.map((l) => l.characterId));
     const linkedFactionIds = new Set(factionLinks.map((l) => l.factionId));
@@ -279,6 +300,42 @@ export function QuestLinksPanel({
                         <Button size="sm" onClick={addItem} disabled={!selectedItem || savingItem}>
                             {savingItem ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                         </Button>
+                    </div>
+                )}
+            </section>
+
+            {/* ── Involved Characters / NPCs (by Step) ─────────────────── */}
+            <section className="space-y-3">
+                <div className="flex items-center gap-2">
+                    <Users2 className="h-5 w-5 text-muted-foreground" />
+                    <h3 className="text-lg font-semibold">{t("quests.links.stepCharacters")}</h3>
+                </div>
+
+                {questSteps.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">{t("common.noResults")}</p>
+                ) : (
+                    <div className="divide-y rounded-md border">
+                        {questSteps
+                            .filter((step) => (stepCharacters[step.id] ?? []).length > 0)
+                            .map((step, idx) => (
+                                <div key={step.id} className="px-4 py-3 space-y-1.5">
+                                    <p className="text-sm font-medium text-muted-foreground">
+                                        Step {idx + 1}: {step.summary}
+                                    </p>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {(stepCharacters[step.id] ?? []).map((link) => (
+                                            <Badge key={link.characterId} variant="secondary">
+                                                {getName(allCharacters, link.characterId)}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        {questSteps.every((step) => (stepCharacters[step.id] ?? []).length === 0) && (
+                            <div className="px-4 py-3">
+                                <p className="text-sm text-muted-foreground">{t("quests.steps.characters.empty")}</p>
+                            </div>
+                        )}
                     </div>
                 )}
             </section>

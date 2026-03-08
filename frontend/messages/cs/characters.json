@@ -53,6 +53,7 @@
             "narrative": "Příběh"
         },
         "biography": {
+            "title": "Životopis a veřejný příběh",
             "edit": "Upravit",
             "save": "Uložit",
             "cancel": "Zrušit",

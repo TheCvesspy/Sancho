@@ -102,9 +102,9 @@ export function PlotDetail({
                 </TabsList>
 
                 <TabsContent value="overview" className="space-y-6">
-                    <div className="rounded-lg border bg-card p-6 space-y-4">
-                        <h3 className="text-lg font-semibold">{t("plots.fields.description.label")}</h3>
+                    <div className="rounded-lg border bg-card p-6">
                         <EditableRichText
+                            title={t("plots.fields.description.label")}
                             initialHtml={plot.description || ""}
                             onSave={async (val) => await handleUpdate({ description: val })}
                             isReadOnly={!isOrgOrSysAdmin}
@@ -113,12 +113,11 @@ export function PlotDetail({
                     </div>
 
                     {isOrgOrSysAdmin && (
-                        <div className="rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 p-6 space-y-4">
-                            <h3 className="text-lg font-semibold flex items-center gap-2">
-                                {t("plots.fields.internalNotes.label")}
-                                <span className="text-xs font-normal text-amber-700 dark:text-amber-600 opacity-80">{t("common.adminOnly")}</span>
-                            </h3>
+                        <div className="rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 p-6">
                             <EditableRichText
+                                title={t("plots.fields.internalNotes.label")}
+                                description={t("common.internalNotesHint")}
+                                variant="amber"
                                 initialHtml={plot.internalNotes || ""}
                                 onSave={async (val) => await handleUpdate({ internalNotes: val })}
                                 isReadOnly={!isOrgOrSysAdmin}

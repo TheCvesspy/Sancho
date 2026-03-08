@@ -4,19 +4,40 @@ import { useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
 import { EventDetailDto } from "@/utils/events-api";
-import { NarrativeQuestDto, NarrativeQuestStepDto, NarrativeDocumentLinkDto, NarrativeQuestCharacterLinkDto, NarrativeEntityFactionLinkDto, NarrativeEntityItemLinkDto, narrativeApi, UpdateQuestRequest } from "@/utils/narrative-api";
+import {
+    NarrativeQuestDto,
+    NarrativeQuestStepDto,
+    NarrativeDocumentLinkDto,
+    NarrativeQuestCharacterLinkDto,
+    NarrativeEntityFactionLinkDto,
+    NarrativeEntityItemLinkDto,
+    narrativeApi,
+    UpdateQuestRequest
+} from "@/utils/narrative-api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { ArrowLeft, Save, Loader2, FileText, Link as LinkIcon, ListOrdered, HardDriveUpload } from "lucide-react";
+import {
+    ArrowLeft,
+    Save,
+    Loader2,
+    FileText,
+    Link as LinkIcon,
+    HardDriveUpload,
+    Pencil,
+    X,
+    Trash2,
+    RotateCcw
+} from "lucide-react";
 import { EditableRichText } from "@/components/ui/editable-rich-text";
 import { NarrativeStatusBadge } from "./narrative-status-badge";
 import { ChangeNarrativeStatusDialog } from "./change-narrative-status-dialog";
 import { QuestStepsPanel } from "./quest-steps-panel";
 import { QuestLinksPanel } from "./quest-links-panel";
 import { QuestDocumentsPanel } from "./quest-documents-panel";
+import { format } from "date-fns";
+import { EditQuestNameDialog } from "./edit-quest-name-dialog";
+import { DuplicateQuestDialog } from "./duplicate-quest-dialog";
 
 interface QuestDetailProps {
     event: EventDetailDto;
@@ -46,175 +67,171 @@ export function QuestDetail({
     const router = useRouter();
 
     const [quest, setQuest] = useState<NarrativeQuestDto>(initialQuest);
-    const [isEditingTitle, setIsEditingTitle] = useState(false);
-    const [editedTitle, setEditedTitle] = useState(quest.title);
-    const [isSaving, setIsSaving] = useState(false);
+    const [isActionPending, setIsActionPending] = useState(false);
 
-    const handleBack = () => {
-        router.push(`/${locale}/narrative/${event.id}`);
+    const handleBack = () => router.push(`/${locale}/narrative/${event.id}`);
+
+    // --- Description / Notes via EditableRichText ---
+    const handleSaveField = async (field: "description" | "internalNotes", value: string) => {
+        const req: UpdateQuestRequest = { [field]: value };
+        const updated = await narrativeApi.updateQuest(token, event.id, quest.id, req);
+        setQuest(q => ({ ...q, [field]: updated[field as keyof NarrativeQuestDto], updatedAt: updated.updatedAt }));
     };
 
-    const handleSaveTitle = async () => {
-        if (editedTitle.trim() === "" || editedTitle === quest.title) {
-            setIsEditingTitle(false);
-            setEditedTitle(quest.title);
-            return;
-        }
-
-        setIsSaving(true);
+    // --- Delete / Restore ---
+    const handleDelete = async () => {
+        if (!confirm(t("quests.dialogs.delete.description"))) return;
+        setIsActionPending(true);
         try {
-            const req: UpdateQuestRequest = { title: editedTitle };
-            const updated = await narrativeApi.updateQuest(token, event.id, quest.id, req);
-            setQuest(q => ({ ...q, title: updated.title, updatedAt: updated.updatedAt }));
-            setIsEditingTitle(false);
+            await narrativeApi.deleteQuest(token, event.id, quest.id, "User requested deletion");
+            setQuest(q => ({ ...q, deletedAt: new Date().toISOString() }));
         } catch (error) {
             console.error(error);
         } finally {
-            setIsSaving(false);
+            setIsActionPending(false);
         }
     };
 
-    const handleSaveField = async (field: "description" | "internalNotes" | "hasFixedPlayers", value: any) => {
+    const handleRestore = async () => {
+        setIsActionPending(true);
         try {
-            const req: UpdateQuestRequest = { [field]: value };
-            const updated = await narrativeApi.updateQuest(token, event.id, quest.id, req);
-            setQuest(q => ({ ...q, [field]: updated[field], updatedAt: updated.updatedAt }));
+            await narrativeApi.undeleteQuest(token, event.id, quest.id);
+            setQuest(q => ({ ...q, deletedAt: null }));
         } catch (error) {
             console.error(error);
+        } finally {
+            setIsActionPending(false);
         }
     };
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" onClick={handleBack} className="shrink-0">
-                    <ArrowLeft className="h-5 w-5" />
-                    <span className="sr-only">{t("common.back")}</span>
+        <div className="space-y-6 lg:max-w-6xl lg:mx-auto">
+            {/* Breadcrumb / Back Navigation */}
+            <div className="flex items-center gap-2 mb-4">
+                <Button variant="ghost" size="sm" onClick={handleBack}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back to {event.name}
                 </Button>
+            </div>
 
-                <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                        <span>{event.name}</span>
-                        <span>/</span>
-                        <span>{t("title")}</span>
+            {/* ── Header card (aligned with Character detail — no avatar) ── */}
+            <div className="bg-card rounded-lg border p-6 flex flex-col md:flex-row gap-6 relative overflow-hidden">
+                {quest.deletedAt && (
+                    <div className="absolute top-0 left-0 right-0 bg-destructive/10 text-destructive text-center text-sm font-semibold py-1">
+                        This quest is deleted.
                     </div>
-                    {isEditingTitle ? (
-                        <div className="flex items-center gap-2">
-                            <Input
-                                value={editedTitle}
-                                onChange={(e) => setEditedTitle(e.target.value)}
-                                className="text-3xl font-bold h-12 max-w-md"
-                                autoFocus
-                                onKeyDown={(e) => e.key === 'Enter' && handleSaveTitle()}
-                            />
-                            <Button size="icon" onClick={handleSaveTitle} disabled={isSaving}>
-                                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                            </Button>
-                        </div>
-                    ) : (
-                        <h1
-                            className={`text-3xl font-bold tracking-tight truncate ${isOrgOrSysAdmin ? "cursor-pointer hover:underline decoration-muted-foreground underline-offset-4" : ""}`}
-                            onClick={() => isOrgOrSysAdmin && setIsEditingTitle(true)}
-                        >
-                            {quest.title}
-                        </h1>
-                    )}
-                </div>
+                )}
 
-                <div className="flex items-center gap-3">
-                    {isOrgOrSysAdmin ? (
-                        <ChangeNarrativeStatusDialog
-                            eventId={event.id}
-                            entityId={quest.id}
-                            entityType="quest"
-                            currentStatus={quest.status}
-                            token={token}
-                            onStatusChanged={(s) => setQuest(q => ({ ...q, status: s as "Draft" | "Ready" | "Locked" }))}
-                        >
-                            <div className="cursor-pointer hover:opacity-80 transition-opacity">
-                                <NarrativeStatusBadge status={quest.status} />
+                <div className="flex-1 min-w-0 flex flex-col justify-between">
+                    <div>
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-2">
+                            <div>
+                                <h1 className="text-3xl font-bold tracking-tight mb-1 truncate">{quest.title}</h1>
+                                <div className="flex items-center gap-3 text-muted-foreground">
+                                    <span>Created {format(new Date(quest.createdAt), 'PPP')}</span>
+                                </div>
                             </div>
-                        </ChangeNarrativeStatusDialog>
-                    ) : (
-                        <NarrativeStatusBadge status={quest.status} />
+                            <div className="flex shrink-0">
+                                <NarrativeStatusBadge status={quest.status} className="text-sm px-3 py-1" />
+                            </div>
+                        </div>
+                    </div>
+
+                    {isOrgOrSysAdmin && (
+                        <div className="mt-6 flex flex-wrap items-center gap-2">
+                            <EditQuestNameDialog eventId={event.id} token={token} quest={quest} />
+                            <ChangeNarrativeStatusDialog
+                                eventId={event.id}
+                                entityId={quest.id}
+                                entityType="quest"
+                                currentStatus={quest.status}
+                                token={token}
+                                onStatusChanged={(s) => setQuest(q => ({ ...q, status: s as "Draft" | "Ready" | "Locked" }))}
+                            >
+                                <Button variant="outline" size="sm">
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    {t("common.changeStatus")}
+                                </Button>
+                            </ChangeNarrativeStatusDialog>
+                            <DuplicateQuestDialog eventId={event.id} token={token} quest={quest} />
+
+                            {!quest.deletedAt ? (
+                                <Button variant="destructive" size="sm" onClick={handleDelete} disabled={isActionPending} className="ml-auto">
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    {t("common.delete")}
+                                </Button>
+                            ) : (
+                                <Button variant="outline" size="sm" onClick={handleRestore} disabled={isActionPending} className="ml-auto text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/30">
+                                    <RotateCcw className="mr-2 h-4 w-4" />
+                                    {t("common.restore")}
+                                </Button>
+                            )}
+                        </div>
                     )}
                 </div>
             </div>
 
-            <Tabs defaultValue="overview" className="space-y-6">
-                <TabsList className="bg-muted/50 w-full justify-start h-auto flex-wrap p-1">
-                    <TabsTrigger value="overview" className="flex-1 sm:flex-none py-2 px-4 shadow-none data-[state=active]:bg-background">
+            {/* ── Tabs ── */}
+            <Tabs defaultValue="details" className="space-y-6">
+                <TabsList className="w-full justify-start bg-transparent border-b rounded-none h-auto p-0 gap-0">
+                    <TabsTrigger
+                        value="details"
+                        className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-3 px-4 font-medium"
+                    >
                         <FileText className="h-4 w-4 mr-2" />
-                        {t("quests.detail.tabs.overview")}
+                        {t("quests.detail.tabs.details")}
                     </TabsTrigger>
-                    <TabsTrigger value="steps" className="flex-1 sm:flex-none py-2 px-4 shadow-none data-[state=active]:bg-background">
-                        <ListOrdered className="h-4 w-4 mr-2" />
-                        {t("quests.detail.tabs.steps")}
-                    </TabsTrigger>
-                    <TabsTrigger value="links" className="flex-1 sm:flex-none py-2 px-4 shadow-none data-[state=active]:bg-background">
+                    <TabsTrigger
+                        value="links"
+                        className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-3 px-4 font-medium"
+                    >
                         <LinkIcon className="h-4 w-4 mr-2" />
                         {t("quests.detail.tabs.links")}
                     </TabsTrigger>
-                    <TabsTrigger value="documents" className="flex-1 sm:flex-none py-2 px-4 shadow-none data-[state=active]:bg-background">
+                    <TabsTrigger
+                        value="documents"
+                        className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-3 px-4 font-medium"
+                    >
                         <HardDriveUpload className="h-4 w-4 mr-2" />
                         {t("quests.detail.tabs.documents")}
                     </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="overview" className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="md:col-span-2 space-y-6">
-                            <div className="rounded-lg border bg-card p-6 space-y-4">
-                                <h3 className="text-lg font-semibold">{t("quests.fields.description.label")}</h3>
-                                <EditableRichText
-                                    initialHtml={quest.description || ""}
-                                    placeholder={t("quests.fields.description.placeholder")}
-                                    isReadOnly={!isOrgOrSysAdmin}
-                                    onSave={(html) => handleSaveField("description", html)}
-                                />
-                            </div>
+                {/* Details tab: Steps first, then Description, then Internal Notes */}
+                <TabsContent value="details" className="space-y-8 mt-4">
+                    <QuestStepsPanel
+                        questId={quest.id}
+                        eventId={event.id}
+                        initialSteps={initialSteps}
+                        isOrgOrSysAdmin={isOrgOrSysAdmin}
+                        token={token}
+                    />
 
-                            {isOrgOrSysAdmin && (
-                                <div className="rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 p-6 space-y-4">
-                                    <h3 className="text-lg font-semibold flex items-center gap-2">
-                                        {t("quests.fields.internalNotes.label")}
-                                        <span className="text-xs font-normal text-amber-700 dark:text-amber-600 opacity-80">{t("common.adminOnly")}</span>
-                                    </h3>
-                                    <EditableRichText
-                                        initialHtml={quest.internalNotes || ""}
-                                        placeholder={t("quests.fields.internalNotes.placeholder")}
-                                        isReadOnly={!isOrgOrSysAdmin}
-                                        onSave={(html) => handleSaveField("internalNotes", html)}
-                                    />
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="space-y-6">
-                            <div className="rounded-lg border bg-card p-6 space-y-4">
-                                <h3 className="font-semibold">{t("quests.detail.settings")}</h3>
-
-                                <div className="flex items-center justify-between">
-                                    <Label htmlFor="fixed-players" className="flex flex-col space-y-1">
-                                        <span>{t("quests.fields.hasFixedPlayers.label")}</span>
-                                        <span className="font-normal text-xs text-muted-foreground">
-                                            {t("quests.fields.hasFixedPlayers.description")}
-                                        </span>
-                                    </Label>
-                                    <Switch
-                                        id="fixed-players"
-                                        checked={quest.hasFixedPlayers}
-                                        onCheckedChange={(c) => handleSaveField("hasFixedPlayers", c)}
-                                        disabled={!isOrgOrSysAdmin}
-                                    />
-                                </div>
-                            </div>
-                        </div>
+                    {/* Description */}
+                    <div className="rounded-lg border bg-card p-6">
+                        <EditableRichText
+                            title={t("quests.fields.description.label")}
+                            initialHtml={quest.description || ""}
+                            placeholder={t("quests.fields.description.placeholder")}
+                            isReadOnly={!isOrgOrSysAdmin || !!quest.deletedAt}
+                            onSave={(html) => handleSaveField("description", html)}
+                        />
                     </div>
-                </TabsContent>
 
-                <TabsContent value="steps">
-                    <QuestStepsPanel questId={quest.id} eventId={event.id} initialSteps={initialSteps} isOrgOrSysAdmin={isOrgOrSysAdmin} token={token} />
+                    {/* Internal Notes (admin only) */}
+                    {isOrgOrSysAdmin && (
+                        <div className="rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 p-6">
+                            <EditableRichText
+                                title={t("quests.fields.internalNotes.label")}
+                                description={t("common.internalNotesHint")}
+                                variant="amber"
+                                initialHtml={quest.internalNotes || ""}
+                                placeholder={t("quests.fields.internalNotes.placeholder")}
+                                isReadOnly={!!quest.deletedAt}
+                                onSave={(html) => handleSaveField("internalNotes", html)}
+                            />
+                        </div>
+                    )}
                 </TabsContent>
 
                 <TabsContent value="links">
@@ -230,7 +247,13 @@ export function QuestDetail({
                 </TabsContent>
 
                 <TabsContent value="documents">
-                    <QuestDocumentsPanel questId={quest.id} eventId={event.id} initialDocuments={initialDocuments} isOrgOrSysAdmin={isOrgOrSysAdmin} token={token} />
+                    <QuestDocumentsPanel
+                        questId={quest.id}
+                        eventId={event.id}
+                        initialDocuments={initialDocuments}
+                        isOrgOrSysAdmin={isOrgOrSysAdmin}
+                        token={token}
+                    />
                 </TabsContent>
             </Tabs>
         </div>

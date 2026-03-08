@@ -24,6 +24,9 @@
     "common": {
         "cancel": "Cancel",
         "save": "Save",
+        "error": "An error occurred",
+        "duplicate": "Duplicate",
+        "editTitle": "Edit Quest Name",
         "create": "Create",
         "delete": "Delete",
         "restore": "Restore",
@@ -44,6 +47,7 @@
         "deleteConfirm": "Are you sure?",
         "loading": "Loading...",
         "adminOnly": "Admin Only",
+        "internalNotesHint": "Visible only to organizers. Used for GM secrets, plots, etc.",
         "deleted": "Deleted",
         "yes": "Yes",
         "no": "No",
@@ -122,18 +126,15 @@
             "empty": "No quests found.",
             "columns": {
                 "title": "Title",
-                "status": "Status",
-                "hasFixedPlayers": "Fixed Players"
+                "status": "Status"
             }
         },
         "detail": {
             "tabs": {
-                "overview": "Overview",
-                "steps": "Steps",
+                "details": "Details",
                 "links": "Links",
                 "documents": "Documents"
-            },
-            "settings": "Settings"
+            }
         },
         "fields": {
             "title": {
@@ -147,10 +148,6 @@
             "internalNotes": {
                 "label": "Internal Notes",
                 "placeholder": "Enter internal notes (admin only)..."
-            },
-            "hasFixedPlayers": {
-                "label": "Has Fixed Players",
-                "description": "If checked, this quest requires specific characters to complete."
             }
         },
         "steps": {
@@ -170,12 +167,24 @@
             "items": {
                 "required": "Required Items",
                 "loot": "Loot Items"
+            },
+            "characters": {
+                "title": "Involved Characters / NPCs",
+                "add": "Add Character",
+                "empty": "No characters assigned to this step.",
+                "remove": "Remove"
+            },
+            "addDialog": {
+                "title": "Add Quest Step",
+                "description": "Add a new step to this quest.",
+                "submit": "Add Step"
             }
         },
         "links": {
             "characters": "Linked Characters",
             "factions": "Linked Factions",
-            "items": "Linked Items"
+            "items": "Linked Items",
+            "stepCharacters": "Involved Characters / NPCs (by Step)"
         },
         "dialogs": {
             "delete": {
@@ -185,7 +194,24 @@
             "restore": {
                 "title": "Restore Quest",
                 "description": "Are you sure you want to restore this quest?"
+            },
+            "duplicate": {
+                "title": "Duplicate Quest",
+                "description": "Create a copy of this quest.",
+                "newTitle": "New Quest Title",
+                "copyWarning": "Quest steps, linked characters, and linked items will be copied. Documents will NOT be copied.",
+                "submit": "Duplicate",
+                "copySuffix": " (Copy)"
+            },
+            "edit": {
+                "title": "Edit Quest Title",
+                "description": "Change the title of this quest.",
+                "lockedWarning": "Quest is locked. Only internal notes can be edited.",
+                "inlineNote": "Description and Internal Notes are edited on the Details tab inline."
             }
+        },
+        "validation": {
+            "titleRequired": "Title is required"
         },
         "notifications": {
             "created": "Quest created successfully",

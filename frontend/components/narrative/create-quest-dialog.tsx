@@ -17,7 +17,6 @@ import {
 import {
     Form,
     FormControl,
-    FormDescription,
     FormField,
     FormItem,
     FormLabel,
@@ -25,7 +24,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
@@ -33,7 +31,6 @@ import { narrativeApi, CreateQuestRequest } from "@/utils/narrative-api";
 
 const createQuestSchema = z.object({
     title: z.string().min(2, "Title must be at least 2 characters").max(100),
-    hasFixedPlayers: z.boolean(),
 });
 
 type CreateQuestValues = z.infer<typeof createQuestSchema>;
@@ -54,7 +51,6 @@ export function CreateQuestDialog({ eventId, token }: CreateQuestDialogProps) {
         resolver: zodResolver(createQuestSchema),
         defaultValues: {
             title: "",
-            hasFixedPlayers: false,
         },
     });
 
@@ -63,8 +59,7 @@ export function CreateQuestDialog({ eventId, token }: CreateQuestDialogProps) {
         try {
             const req: CreateQuestRequest = {
                 title: data.title,
-                hasFixedPlayers: data.hasFixedPlayers,
-                description: null, // Full edit via detail page later
+                description: null,
                 internalNotes: null,
             };
             const created = await narrativeApi.createQuest(token, eventId, req);
@@ -73,7 +68,6 @@ export function CreateQuestDialog({ eventId, token }: CreateQuestDialogProps) {
             router.push(`/${locale}/narrative/${eventId}/quests/${created.id}`);
         } catch (error) {
             console.error(error);
-            // Handle error (could show a toast)
         } finally {
             setIsSubmitting(false);
         }
@@ -106,27 +100,6 @@ export function CreateQuestDialog({ eventId, token }: CreateQuestDialogProps) {
                                         <Input placeholder={t("quests.fields.title.placeholder")} {...field} />
                                     </FormControl>
                                     <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
-                        <FormField
-                            control={form.control}
-                            name="hasFixedPlayers"
-                            render={({ field }) => (
-                                <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-4 border rounded-md">
-                                    <FormControl>
-                                        <Checkbox
-                                            checked={field.value}
-                                            onCheckedChange={field.onChange}
-                                        />
-                                    </FormControl>
-                                    <div className="space-y-1 leading-none">
-                                        <FormLabel>{t("quests.fields.hasFixedPlayers.label")}</FormLabel>
-                                        <FormDescription>
-                                            {t("quests.fields.hasFixedPlayers.description")}
-                                        </FormDescription>
-                                    </div>
                                 </FormItem>
                             )}
                         />

@@ -92,7 +92,7 @@ export function CreateItemDialog({ eventId, token, onCreated }: CreateItemDialog
             <DialogTrigger asChild>
                 <Button>
                     <PlusCircle className="mr-2 h-4 w-4" />
-                    {t("items.list.create")}
+                    {t("items.create")}
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">

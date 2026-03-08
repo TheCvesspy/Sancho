@@ -39,9 +39,15 @@ export default async function PlotlineDetailPage({
     const isOrgOrSysAdmin = profile.isSystemAdmin || profile.orgRole === "OrgOwner";
 
     try {
-        const [event, plotline] = await Promise.all([
+        const [event, plotline, phases, questLinks, documents, characterLinks, factionLinks, itemLinks] = await Promise.all([
             eventsApi.getEvent(token, eventId),
             narrativeApi.getPlotline(token, eventId, plotlineId),
+            narrativeApi.listPlotlinePhases(token, eventId, plotlineId),
+            narrativeApi.listPlotlineQuests(token, eventId, plotlineId),
+            narrativeApi.listPlotlineDocuments(token, eventId, plotlineId),
+            narrativeApi.listPlotlineCharacters(token, eventId, plotlineId),
+            narrativeApi.listPlotlineFactions(token, eventId, plotlineId),
+            narrativeApi.listPlotlineItems(token, eventId, plotlineId),
         ]);
 
         return (
@@ -56,6 +62,12 @@ export default async function PlotlineDetailPage({
                 <PlotlineDetail
                     event={event}
                     initialPlotline={plotline}
+                    initialPhases={phases}
+                    initialQuestLinks={questLinks}
+                    initialDocuments={documents}
+                    initialCharacterLinks={characterLinks}
+                    initialFactionLinks={factionLinks}
+                    initialItemLinks={itemLinks}
                     isOrgOrSysAdmin={isOrgOrSysAdmin}
                     token={token}
                 />

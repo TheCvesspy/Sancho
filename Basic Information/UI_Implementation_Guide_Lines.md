@@ -76,10 +76,84 @@ Scope: Frontend (Next.js 15.5.12 App Router). Applies to all modules and shared 
 - At least 1 module page implemented using shared UI primitives.
 - Lint and typecheck pass.
 
-## 12. Notes
+## 12. Editable Rich Text Fields
+
+Use the shared `EditableRichText` component (`@/components/ui/editable-rich-text`) for all long-form, inline-editable HTML content fields (descriptions, biographies, notes, goals, etc.). Do **not** implement inline edit/save/cancel logic from scratch.
+
+### 12.1 Component API
+
+```tsx
+<EditableRichText
+    title="Section Title"           // Renders a header row with Edit button
+    description="Helper hint text"  // Optional small text below the header
+    variant="default"               // "default" | "amber" (see §12.3)
+    initialHtml={html}              // Current HTML content
+    placeholder="Empty state text"  // Shown when initialHtml is empty
+    isReadOnly={false}              // Hides the Edit button when true
+    onSave={async (html) => {...}}  // Called with new HTML on Save
+/>
+```
+
+### 12.2 Standard (default) variant — for public content
+
+Use for fields like Description, Biography, Goals — any content visible to all users.
+
+**Wrapper pattern:**
+```tsx
+<div className="bg-card rounded-lg border p-6">
+    <EditableRichText
+        title={t("fields.description.label")}
+        initialHtml={entity.description || ""}
+        placeholder={t("fields.description.placeholder")}
+        isReadOnly={!isOrgOrSysAdmin}
+        onSave={(html) => handleSave("description", html)}
+    />
+</div>
+```
+
+**Visual behaviour:**
+- Header: `text-lg font-semibold text-foreground/80` with `border-b` separator.
+- Edit button: Always visible ghost button in the header row (not hover-dependent).
+- Content area: Clean `min-h-[100px]`, no background tint.
+- All button labels (Edit / Save / Cancel) sourced from `common.actions.*` i18n keys.
+
+### 12.3 Amber variant — for internal/admin-only notes
+
+Use for fields like Internal Notes that are restricted to organizers/admins.
+
+**Wrapper pattern:**
+```tsx
+<div className="rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 p-6">
+    <EditableRichText
+        title={t("fields.internalNotes.label")}
+        description={t("common.internalNotesHint")}
+        variant="amber"
+        initialHtml={entity.internalNotes || ""}
+        placeholder={t("fields.internalNotes.placeholder")}
+        isReadOnly={!isOrgOrSysAdmin}
+        onSave={(html) => handleSave("internalNotes", html)}
+    />
+</div>
+```
+
+**Visual behaviour:**
+- Amber-tinted container with amber border (provided by the wrapper div).
+- Title, description, buttons, content, and empty state all use amber colour tokens.
+- Header: `mb-2` without `border-b` (the amber background already provides visual separation).
+- Description hint (e.g. "Visible only to organizers…") rendered below the header.
+- Editor border, Cancel button, and Save button all follow amber theming.
+
+### 12.4 Rules
+
+1. **Always provide a `title`** — the header row with the Edit button is the standard interaction pattern.
+2. **Always use i18n** — title, description, and placeholder must come from translation files. Never hardcode English strings.
+3. **Never use hover-reveal edit buttons** — the Edit button must always be visible in the header row for discoverability.
+4. **Never add `bg-muted/20` or tinted backgrounds to the content area** — keep the read-mode content clean.
+5. **Use `variant="amber"` for all admin-only / internal notes** — this provides a consistent visual cue that the content is restricted.
+6. **The wrapper `<div>` is the caller's responsibility** — `EditableRichText` renders a Fragment (`<>…</>`), so the outer card/border container must be provided at the call site.
+
+## 13. Notes
 - All new UI components must be localized and theme-aware.
 - Avoid one-off styling; prefer shared tokens and variants.
 - Keep components small and composable to align with modular monolith boundaries.
-
-
 

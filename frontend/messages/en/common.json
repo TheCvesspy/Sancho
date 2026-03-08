@@ -4,6 +4,12 @@
   "toggleTheme": "Toggle theme",
   "primaryAction": "Primary action",
   "localeHint": "This page is localized (EN/CS).",
+  "actions": {
+    "edit": "Edit",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
+  "noContent": "No content provided.",
   "profile": {
     "title": "User Profile",
     "displayName": "Display Name",

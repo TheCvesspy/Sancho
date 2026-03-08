@@ -4,6 +4,12 @@
   "toggleTheme": "Prepnout motiv",
   "primaryAction": "Hlavni akce",
   "localeHint": "Tato stranka je lokalizovana (EN/CS).",
+  "actions": {
+    "edit": "Upravit",
+    "save": "Uložit",
+    "cancel": "Zrušit"
+  },
+  "noContent": "Žádný obsah.",
   "profile": {
     "title": "Uživatelský profil",
     "displayName": "Zobrazované jméno",

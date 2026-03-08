@@ -40,7 +40,6 @@ export interface NarrativeQuestDto {
     description: string | null;
     internalNotes: string | null;
     status: "Draft" | "Ready" | "Locked";
-    hasFixedPlayers: boolean;
     createdAt: string;
     updatedAt: string;
     deletedAt: string | null;
@@ -205,6 +204,13 @@ export interface NarrativeQuestStepItemLinkDto {
     createdAt: string;
 }
 
+export interface NarrativeQuestStepCharacterDto {
+    eventId: string;
+    stepId: string;
+    characterId: string;
+    createdAt: string;
+}
+
 export interface NarrativeInheritedLinksDto {
     characterIds: string[];
     factionIds: string[];
@@ -234,14 +240,12 @@ export interface CreateQuestRequest {
     title: string;
     description: string | null;
     internalNotes: string | null;
-    hasFixedPlayers: boolean;
 }
 
 export interface UpdateQuestRequest {
     title?: string;
     description?: string | null;
     internalNotes?: string | null;
-    hasFixedPlayers?: boolean;
 }
 
 export interface CreateQuestStepRequest {
@@ -427,6 +431,13 @@ export const narrativeApi = {
             headers: { Authorization: `Bearer ${token}` },
         }),
 
+    duplicateQuest: (token: string, eventId: string, questId: string, data: { title?: string }) =>
+        fetcher<NarrativeQuestDto>(`/api/events/${eventId}/narrative/quests/${questId}/duplicate`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        }),
+
     // Quest Steps
     listQuestSteps: (token: string, eventId: string, questId: string) =>
         fetcher<NarrativeQuestStepDto[]>(`/api/events/${eventId}/narrative/quests/${questId}/steps`, {
@@ -468,6 +479,24 @@ export const narrativeApi = {
 
     deleteQuestStepItem: (token: string, eventId: string, questId: string, stepId: string, itemId: string, linkType?: string) =>
         fetcher<void>(`/api/events/${eventId}/narrative/quests/${questId}/steps/${stepId}/items/${itemId}${linkType ? `?linkType=${linkType}` : ''}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+        }),
+
+    // Quest Step Characters (Involved Characters / NPCs)
+    listQuestStepCharacters: (token: string, eventId: string, questId: string, stepId: string) =>
+        fetcher<NarrativeQuestStepCharacterDto[]>(`/api/events/${eventId}/narrative/quests/${questId}/steps/${stepId}/characters`, {
+            headers: { Authorization: `Bearer ${token}` },
+        }),
+
+    upsertQuestStepCharacter: (token: string, eventId: string, questId: string, stepId: string, characterId: string) =>
+        fetcher<NarrativeQuestStepCharacterDto>(`/api/events/${eventId}/narrative/quests/${questId}/steps/${stepId}/characters/${characterId}`, {
+            method: "PUT",
+            headers: { Authorization: `Bearer ${token}` },
+        }),
+
+    deleteQuestStepCharacter: (token: string, eventId: string, questId: string, stepId: string, characterId: string) =>
+        fetcher<void>(`/api/events/${eventId}/narrative/quests/${questId}/steps/${stepId}/characters/${characterId}`, {
             method: "DELETE",
             headers: { Authorization: `Bearer ${token}` },
         }),

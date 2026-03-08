@@ -13,13 +13,16 @@ const RichTextEditor = dynamic(
 );
 
 interface EditableRichTextProps {
+    title?: string;
+    description?: string;
+    variant?: "default" | "amber";
     initialHtml: string;
     placeholder?: string;
     isReadOnly?: boolean;
     onSave: (html: string) => Promise<void>;
 }
 
-export function EditableRichText({ initialHtml, placeholder, isReadOnly = false, onSave }: EditableRichTextProps) {
+export function EditableRichText({ title, description, variant = "default", initialHtml, placeholder, isReadOnly = false, onSave }: EditableRichTextProps) {
     const t = useTranslations("common");
     const [isEditing, setIsEditing] = useState(false);
     const [value, setValue] = useState(initialHtml);
@@ -42,41 +45,90 @@ export function EditableRichText({ initialHtml, placeholder, isReadOnly = false,
         setIsEditing(false);
     };
 
-    if (isEditing) {
-        return (
-            <div className="space-y-4">
-                <RichTextEditor value={value} onChange={setValue} disabled={isSaving} />
-                <div className="flex justify-end gap-2">
-                    <Button variant="outline" size="sm" onClick={handleCancel} disabled={isSaving}>
-                        <X className="h-4 w-4 mr-1" />
-                        Cancel
-                    </Button>
-                    <Button size="sm" onClick={handleSave} disabled={isSaving}>
-                        {isSaving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Check className="h-4 w-4 mr-1" />}
-                        Save
-                    </Button>
-                </div>
-            </div>
-        );
-    }
+    const isAmber = variant === "amber";
 
     return (
-        <div className="group relative">
-            {!isReadOnly && (
-                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                        <Edit2 className="h-4 w-4 mr-1" />
-                        Edit
-                    </Button>
+        <>
+            {title && (
+                <div className={isAmber
+                    ? "flex items-center justify-between mb-2"
+                    : "flex items-center justify-between border-b pb-2 mb-4"
+                }>
+                    <h3 className={isAmber
+                        ? "text-lg font-semibold text-amber-900 dark:text-amber-500"
+                        : "text-lg font-semibold text-foreground/80"
+                    }>{title}</h3>
+                    {!isReadOnly && !isEditing && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setIsEditing(true)}
+                            className={isAmber
+                                ? "h-8 text-amber-700 hover:text-amber-900 hover:bg-amber-100 dark:text-amber-400 dark:hover:text-amber-200 dark:hover:bg-amber-900/40"
+                                : "h-8 group"
+                            }
+                        >
+                            <Edit2 className={isAmber
+                                ? "h-4 w-4 mr-1"
+                                : "h-4 w-4 mr-1 text-muted-foreground group-hover:text-foreground"
+                            } />
+                            {t("actions.edit")}
+                        </Button>
+                    )}
                 </div>
             )}
-            <div className="min-h-[100px] p-4 bg-muted/20 rounded-md">
-                {initialHtml ? (
-                    <RichTextView html={initialHtml} />
-                ) : (
-                    <p className="text-muted-foreground italic">{placeholder || "No description provided."}</p>
-                )}
-            </div>
-        </div>
+
+            {description && (
+                <p className={isAmber
+                    ? "text-xs text-amber-700 dark:text-amber-600 mb-4 opacity-80"
+                    : "text-xs text-muted-foreground mb-4 opacity-80"
+                }>{description}</p>
+            )}
+
+            {isEditing ? (
+                <div className="space-y-4">
+                    <RichTextEditor
+                        value={value}
+                        onChange={setValue}
+                        disabled={isSaving}
+                        {...(isAmber && { className: "border-amber-300 dark:border-amber-800" })}
+                    />
+                    <div className="flex justify-end gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleCancel}
+                            disabled={isSaving}
+                            className={isAmber ? "border-amber-300 text-amber-800 hover:bg-amber-100 dark:border-amber-800 dark:text-amber-200 dark:hover:bg-amber-900/40" : undefined}
+                        >
+                            <X className="h-4 w-4 mr-1" />
+                            {t("actions.cancel")}
+                        </Button>
+                        <Button
+                            size="sm"
+                            onClick={handleSave}
+                            disabled={isSaving}
+                            className={isAmber ? "bg-amber-600 hover:bg-amber-700 text-white" : undefined}
+                        >
+                            {isSaving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Check className="h-4 w-4 mr-1" />}
+                            {t("actions.save")}
+                        </Button>
+                    </div>
+                </div>
+            ) : (
+                <div className="min-h-[100px]">
+                    {initialHtml ? (
+                        <div className={isAmber ? "text-amber-950 dark:text-amber-200" : undefined}>
+                            <RichTextView html={initialHtml} />
+                        </div>
+                    ) : (
+                        <p className={isAmber
+                            ? "text-amber-700/60 dark:text-amber-700 italic text-sm"
+                            : "text-muted-foreground italic"
+                        }>{placeholder || t("noContent")}</p>
+                    )}
+                </div>
+            )}
+        </>
     );
 }

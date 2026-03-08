@@ -82,7 +82,7 @@ export function CreatePlotlineDialog({ eventId, token, onCreated }: CreatePlotli
             <DialogTrigger asChild>
                 <Button>
                     <PlusCircle className="mr-2 h-4 w-4" />
-                    {t("plotlines.list.create")}
+                    {t("plotlines.create")}
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">

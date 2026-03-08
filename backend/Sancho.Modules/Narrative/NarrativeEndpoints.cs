@@ -1,4 +1,4 @@
-using System.Net.Http.Headers;
+﻿using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Builder;
@@ -22,6 +22,7 @@ public static class NarrativeEndpoints
         group.MapGet("/quests/{questId:guid}", GetQuestById);
         group.MapPatch("/quests/{questId:guid}", UpdateQuest);
         group.MapPost("/quests/{questId:guid}/status", ChangeQuestStatus);
+        group.MapPost("/quests/{questId:guid}/duplicate", DuplicateQuest);
         group.MapDelete("/quests/{questId:guid}", SoftDeleteQuest);
         group.MapPost("/quests/{questId:guid}/undelete", UndeleteQuest);
 
@@ -32,6 +33,9 @@ public static class NarrativeEndpoints
         group.MapGet("/quests/{questId:guid}/steps/{stepId:guid}/items", ListQuestStepItems);
         group.MapPut("/quests/{questId:guid}/steps/{stepId:guid}/items/{itemId:guid}", UpsertQuestStepItem);
         group.MapDelete("/quests/{questId:guid}/steps/{stepId:guid}/items/{itemId:guid}", DeleteQuestStepItem);
+        group.MapGet("/quests/{questId:guid}/steps/{stepId:guid}/characters", ListQuestStepCharacters);
+        group.MapPut("/quests/{questId:guid}/steps/{stepId:guid}/characters/{characterId:guid}", UpsertQuestStepCharacter);
+        group.MapDelete("/quests/{questId:guid}/steps/{stepId:guid}/characters/{characterId:guid}", DeleteQuestStepCharacter);
 
         group.MapGet("/quests/{questId:guid}/links/characters", ListQuestCharacters);
         group.MapPut("/quests/{questId:guid}/links/characters/{characterId:guid}", UpsertQuestCharacter);
@@ -134,7 +138,7 @@ public static class NarrativeEndpoints
 
         var filters = new List<string>
         {
-            "select=id,event_id,title,description,internal_notes,status,has_fixed_players,created_at,updated_at,deleted_at",
+            "select=id,event_id,title,description,internal_notes,status,created_at,updated_at,deleted_at",
             $"event_id=eq.{eventId}",
             "order=created_at.desc"
         };
@@ -169,8 +173,7 @@ public static class NarrativeEndpoints
             title = request.Title.Trim(),
             description = request.Description,
             internal_notes = request.InternalNotes,
-            status = NarrativeStatuses.Draft,
-            has_fixed_players = request.HasFixedPlayers
+            status = NarrativeStatuses.Draft
         });
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to create quest: {resp.StatusCode}");
@@ -214,8 +217,7 @@ public static class NarrativeEndpoints
         {
             title = nextTitle,
             description = request.Description ?? row.description,
-            internal_notes = request.InternalNotes ?? row.internal_notes,
-            has_fixed_players = request.HasFixedPlayers ?? row.has_fixed_players
+            internal_notes = request.InternalNotes ?? row.internal_notes
         });
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to update quest: {resp.StatusCode}");
@@ -264,6 +266,129 @@ public static class NarrativeEndpoints
         return resp.IsSuccessStatusCode ? Results.NoContent() : Results.Problem($"Failed to delete quest: {resp.StatusCode}");
     }
 
+    private static async Task<IResult> DuplicateQuest(Guid eventId, Guid questId, ClaimsPrincipal user, [FromBody] DuplicateQuestRequest request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
+    {
+        if (!TryConfig(config, out var url, out var key, out var error)) return error!;
+        var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
+        if (!access.CanWrite) return Results.Forbid();
+
+        var source = await GetQuest(eventId, questId, url!, key!, httpClient, includeDeleted: false);
+        if (source is null) return Results.NotFound();
+
+        var clonedTitle = string.IsNullOrWhiteSpace(request.Title) ? $"{source.title} (Copy)" : request.Title.Trim();
+        if (await QuestTitleExists(eventId, clonedTitle, null, url!, key!, httpClient)) return Results.BadRequest("Duplicate title already exists in event.");
+
+        var createReq = new HttpRequestMessage(HttpMethod.Post, $"{url}/rest/v1/narrative_quests");
+        createReq.Headers.Add("Prefer", "return=representation");
+        AddHeaders(createReq, key!);
+        createReq.Content = JsonContent.Create(new { event_id = eventId, title = clonedTitle, description = source.description, internal_notes = source.internal_notes, status = NarrativeStatuses.Draft });
+        var createResp = await httpClient.SendAsync(createReq);
+        if (!createResp.IsSuccessStatusCode) return Results.Problem($"Failed to duplicate quest: {createResp.StatusCode}");
+        var created = (await createResp.Content.ReadFromJsonAsync<List<SupabaseNarrativeQuestRow>>())?.FirstOrDefault();
+        if (created is null) return Results.Problem("Duplicated quest payload missing.");
+
+        // Fetch quest steps
+        var stepsReq = new HttpRequestMessage(HttpMethod.Get, $"{url}/rest/v1/narrative_quest_steps?quest_id=eq.{questId}&event_id=eq.{eventId}&select=id,sort_order,summary,notes&order=sort_order.asc");
+        AddHeaders(stepsReq, key!);
+        var stepsResp = await httpClient.SendAsync(stepsReq);
+        var sourceSteps = stepsResp.IsSuccessStatusCode ? await stepsResp.Content.ReadFromJsonAsync<List<SupabaseNarrativeQuestStepRow>>() ?? [] : [];
+
+        var stepIdMapping = new Dictionary<Guid, Guid>();
+        if (sourceSteps.Count > 0)
+        {
+            var stepRowsToInsert = sourceSteps.Select(s => new
+            {
+                id = Guid.NewGuid(),
+                quest_id = created.id,
+                event_id = eventId,
+                sort_order = s.sort_order,
+                summary = s.summary,
+                notes = s.notes
+            }).ToList();
+            
+            for (int i = 0; i < sourceSteps.Count; i++)
+                stepIdMapping[sourceSteps[i].id] = stepRowsToInsert[i].id;
+                
+            var batchStepsReq = new HttpRequestMessage(HttpMethod.Post, $"{url}/rest/v1/narrative_quest_steps");
+            batchStepsReq.Headers.Add("Prefer", "return=minimal");
+            AddHeaders(batchStepsReq, key!);
+            batchStepsReq.Content = JsonContent.Create(stepRowsToInsert);
+            await httpClient.SendAsync(batchStepsReq);
+        }
+
+        // Fetch quest character links
+        var charsReq = new HttpRequestMessage(HttpMethod.Get, $"{url}/rest/v1/narrative_quest_characters?event_id=eq.{eventId}&quest_id=eq.{questId}&select=character_id,role");
+        AddHeaders(charsReq, key!);
+        var charsResp = await httpClient.SendAsync(charsReq);
+        var sourceChars = charsResp.IsSuccessStatusCode ? await charsResp.Content.ReadFromJsonAsync<List<SupabaseNarrativeQuestCharacterRow>>() ?? [] : [];
+
+        if (sourceChars.Count > 0)
+        {
+            var charRows = sourceChars.Select(c => new { event_id = eventId, quest_id = created.id, character_id = c.character_id, role = c.role }).ToList();
+            var batchReq = new HttpRequestMessage(HttpMethod.Post, $"{url}/rest/v1/narrative_quest_characters");
+            batchReq.Headers.Add("Prefer", "return=minimal");
+            AddHeaders(batchReq, key!);
+            batchReq.Content = JsonContent.Create(charRows);
+            await httpClient.SendAsync(batchReq);
+        }
+
+        // Fetch quest item links
+        var itemsReq = new HttpRequestMessage(HttpMethod.Get, $"{url}/rest/v1/narrative_quest_items?event_id=eq.{eventId}&quest_id=eq.{questId}&select=item_id");
+        AddHeaders(itemsReq, key!);
+        var itemsResp = await httpClient.SendAsync(itemsReq);
+        var sourceItems = itemsResp.IsSuccessStatusCode ? await itemsResp.Content.ReadFromJsonAsync<List<SupabaseNarrativeQuestItemRow>>() ?? [] : [];
+
+        if (sourceItems.Count > 0)
+        {
+            var itemRows = sourceItems.Select(i => new { event_id = eventId, quest_id = created.id, item_id = i.item_id }).ToList();
+            var batchReq = new HttpRequestMessage(HttpMethod.Post, $"{url}/rest/v1/narrative_quest_items");
+            batchReq.Headers.Add("Prefer", "return=minimal");
+            AddHeaders(batchReq, key!);
+            batchReq.Content = JsonContent.Create(itemRows);
+            await httpClient.SendAsync(batchReq);
+        }
+        
+        // Fetch step items and characters if any step exists
+        if (stepIdMapping.Count > 0)
+        {
+            var stepIdsFilter = string.Join(",", stepIdMapping.Keys);
+            
+            // Step Items
+            var stepItemsReq = new HttpRequestMessage(HttpMethod.Get, $"{url}/rest/v1/narrative_quest_step_items?event_id=eq.{eventId}&step_id=in.({stepIdsFilter})&select=step_id,item_id,link_type");
+            AddHeaders(stepItemsReq, key!);
+            var stepItemsResp = await httpClient.SendAsync(stepItemsReq);
+            var sourceStepItems = stepItemsResp.IsSuccessStatusCode ? await stepItemsResp.Content.ReadFromJsonAsync<List<SupabaseNarrativeQuestStepItemRow>>() ?? [] : [];
+            
+            if (sourceStepItems.Count > 0)
+            {
+                var stepItemRows = sourceStepItems.Select(si => new { event_id = eventId, step_id = stepIdMapping[si.step_id], item_id = si.item_id, link_type = si.link_type }).ToList();
+                var batchReq = new HttpRequestMessage(HttpMethod.Post, $"{url}/rest/v1/narrative_quest_step_items");
+                batchReq.Headers.Add("Prefer", "return=minimal");
+                AddHeaders(batchReq, key!);
+                batchReq.Content = JsonContent.Create(stepItemRows);
+                await httpClient.SendAsync(batchReq);
+            }
+            
+            // Step Characters
+            var stepCharsReq = new HttpRequestMessage(HttpMethod.Get, $"{url}/rest/v1/narrative_quest_step_characters?event_id=eq.{eventId}&step_id=in.({stepIdsFilter})&select=step_id,character_id");
+            AddHeaders(stepCharsReq, key!);
+            var stepCharsResp = await httpClient.SendAsync(stepCharsReq);
+            var sourceStepChars = stepCharsResp.IsSuccessStatusCode ? await stepCharsResp.Content.ReadFromJsonAsync<List<SupabaseNarrativeQuestStepCharacterRow>>() ?? [] : [];
+            
+            if (sourceStepChars.Count > 0)
+            {
+                var stepCharRows = sourceStepChars.Select(sc => new { event_id = eventId, step_id = stepIdMapping[sc.step_id], character_id = sc.character_id }).ToList();
+                var batchReq = new HttpRequestMessage(HttpMethod.Post, $"{url}/rest/v1/narrative_quest_step_characters");
+                batchReq.Headers.Add("Prefer", "return=minimal");
+                AddHeaders(batchReq, key!);
+                batchReq.Content = JsonContent.Create(stepCharRows);
+                await httpClient.SendAsync(batchReq);
+            }
+        }
+
+        return Results.Created($"/api/events/{eventId}/narrative/quests/{created.id}", ToQuestDto(created));
+    }
+
     private static async Task<IResult> UndeleteQuest(Guid eventId, Guid questId, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
     {
         if (!TryConfig(config, out var url, out var key, out var error)) return error!;
@@ -282,7 +407,7 @@ public static class NarrativeEndpoints
         if (!TryConfig(config, out var url, out var key, out var error)) return error!;
         var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
         if (!access.CanRead) return Results.Forbid();
-        if (!await QuestExists(eventId, questId, url!, key!, httpClient, includeDeleted: false)) return Results.NotFound();
+        if (!await QuestExists(eventId, questId, url!, key!, httpClient, includeDeleted: true)) return Results.NotFound();
 
         var req = new HttpRequestMessage(HttpMethod.Get, $"{url}/rest/v1/narrative_quest_steps?quest_id=eq.{questId}&event_id=eq.{eventId}&select=id,quest_id,event_id,sort_order,summary,notes,created_at,updated_at&order=sort_order.asc");
         AddHeaders(req, key!);
@@ -369,7 +494,7 @@ public static class NarrativeEndpoints
         if (!TryConfig(config, out var url, out var key, out var error)) return error!;
         var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
         if (!access.CanRead) return Results.Forbid();
-        if (!await QuestExists(eventId, questId, url!, key!, httpClient, includeDeleted: false)) return Results.NotFound();
+        if (!await QuestExists(eventId, questId, url!, key!, httpClient, includeDeleted: true)) return Results.NotFound();
         if (await GetQuestStep(eventId, questId, stepId, url!, key!, httpClient) is null) return Results.NotFound();
 
         var req = new HttpRequestMessage(HttpMethod.Get, $"{url}/rest/v1/narrative_quest_step_items?event_id=eq.{eventId}&step_id=eq.{stepId}&select=event_id,step_id,item_id,link_type,created_at&order=created_at.asc");
@@ -427,12 +552,59 @@ public static class NarrativeEndpoints
         return resp.IsSuccessStatusCode ? Results.NoContent() : Results.Problem($"Failed to delete quest step item link: {resp.StatusCode}");
     }
 
+    private static async Task<IResult> ListQuestStepCharacters(Guid eventId, Guid questId, Guid stepId, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
+    {
+        if (!TryConfig(config, out var url, out var key, out var error)) return error!;
+        var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
+        if (!access.CanRead) return Results.Forbid();
+        if (!await QuestExists(eventId, questId, url!, key!, httpClient, includeDeleted: true)) return Results.NotFound();
+        if (await GetQuestStep(eventId, questId, stepId, url!, key!, httpClient) is null) return Results.NotFound();
+
+        var req = new HttpRequestMessage(HttpMethod.Get, $"{url}/rest/v1/narrative_quest_step_characters?event_id=eq.{eventId}&step_id=eq.{stepId}&select=event_id,step_id,character_id,created_at&order=created_at.asc");
+        AddHeaders(req, key!);
+        var resp = await httpClient.SendAsync(req);
+        if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to list quest step characters: {resp.StatusCode}");
+        var rows = await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativeQuestStepCharacterRow>>() ?? [];
+        return Results.Ok(rows.Select(ToQuestStepCharacterDto));
+    }
+
+    private static async Task<IResult> UpsertQuestStepCharacter(Guid eventId, Guid questId, Guid stepId, Guid characterId, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
+    {
+        if (!TryConfig(config, out var url, out var key, out var error)) return error!;
+        var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
+        if (!access.CanWrite) return Results.Forbid();
+        if (!await QuestExists(eventId, questId, url!, key!, httpClient, includeDeleted: false)) return Results.NotFound();
+        if (await GetQuestStep(eventId, questId, stepId, url!, key!, httpClient) is null) return Results.NotFound();
+        if (!await CharacterExistsInEvent(eventId, characterId, url!, key!, httpClient)) return Results.BadRequest("Character not found in event.");
+
+        var req = new HttpRequestMessage(HttpMethod.Post, $"{url}/rest/v1/narrative_quest_step_characters?on_conflict=step_id,character_id");
+        req.Headers.Add("Prefer", "return=representation,resolution=merge-duplicates");
+        AddHeaders(req, key!);
+        req.Content = JsonContent.Create(new { event_id = eventId, step_id = stepId, character_id = characterId });
+        var resp = await httpClient.SendAsync(req);
+        if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to upsert quest step character: {resp.StatusCode}");
+        var row = (await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativeQuestStepCharacterRow>>())?.FirstOrDefault();
+        return row is null ? Results.NoContent() : Results.Ok(ToQuestStepCharacterDto(row));
+    }
+
+    private static async Task<IResult> DeleteQuestStepCharacter(Guid eventId, Guid questId, Guid stepId, Guid characterId, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
+    {
+        if (!TryConfig(config, out var url, out var key, out var error)) return error!;
+        var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
+        if (!access.CanWrite) return Results.Forbid();
+
+        var req = new HttpRequestMessage(HttpMethod.Delete, $"{url}/rest/v1/narrative_quest_step_characters?event_id=eq.{eventId}&step_id=eq.{stepId}&character_id=eq.{characterId}");
+        AddHeaders(req, key!);
+        var resp = await httpClient.SendAsync(req);
+        return resp.IsSuccessStatusCode ? Results.NoContent() : Results.Problem($"Failed to delete quest step character: {resp.StatusCode}");
+    }
+
     private static async Task<IResult> ListQuestCharacters(Guid eventId, Guid questId, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
     {
         if (!TryConfig(config, out var url, out var key, out var error)) return error!;
         var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
         if (!access.CanRead) return Results.Forbid();
-        if (!await QuestExists(eventId, questId, url!, key!, httpClient, includeDeleted: false)) return Results.NotFound();
+        if (!await QuestExists(eventId, questId, url!, key!, httpClient, includeDeleted: true)) return Results.NotFound();
 
         var req = new HttpRequestMessage(HttpMethod.Get, $"{url}/rest/v1/narrative_quest_characters?event_id=eq.{eventId}&quest_id=eq.{questId}&select=event_id,quest_id,character_id,role,created_at&order=created_at.asc");
         AddHeaders(req, key!);
@@ -483,7 +655,7 @@ public static class NarrativeEndpoints
         if (!TryConfig(config, out var url, out var key, out var error)) return error!;
         var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
         if (!access.CanRead) return Results.Forbid();
-        if (!await QuestExists(eventId, questId, url!, key!, httpClient, includeDeleted: false)) return Results.NotFound();
+        if (!await QuestExists(eventId, questId, url!, key!, httpClient, includeDeleted: true)) return Results.NotFound();
 
         var req = new HttpRequestMessage(HttpMethod.Get, $"{url}/rest/v1/narrative_quest_factions?event_id=eq.{eventId}&quest_id=eq.{questId}&select=event_id,quest_id,faction_id,created_at&order=created_at.asc");
         AddHeaders(req, key!);
@@ -528,7 +700,7 @@ public static class NarrativeEndpoints
         if (!TryConfig(config, out var url, out var key, out var error)) return error!;
         var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
         if (!access.CanRead) return Results.Forbid();
-        if (!await QuestExists(eventId, questId, url!, key!, httpClient, includeDeleted: false)) return Results.NotFound();
+        if (!await QuestExists(eventId, questId, url!, key!, httpClient, includeDeleted: true)) return Results.NotFound();
 
         var req = new HttpRequestMessage(HttpMethod.Get, $"{url}/rest/v1/narrative_quest_items?event_id=eq.{eventId}&quest_id=eq.{questId}&select=event_id,quest_id,item_id,created_at&order=created_at.asc");
         AddHeaders(req, key!);
@@ -573,7 +745,7 @@ public static class NarrativeEndpoints
         if (!TryConfig(config, out var url, out var key, out var error)) return error!;
         var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
         if (!access.CanRead) return Results.Forbid();
-        if (!await QuestExists(eventId, questId, url!, key!, httpClient, includeDeleted: false)) return Results.NotFound();
+        if (!await QuestExists(eventId, questId, url!, key!, httpClient, includeDeleted: true)) return Results.NotFound();
 
         var req = new HttpRequestMessage(HttpMethod.Get, $"{url}/rest/v1/narrative_document_links?event_id=eq.{eventId}&entity_type=eq.quest&entity_id=eq.{questId}&select=id,event_id,entity_type,entity_id,display_name,url,document_status,source_type,created_by,created_at&order=created_at.desc");
         AddHeaders(req, key!);
@@ -783,7 +955,7 @@ public static class NarrativeEndpoints
         if (!TryConfig(config, out var url, out var key, out var error)) return error!;
         var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
         if (!access.CanRead) return Results.Forbid();
-        if (!await FactionExists(eventId, factionId, url!, key!, httpClient, includeDeleted: false)) return Results.NotFound();
+        if (!await FactionExists(eventId, factionId, url!, key!, httpClient, includeDeleted: true)) return Results.NotFound();
 
         var req = new HttpRequestMessage(HttpMethod.Get, $"{url}/rest/v1/narrative_faction_members?event_id=eq.{eventId}&faction_id=eq.{factionId}&select=event_id,faction_id,character_id,role,created_at&order=created_at.asc");
         AddHeaders(req, key!);
@@ -835,7 +1007,7 @@ public static class NarrativeEndpoints
         if (!TryConfig(config, out var url, out var key, out var error)) return error!;
         var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
         if (!access.CanRead) return Results.Forbid();
-        if (!await FactionExists(eventId, factionId, url!, key!, httpClient, includeDeleted: false)) return Results.NotFound();
+        if (!await FactionExists(eventId, factionId, url!, key!, httpClient, includeDeleted: true)) return Results.NotFound();
 
         var query = $"{url}/rest/v1/narrative_faction_relationships" +
                     $"?event_id=eq.{eventId}" +
@@ -989,7 +1161,7 @@ public static class NarrativeEndpoints
         if (!TryConfig(config, out var url, out var key, out var error)) return error!;
         var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
         if (!access.CanRead) return Results.Forbid();
-        if (!await FactionExists(eventId, factionId, url!, key!, httpClient, includeDeleted: false)) return Results.NotFound();
+        if (!await FactionExists(eventId, factionId, url!, key!, httpClient, includeDeleted: true)) return Results.NotFound();
         return await ListDocuments(eventId, "faction", factionId, url!, key!, httpClient);
     }
 
@@ -1173,7 +1345,7 @@ public static class NarrativeEndpoints
         if (!TryConfig(config, out var url, out var key, out var error)) return error!;
         var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
         if (!access.CanRead) return Results.Forbid();
-        if (!await ItemExists(eventId, itemId, url!, key!, httpClient, includeDeleted: false)) return Results.NotFound();
+        if (!await ItemExists(eventId, itemId, url!, key!, httpClient, includeDeleted: true)) return Results.NotFound();
 
         var req = new HttpRequestMessage(HttpMethod.Get, $"{url}/rest/v1/narrative_item_character_assignments?event_id=eq.{eventId}&item_id=eq.{itemId}&select=event_id,item_id,character_id,assigned_by,assigned_at,notes&order=assigned_at.asc");
         AddHeaders(req, key!);
@@ -1240,7 +1412,7 @@ public static class NarrativeEndpoints
         if (!TryConfig(config, out var url, out var key, out var error)) return error!;
         var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
         if (!access.CanRead) return Results.Forbid();
-        if (!await ItemExists(eventId, itemId, url!, key!, httpClient, includeDeleted: false)) return Results.NotFound();
+        if (!await ItemExists(eventId, itemId, url!, key!, httpClient, includeDeleted: true)) return Results.NotFound();
         return await ListDocuments(eventId, "item", itemId, url!, key!, httpClient);
     }
 
@@ -1453,7 +1625,7 @@ public static class NarrativeEndpoints
         if (!TryConfig(config, out var url, out var key, out var error)) return error!;
         var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
         if (!access.CanRead) return Results.Forbid();
-        if (!await PlotlineExists(eventId, plotlineId, url!, key!, httpClient, includeDeleted: false)) return Results.NotFound();
+        if (!await PlotlineExists(eventId, plotlineId, url!, key!, httpClient, includeDeleted: true)) return Results.NotFound();
 
         var req = new HttpRequestMessage(HttpMethod.Get, $"{url}/rest/v1/narrative_plotline_phases?event_id=eq.{eventId}&plotline_id=eq.{plotlineId}&select=id,plotline_id,event_id,sort_order,title,summary,created_at,updated_at&order=sort_order.asc");
         AddHeaders(req, key!);
@@ -1528,7 +1700,7 @@ public static class NarrativeEndpoints
         if (!TryConfig(config, out var url, out var key, out var error)) return error!;
         var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
         if (!access.CanRead) return Results.Forbid();
-        if (!await PlotlineExists(eventId, plotlineId, url!, key!, httpClient, includeDeleted: false)) return Results.NotFound();
+        if (!await PlotlineExists(eventId, plotlineId, url!, key!, httpClient, includeDeleted: true)) return Results.NotFound();
 
         var req = new HttpRequestMessage(HttpMethod.Get, $"{url}/rest/v1/narrative_plotline_quests?event_id=eq.{eventId}&plotline_id=eq.{plotlineId}&select=event_id,plotline_id,quest_id,phase_id,sort_order,created_at&order=sort_order.asc");
         AddHeaders(req, key!);
@@ -1582,7 +1754,7 @@ public static class NarrativeEndpoints
         if (!TryConfig(config, out var url, out var key, out var error)) return error!;
         var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
         if (!access.CanRead) return Results.Forbid();
-        if (!await PlotlineExists(eventId, plotlineId, url!, key!, httpClient, includeDeleted: false)) return Results.NotFound();
+        if (!await PlotlineExists(eventId, plotlineId, url!, key!, httpClient, includeDeleted: true)) return Results.NotFound();
 
         var req = new HttpRequestMessage(HttpMethod.Get, $"{url}/rest/v1/narrative_plotline_characters?event_id=eq.{eventId}&plotline_id=eq.{plotlineId}&select=event_id,plotline_id,character_id,created_at&order=created_at.asc");
         AddHeaders(req, key!);
@@ -1627,7 +1799,7 @@ public static class NarrativeEndpoints
         if (!TryConfig(config, out var url, out var key, out var error)) return error!;
         var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
         if (!access.CanRead) return Results.Forbid();
-        if (!await PlotlineExists(eventId, plotlineId, url!, key!, httpClient, includeDeleted: false)) return Results.NotFound();
+        if (!await PlotlineExists(eventId, plotlineId, url!, key!, httpClient, includeDeleted: true)) return Results.NotFound();
 
         var req = new HttpRequestMessage(HttpMethod.Get, $"{url}/rest/v1/narrative_plotline_factions?event_id=eq.{eventId}&plotline_id=eq.{plotlineId}&select=event_id,plotline_id,faction_id,created_at&order=created_at.asc");
         AddHeaders(req, key!);
@@ -1672,7 +1844,7 @@ public static class NarrativeEndpoints
         if (!TryConfig(config, out var url, out var key, out var error)) return error!;
         var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
         if (!access.CanRead) return Results.Forbid();
-        if (!await PlotlineExists(eventId, plotlineId, url!, key!, httpClient, includeDeleted: false)) return Results.NotFound();
+        if (!await PlotlineExists(eventId, plotlineId, url!, key!, httpClient, includeDeleted: true)) return Results.NotFound();
 
         var req = new HttpRequestMessage(HttpMethod.Get, $"{url}/rest/v1/narrative_plotline_items?event_id=eq.{eventId}&plotline_id=eq.{plotlineId}&select=event_id,plotline_id,item_id,created_at&order=created_at.asc");
         AddHeaders(req, key!);
@@ -1888,7 +2060,7 @@ public static class NarrativeEndpoints
         if (!TryConfig(config, out var url, out var key, out var error)) return error!;
         var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
         if (!access.CanRead) return Results.Forbid();
-        if (!await PlotExists(eventId, plotId, url!, key!, httpClient, includeDeleted: false)) return Results.NotFound();
+        if (!await PlotExists(eventId, plotId, url!, key!, httpClient, includeDeleted: true)) return Results.NotFound();
 
         var req = new HttpRequestMessage(HttpMethod.Get, $"{url}/rest/v1/narrative_plot_plotlines?event_id=eq.{eventId}&plot_id=eq.{plotId}&select=event_id,plot_id,plotline_id,sort_order,created_at&order=sort_order.asc");
         AddHeaders(req, key!);
@@ -1939,7 +2111,7 @@ public static class NarrativeEndpoints
         if (!TryConfig(config, out var url, out var key, out var error)) return error!;
         var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
         if (!access.CanRead) return Results.Forbid();
-        if (!await PlotExists(eventId, plotId, url!, key!, httpClient, includeDeleted: false)) return Results.NotFound();
+        if (!await PlotExists(eventId, plotId, url!, key!, httpClient, includeDeleted: true)) return Results.NotFound();
 
         var req = new HttpRequestMessage(HttpMethod.Get, $"{url}/rest/v1/narrative_plot_characters?event_id=eq.{eventId}&plot_id=eq.{plotId}&select=event_id,plot_id,character_id,created_at&order=created_at.asc");
         AddHeaders(req, key!);
@@ -1984,7 +2156,7 @@ public static class NarrativeEndpoints
         if (!TryConfig(config, out var url, out var key, out var error)) return error!;
         var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
         if (!access.CanRead) return Results.Forbid();
-        if (!await PlotExists(eventId, plotId, url!, key!, httpClient, includeDeleted: false)) return Results.NotFound();
+        if (!await PlotExists(eventId, plotId, url!, key!, httpClient, includeDeleted: true)) return Results.NotFound();
 
         var req = new HttpRequestMessage(HttpMethod.Get, $"{url}/rest/v1/narrative_plot_factions?event_id=eq.{eventId}&plot_id=eq.{plotId}&select=event_id,plot_id,faction_id,created_at&order=created_at.asc");
         AddHeaders(req, key!);
@@ -2029,7 +2201,7 @@ public static class NarrativeEndpoints
         if (!TryConfig(config, out var url, out var key, out var error)) return error!;
         var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
         if (!access.CanRead) return Results.Forbid();
-        if (!await PlotExists(eventId, plotId, url!, key!, httpClient, includeDeleted: false)) return Results.NotFound();
+        if (!await PlotExists(eventId, plotId, url!, key!, httpClient, includeDeleted: true)) return Results.NotFound();
 
         var req = new HttpRequestMessage(HttpMethod.Get, $"{url}/rest/v1/narrative_plot_items?event_id=eq.{eventId}&plot_id=eq.{plotId}&select=event_id,plot_id,item_id,created_at&order=created_at.asc");
         AddHeaders(req, key!);
@@ -2117,7 +2289,10 @@ public static class NarrativeEndpoints
     }
 
     private static NarrativeQuestDto ToQuestDto(SupabaseNarrativeQuestRow row) =>
-        new(row.id, row.event_id, row.title, row.description, row.internal_notes, row.status, row.has_fixed_players, row.created_at, row.updated_at, row.deleted_at);
+        new(row.id, row.event_id, row.title, row.description, row.internal_notes, row.status, row.created_at, row.updated_at, row.deleted_at);
+
+    private static NarrativeQuestStepCharacterDto ToQuestStepCharacterDto(SupabaseNarrativeQuestStepCharacterRow row) =>
+        new(row.event_id, row.step_id, row.character_id, row.created_at);
 
     private static NarrativeQuestStepDto ToQuestStepDto(SupabaseNarrativeQuestStepRow row) =>
         new(row.id, row.quest_id, row.event_id, row.sort_order, row.summary, row.notes, row.created_at, row.updated_at);
@@ -2207,7 +2382,7 @@ public static class NarrativeEndpoints
         {
             $"id=eq.{questId}",
             $"event_id=eq.{eventId}",
-            "select=id,event_id,title,description,internal_notes,status,has_fixed_players,created_at,updated_at,deleted_at",
+            "select=id,event_id,title,description,internal_notes,status,created_at,updated_at,deleted_at",
             "limit=1"
         };
         if (!includeDeleted) filters.Add("deleted_at=is.null");
@@ -2472,3 +2647,5 @@ public static class NarrativeEndpoints
         return true;
     }
 }
+
+

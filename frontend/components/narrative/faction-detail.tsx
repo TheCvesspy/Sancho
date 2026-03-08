@@ -178,9 +178,9 @@ export function FactionDetail({
                 <TabsContent value="overview" className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-6">
-                            <div className="rounded-lg border bg-card p-6 space-y-4">
-                                <h3 className="text-lg font-semibold">{t("factions.fields.description.label")}</h3>
+                            <div className="rounded-lg border bg-card p-6">
                                 <EditableRichText
+                                    title={t("factions.fields.description.label")}
                                     initialHtml={faction.description || ""}
                                     placeholder={t("factions.fields.description.placeholder")}
                                     isReadOnly={!isOrgOrSysAdmin}
@@ -188,9 +188,9 @@ export function FactionDetail({
                                 />
                             </div>
 
-                            <div className="rounded-lg border bg-card p-6 space-y-4">
-                                <h3 className="text-lg font-semibold">{t("factions.fields.goals.label")}</h3>
+                            <div className="rounded-lg border bg-card p-6">
                                 <EditableRichText
+                                    title={t("factions.fields.goals.label")}
                                     initialHtml={faction.goals || ""}
                                     placeholder={t("factions.fields.goals.placeholder")}
                                     isReadOnly={!isOrgOrSysAdmin}
@@ -201,12 +201,11 @@ export function FactionDetail({
 
                         <div className="space-y-6">
                             {isOrgOrSysAdmin && (
-                                <div className="rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 p-6 space-y-4">
-                                    <h3 className="text-lg font-semibold flex items-center gap-2">
-                                        {t("factions.fields.internalNotes.label")}
-                                        <span className="text-xs font-normal text-amber-700 dark:text-amber-600 opacity-80">{t("common.adminOnly")}</span>
-                                    </h3>
+                                <div className="rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 p-6">
                                     <EditableRichText
+                                        title={t("factions.fields.internalNotes.label")}
+                                        description={t("common.internalNotesHint")}
+                                        variant="amber"
                                         initialHtml={faction.internalNotes || ""}
                                         placeholder={t("factions.fields.internalNotes.placeholder")}
                                         isReadOnly={!isOrgOrSysAdmin}

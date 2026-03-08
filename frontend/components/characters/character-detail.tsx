@@ -13,6 +13,7 @@ import {
 } from "@/utils/characters-api";
 import { EventDetailDto } from "@/utils/events-api";
 import { ArrowLeft, Trash2, RotateCcw, Lock, Edit2, Check, X, Loader2 } from "lucide-react";
+import { EditableRichText } from "@/components/ui/editable-rich-text";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -64,43 +65,25 @@ export function CharacterDetail({
     const isDeleted = !!character.deletedAt;
 
     // Inline edit states
-    const [isEditingBio, setIsEditingBio] = useState(false);
-    const [bioValue, setBioValue] = useState("");
-    const [isSubmittingBio, setIsSubmittingBio] = useState(false);
-
     const [isEditingNotes, setIsEditingNotes] = useState(false);
     const [notesValue, setNotesValue] = useState("");
     const [isSubmittingNotes, setIsSubmittingNotes] = useState(false);
-
-    const startEditingBio = () => {
-        setBioValue(character.biography || "");
-        setIsEditingBio(true);
-    };
 
     const startEditingNotes = () => {
         setNotesValue(character.notes || "");
         setIsEditingNotes(true);
     };
 
-    const handleSaveBio = async () => {
-        try {
-            setIsSubmittingBio(true);
-            await charactersApi.updateCharacter(token, event.id, character.id, {
-                name: character.name,
-                race: character.race,
-                biography: bioValue || null,
-                notes: character.notes,
-                playerUserId: character.playerUserId
-            });
-            toast.success(t("notifications.updated"));
-            setIsEditingBio(false);
-            router.refresh();
-        } catch (error) {
-            console.error(error);
-            toast.error("Failed to update biography");
-        } finally {
-            setIsSubmittingBio(false);
-        }
+    const handleSaveBio = async (html: string) => {
+        await charactersApi.updateCharacter(token, event.id, character.id, {
+            name: character.name,
+            race: character.race,
+            biography: html || null,
+            notes: character.notes,
+            playerUserId: character.playerUserId
+        });
+        toast.success(t("notifications.updated"));
+        router.refresh();
     };
 
     const handleSaveNotes = async () => {
@@ -243,39 +226,13 @@ export function CharacterDetail({
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="md:col-span-2 space-y-6">
                             <div className="bg-card rounded-lg border p-6">
-                                <div className="flex items-center justify-between border-b pb-2 mb-4">
-                                    <h3 className="text-lg font-semibold text-foreground/80">Biography & Public Story</h3>
-                                    {isOrgOrSysAdmin && !isLocked && !isDeleted && !isEditingBio && (
-                                        <Button variant="ghost" size="sm" onClick={startEditingBio} className="h-8 group">
-                                            <Edit2 className="h-4 w-4 mr-1 text-muted-foreground group-hover:text-foreground" />
-                                            {t("detail.biography.edit")}
-                                        </Button>
-                                    )}
-                                </div>
-
-                                {isEditingBio ? (
-                                    <div className="space-y-4">
-                                        <RichTextEditor value={bioValue} onChange={setBioValue} disabled={isSubmittingBio} />
-                                        <div className="flex justify-end gap-2">
-                                            <Button variant="outline" size="sm" onClick={() => setIsEditingBio(false)} disabled={isSubmittingBio}>
-                                                <X className="h-4 w-4 mr-1" />
-                                                {t("detail.biography.cancel")}
-                                            </Button>
-                                            <Button size="sm" onClick={handleSaveBio} disabled={isSubmittingBio}>
-                                                {isSubmittingBio ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Check className="h-4 w-4 mr-1" />}
-                                                {t("detail.biography.save")}
-                                            </Button>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="min-h-[100px]">
-                                        {character.biography ? (
-                                            <RichTextView html={character.biography} />
-                                        ) : (
-                                            <p className="text-muted-foreground italic">{t("detail.biography.empty")}</p>
-                                        )}
-                                    </div>
-                                )}
+                                <EditableRichText
+                                    title={t("detail.biography.title")}
+                                    initialHtml={character.biography || ""}
+                                    placeholder={t("detail.biography.empty")}
+                                    isReadOnly={!isOrgOrSysAdmin || isLocked || isDeleted}
+                                    onSave={handleSaveBio}
+                                />
                             </div>
                         </div>
 
