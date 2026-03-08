@@ -37,6 +37,7 @@ export interface NarrativeQuestDto {
     id: string;
     eventId: string;
     title: string;
+    shortDescription: string | null;
     description: string | null;
     internalNotes: string | null;
     status: "Draft" | "Ready" | "Locked";
@@ -238,12 +239,14 @@ export interface NarrativeFactionRelationshipDto {
 // Quests
 export interface CreateQuestRequest {
     title: string;
+    shortDescription: string | null;
     description: string | null;
     internalNotes: string | null;
 }
 
 export interface UpdateQuestRequest {
     title?: string;
+    shortDescription?: string | null;
     description?: string | null;
     internalNotes?: string | null;
 }

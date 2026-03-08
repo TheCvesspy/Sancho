@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { EventDetailDto } from "@/utils/events-api";
 import {
     NarrativeQuestDto,
@@ -62,12 +63,16 @@ export function QuestDetail({
     isOrgOrSysAdmin,
     token
 }: QuestDetailProps) {
+    const SHORT_DESCRIPTION_MAX_LENGTH = 250;
     const t = useTranslations("narrative");
     const locale = useLocale();
     const router = useRouter();
 
     const [quest, setQuest] = useState<NarrativeQuestDto>(initialQuest);
     const [isActionPending, setIsActionPending] = useState(false);
+    const [isShortDescriptionEditing, setIsShortDescriptionEditing] = useState(false);
+    const [shortDescriptionDraft, setShortDescriptionDraft] = useState(initialQuest.shortDescription ?? "");
+    const [isSavingShortDescription, setIsSavingShortDescription] = useState(false);
 
     const handleBack = () => router.push(`/${locale}/narrative/${event.id}`);
 
@@ -76,6 +81,29 @@ export function QuestDetail({
         const req: UpdateQuestRequest = { [field]: value };
         const updated = await narrativeApi.updateQuest(token, event.id, quest.id, req);
         setQuest(q => ({ ...q, [field]: updated[field as keyof NarrativeQuestDto], updatedAt: updated.updatedAt }));
+    };
+
+    const handleSaveShortDescription = async () => {
+        if (shortDescriptionDraft.length > SHORT_DESCRIPTION_MAX_LENGTH) {
+            toast.error(t("common.error"));
+            return;
+        }
+
+        setIsSavingShortDescription(true);
+        try {
+            const updated = await narrativeApi.updateQuest(token, event.id, quest.id, {
+                shortDescription: shortDescriptionDraft
+            });
+            setQuest(q => ({ ...q, shortDescription: updated.shortDescription, updatedAt: updated.updatedAt }));
+            setShortDescriptionDraft(updated.shortDescription ?? "");
+            setIsShortDescriptionEditing(false);
+            toast.success(t("quests.notifications.updated"));
+        } catch (error) {
+            console.error(error);
+            toast.error(t("common.error"));
+        } finally {
+            setIsSavingShortDescription(false);
+        }
     };
 
     // --- Delete / Restore ---
@@ -127,6 +155,54 @@ export function QuestDetail({
                         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-2">
                             <div>
                                 <h1 className="text-3xl font-bold tracking-tight mb-1 truncate">{quest.title}</h1>
+                                <div className="mb-2">
+                                    {isShortDescriptionEditing ? (
+                                        <div className="space-y-2">
+                                            <Input
+                                                value={shortDescriptionDraft}
+                                                onChange={(e) => setShortDescriptionDraft(e.target.value)}
+                                                placeholder={t("common.shortSummaryPlaceholder")}
+                                                maxLength={SHORT_DESCRIPTION_MAX_LENGTH}
+                                                disabled={isSavingShortDescription}
+                                            />
+                                            <div className="flex items-center justify-between gap-3">
+                                                <span className="text-xs text-muted-foreground">
+                                                    {shortDescriptionDraft.length}/{SHORT_DESCRIPTION_MAX_LENGTH}
+                                                </span>
+                                                <div className="flex items-center gap-2">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => {
+                                                            setShortDescriptionDraft(quest.shortDescription ?? "");
+                                                            setIsShortDescriptionEditing(false);
+                                                        }}
+                                                        disabled={isSavingShortDescription}
+                                                    >
+                                                        <X className="mr-2 h-4 w-4" />
+                                                        {t("common.cancel")}
+                                                    </Button>
+                                                    <Button size="sm" onClick={handleSaveShortDescription} disabled={isSavingShortDescription}>
+                                                        {isSavingShortDescription ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                                                        {t("common.save")}
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-start justify-between gap-3">
+                                            <p className="text-sm text-muted-foreground">
+                                                {quest.shortDescription || t("common.shortSummaryPlaceholder")}
+                                            </p>
+                                            {isOrgOrSysAdmin && !quest.deletedAt && quest.status !== "Locked" && (
+                                                <Button size="sm" variant="outline" onClick={() => setIsShortDescriptionEditing(true)}>
+                                                    <Pencil className="mr-2 h-4 w-4" />
+                                                    {t("common.edit")}
+                                                </Button>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
                                 <div className="flex items-center gap-3 text-muted-foreground">
                                     <span>Created {format(new Date(quest.createdAt), 'PPP')}</span>
                                 </div>

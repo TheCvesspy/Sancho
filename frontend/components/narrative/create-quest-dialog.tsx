@@ -59,6 +59,7 @@ export function CreateQuestDialog({ eventId, token }: CreateQuestDialogProps) {
         try {
             const req: CreateQuestRequest = {
                 title: data.title,
+                shortDescription: null,
                 description: null,
                 internalNotes: null,
             };

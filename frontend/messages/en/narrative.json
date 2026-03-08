@@ -141,6 +141,10 @@
                 "label": "Title",
                 "placeholder": "Enter quest title"
             },
+            "shortDescription": {
+                "label": "Short Description",
+                "placeholder": "Add a short quest summary for quick identification..."
+            },
             "description": {
                 "label": "Description",
                 "placeholder": "Enter quest description..."
@@ -211,7 +215,8 @@
             }
         },
         "validation": {
-            "titleRequired": "Title is required"
+            "titleRequired": "Title is required",
+            "shortDescriptionTooLong": "Short description cannot be longer than {max} characters."
         },
         "notifications": {
             "created": "Quest created successfully",
@@ -429,8 +434,7 @@
         },
         "detail": {
             "tabs": {
-                "overview": "Overview",
-                "phases": "Phases & Quests",
+                "details": "Details",
                 "links": "Direct Links",
                 "documents": "Documents"
             }

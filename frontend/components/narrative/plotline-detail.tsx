@@ -95,41 +95,14 @@ export function PlotlineDetail({
             </div>
 
             {/* ─── Tabs ─────────────────────────────────────────────────── */}
-            <Tabs defaultValue="overview" className="space-y-6">
+            <Tabs defaultValue="details" className="space-y-6">
                 <TabsList className="bg-muted/50 w-full justify-start h-auto flex-wrap p-1">
-                    <TabsTrigger value="overview" className="flex-1 sm:flex-none py-2 px-4 shadow-none data-[state=active]:bg-background">{t("plotlines.detail.tabs.overview")}</TabsTrigger>
-                    <TabsTrigger value="phases" className="flex-1 sm:flex-none py-2 px-4 shadow-none data-[state=active]:bg-background">{t("plotlines.detail.tabs.phases")}</TabsTrigger>
+                    <TabsTrigger value="details" className="flex-1 sm:flex-none py-2 px-4 shadow-none data-[state=active]:bg-background">{t("plotlines.detail.tabs.details")}</TabsTrigger>
                     <TabsTrigger value="links" className="flex-1 sm:flex-none py-2 px-4 shadow-none data-[state=active]:bg-background">{t("plotlines.detail.tabs.links")}</TabsTrigger>
                     <TabsTrigger value="documents" className="flex-1 sm:flex-none py-2 px-4 shadow-none data-[state=active]:bg-background">{t("plotlines.detail.tabs.documents")}</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="overview" className="space-y-6">
-                    <div className="rounded-lg border bg-card p-6">
-                        <EditableRichText
-                            title={t("plotlines.fields.description.label")}
-                            initialHtml={plotline.description || ""}
-                            onSave={async (val) => await handleUpdate({ description: val })}
-                            isReadOnly={!isOrgOrSysAdmin}
-                            placeholder={t("plotlines.fields.description.placeholder")}
-                        />
-                    </div>
-
-                    {isOrgOrSysAdmin && (
-                        <div className="rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 p-6">
-                            <EditableRichText
-                                title={t("plotlines.fields.internalNotes.label")}
-                                description={t("common.internalNotesHint")}
-                                variant="amber"
-                                initialHtml={plotline.internalNotes || ""}
-                                onSave={async (val) => await handleUpdate({ internalNotes: val })}
-                                isReadOnly={!isOrgOrSysAdmin}
-                                placeholder={t("plotlines.fields.internalNotes.placeholder")}
-                            />
-                        </div>
-                    )}
-                </TabsContent>
-
-                <TabsContent value="phases">
+                <TabsContent value="details" className="space-y-6">
                     <PlotlinePhasesPanel
                         eventId={event.id}
                         plotline={plotline}
@@ -138,6 +111,32 @@ export function PlotlineDetail({
                         isOrgOrSysAdmin={isOrgOrSysAdmin}
                         token={token}
                     />
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="lg:col-span-2 rounded-lg border bg-card p-6">
+                            <EditableRichText
+                                title={t("plotlines.fields.description.label")}
+                                initialHtml={plotline.description || ""}
+                                onSave={async (val) => await handleUpdate({ description: val })}
+                                isReadOnly={!isOrgOrSysAdmin}
+                                placeholder={t("plotlines.fields.description.placeholder")}
+                            />
+                        </div>
+
+                        {isOrgOrSysAdmin && (
+                            <div className="lg:col-span-1 rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 p-6">
+                                <EditableRichText
+                                    title={t("plotlines.fields.internalNotes.label")}
+                                    description={t("common.internalNotesHint")}
+                                    variant="amber"
+                                    initialHtml={plotline.internalNotes || ""}
+                                    onSave={async (val) => await handleUpdate({ internalNotes: val })}
+                                    isReadOnly={!isOrgOrSysAdmin}
+                                    placeholder={t("plotlines.fields.internalNotes.placeholder")}
+                                />
+                            </div>
+                        )}
+                    </div>
                 </TabsContent>
 
                 <TabsContent value="links">

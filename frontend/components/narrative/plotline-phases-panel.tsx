@@ -123,6 +123,7 @@ export function PlotlinePhasesPanel({ eventId, plotline, initialPhases, initialQ
     };
 
     const getQuestName = (questId: string) => allQuests.find((q) => q.id === questId)?.title || questId;
+    const getQuestShortDescription = (questId: string) => allQuests.find((q) => q.id === questId)?.shortDescription || null;
     const unlinkedQuests = allQuests.filter((q) => !questLinks.some((ql) => ql.questId === q.id));
 
     const questsForPhase = (phaseId: string | null) =>
@@ -149,7 +150,12 @@ export function PlotlinePhasesPanel({ eventId, plotline, initialPhases, initialQ
                     <div className="divide-y rounded-md border">
                         {questsForPhase(null).map((ql) => (
                             <div key={ql.questId} className="flex items-center justify-between px-4 py-2">
-                                <span>{getQuestName(ql.questId)}</span>
+                                <div className="flex flex-col">
+                                    <span>{getQuestName(ql.questId)}</span>
+                                    {getQuestShortDescription(ql.questId) && (
+                                        <span className="text-xs text-muted-foreground line-clamp-1">{getQuestShortDescription(ql.questId)}</span>
+                                    )}
+                                </div>
                                 {isOrgOrSysAdmin && (
                                     <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeQuest(ql.questId)}>
                                         <Trash2 className="h-3.5 w-3.5" />
@@ -168,7 +174,11 @@ export function PlotlinePhasesPanel({ eventId, plotline, initialPhases, initialQ
                             onChange={(e) => setSelectedQuestId(e.target.value)}
                         >
                             <option value="">{t("common.select")}</option>
-                            {unlinkedQuests.map((q) => <option key={q.id} value={q.id}>{q.title}</option>)}
+                            {unlinkedQuests.map((q) => (
+                                <option key={q.id} value={q.id}>
+                                    {q.title}{q.shortDescription ? ` (${q.shortDescription})` : ""}
+                                </option>
+                            ))}
                         </select>
                         <Button size="sm" onClick={() => addQuest(null)} disabled={!selectedQuestId || savingQuest}>
                             {savingQuest ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
@@ -241,7 +251,12 @@ export function PlotlinePhasesPanel({ eventId, plotline, initialPhases, initialQ
                                         <div className="divide-y rounded-md border">
                                             {questsForPhase(phase.id).map((ql) => (
                                                 <div key={ql.questId} className="flex items-center justify-between px-4 py-2">
-                                                    <span className="text-sm">{getQuestName(ql.questId)}</span>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-sm font-medium">{getQuestName(ql.questId)}</span>
+                                                        {getQuestShortDescription(ql.questId) && (
+                                                            <span className="text-xs text-muted-foreground line-clamp-1">{getQuestShortDescription(ql.questId)}</span>
+                                                        )}
+                                                    </div>
                                                     {isOrgOrSysAdmin && (
                                                         <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeQuest(ql.questId)}>
                                                             <Trash2 className="h-3.5 w-3.5" />
@@ -260,7 +275,11 @@ export function PlotlinePhasesPanel({ eventId, plotline, initialPhases, initialQ
                                                     onChange={(e) => setSelectedQuestId(e.target.value)}
                                                 >
                                                     <option value="">{t("common.select")}</option>
-                                                    {unlinkedQuests.map((q) => <option key={q.id} value={q.id}>{q.title}</option>)}
+                                                    {unlinkedQuests.map((q) => (
+                                                        <option key={q.id} value={q.id}>
+                                                            {q.title}{q.shortDescription ? ` (${q.shortDescription})` : ""}
+                                                        </option>
+                                                    ))}
                                                 </select>
                                                 <Button size="sm" onClick={() => addQuest(phase.id)} disabled={!selectedQuestId || savingQuest}>
                                                     {savingQuest ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}

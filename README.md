@@ -1,6 +1,6 @@
 # Sancho — LARP Event Management Platform
 
-**Version: 0.10.1**
+**Version: 0.10.2**
 
 Sancho is a single-organization web application for managing LARP (Live Action Role-Playing) groups, covering the full event lifecycle from planning through execution. One deployment serves one organization and supports multiple events.
 
@@ -160,7 +160,7 @@ sancho/
 | `narrative_faction_relationships` | Faction vs Faction and Faction vs Character relationships |
 | `narrative_*_links` | Character/faction/item relationships across narrative entities |
 
-**Applied Migrations:** 18 (latest: `20260308100000_quest_step_characters`)
+**Applied Migrations:** 19 (latest: `20260308113000_narrative_quest_short_description`)
 
 ---
 
@@ -246,6 +246,7 @@ sancho/
 
 | Version | Date | Summary |
 |---|---|---|
+| 0.10.2 | 2026-03-08 | Fix NarrativeGraph chunk load error, add Quest Step character links, and quest short description support. |
 | 0.10.1 | 2026-03-08 | Fix plotline detail page crash: add missing plotline document endpoints (list/add/delete) to backend |
 | 0.10.0 | 2026-03-08 | Enhanced Rich Text Editor (colors, alignment), Quest Step character links, and frontend fix pass (loading, labels, i18n). |
 | 0.9.0 | 2026-03-06 | Narrative frontend UI complete, API integration finalized, and missing database migrations applied. |

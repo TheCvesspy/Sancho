@@ -127,6 +127,7 @@ public record NarrativeRelationshipDto(
 public record NarrativeQuestDto(
     Guid QuestId,
     string Name,
+    string? ShortDescription,
     string Role,
     string Status
 );

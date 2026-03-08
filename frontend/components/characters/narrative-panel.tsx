@@ -11,10 +11,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Swords, Scroll, Shield, Sparkles } from "lucide-react";
-import type { SampleCharacterNode, SampleQuestNode } from "./narrative-graph";
+import type { SampleCharacterNode, SampleQuestNode } from "./narrative-graph/narrative-graph";
 
 const NarrativeGraph = dynamic(
-    () => import("./narrative-graph").then((m) => ({ default: m.NarrativeGraph })),
+    () => import("./narrative-graph/narrative-graph").then((m) => ({ default: m.NarrativeGraph })),
     {
         ssr: false,
         loading: () => (
@@ -94,6 +94,7 @@ const SAMPLE_QUEST_NODES: SampleQuestNode[] = [
     {
         questId: "quest-silent-reliquary",
         name: "The Silent Reliquary",
+        shortDescription: "Recover the relic before rival factions discover its location.",
         role: "Primary Investigator",
         status: "Active",
         kind: "Quest",
@@ -102,6 +103,7 @@ const SAMPLE_QUEST_NODES: SampleQuestNode[] = [
     {
         questId: "plotline-blackwater",
         name: "Ashes Under Blackwater",
+        shortDescription: "Trace the missing convoy and identify who controls the route.",
         role: "Witness",
         status: "In Review",
         kind: "Plotline",
@@ -110,6 +112,7 @@ const SAMPLE_QUEST_NODES: SampleQuestNode[] = [
     {
         questId: "plotline-copper-prince",
         name: "Debt of the Copper Prince",
+        shortDescription: "Negotiate terms to prevent open conflict in the market district.",
         role: "Negotiator",
         status: "Completed",
         kind: "Plotline",
@@ -263,6 +266,11 @@ export function NarrativePanel({ eventName, characterName, links }: NarrativePan
                                             {q.status}
                                         </Badge>
                                     </div>
+                                    {q.shortDescription && (
+                                        <p className="text-xs text-muted-foreground line-clamp-2" title={q.shortDescription}>
+                                            {q.shortDescription}
+                                        </p>
+                                    )}
                                     {q.role && (
                                         <div className="flex items-center mt-2 pt-2 border-t text-xs text-muted-foreground">
                                             <span className="font-medium mr-1">Role:</span> {q.role}

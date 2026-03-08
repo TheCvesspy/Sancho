@@ -429,8 +429,7 @@
         },
         "detail": {
             "tabs": {
-                "overview": "Přehled",
-                "phases": "Fáze & Úkoly",
+                "details": "Detaily",
                 "links": "Přímé vazby",
                 "documents": "Dokumenty"
             }

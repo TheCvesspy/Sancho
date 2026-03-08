@@ -95,6 +95,7 @@ export interface NarrativeRelationshipDto {
 export interface NarrativeQuestDto {
     questId: string;
     name: string;
+    shortDescription: string | null;
     role: string | null;
     status: string;
 }

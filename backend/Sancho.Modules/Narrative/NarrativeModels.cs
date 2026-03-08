@@ -34,6 +34,7 @@ public record NarrativeQuestDto(
     Guid Id,
     Guid EventId,
     string Title,
+    string? ShortDescription,
     string? Description,
     string? InternalNotes,
     string Status,
@@ -265,6 +266,7 @@ public record NarrativeFactionRelationshipDto(
 
 public record CreateQuestRequest(
     string Title,
+    string? ShortDescription,
     string? Description,
     string? InternalNotes
 );
@@ -275,6 +277,7 @@ public record DuplicateQuestRequest(
 
 public record UpdateQuestRequest(
     string? Title,
+    string? ShortDescription,
     string? Description,
     string? InternalNotes
 );
@@ -416,6 +419,7 @@ internal record SupabaseNarrativeQuestRow(
     Guid id,
     [property: JsonPropertyName("event_id")] Guid event_id,
     string title,
+    [property: JsonPropertyName("short_description")] string? short_description,
     string? description,
     [property: JsonPropertyName("internal_notes")] string? internal_notes,
     string status,

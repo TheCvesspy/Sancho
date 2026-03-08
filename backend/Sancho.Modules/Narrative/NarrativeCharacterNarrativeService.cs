@@ -79,7 +79,7 @@ public sealed class NarrativeCharacterNarrativeService : ICharacterNarrativeServ
             $"{url}/rest/v1/narrative_quest_characters" +
             $"?event_id=eq.{eventId}" +
             $"&character_id=eq.{characterId}" +
-            "&select=role,narrative_quests!inner(id,title,status,event_id,deleted_at)";
+            "&select=role,narrative_quests!inner(id,title,short_description,status,event_id,deleted_at)";
 
         var request = new HttpRequestMessage(HttpMethod.Get, query);
         AddHeaders(request, key!);
@@ -92,6 +92,7 @@ public sealed class NarrativeCharacterNarrativeService : ICharacterNarrativeServ
             .Select(r => new NarrativeQuestDto(
                 QuestId: r.narrative_quests!.id,
                 Name: r.narrative_quests.title,
+                ShortDescription: r.narrative_quests.short_description,
                 Role: string.IsNullOrWhiteSpace(r.role) ? "Participant" : r.role,
                 Status: r.narrative_quests.status
             ))
@@ -167,6 +168,7 @@ public sealed class NarrativeCharacterNarrativeService : ICharacterNarrativeServ
     private sealed record QuestRow(
         Guid id,
         string title,
+        [property: JsonPropertyName("short_description")] string? short_description,
         string status,
         [property: JsonPropertyName("event_id")] Guid event_id,
         [property: JsonPropertyName("deleted_at")] DateTimeOffset? deleted_at

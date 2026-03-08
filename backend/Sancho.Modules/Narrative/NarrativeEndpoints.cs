@@ -13,6 +13,8 @@ namespace Narrative.Endpoints;
 
 public static class NarrativeEndpoints
 {
+    private const int QuestShortDescriptionMaxLength = 250;
+
     public static void MapNarrativeEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/events/{eventId:guid}/narrative").RequireAuthorization();
@@ -141,7 +143,7 @@ public static class NarrativeEndpoints
 
         var filters = new List<string>
         {
-            "select=id,event_id,title,description,internal_notes,status,created_at,updated_at,deleted_at",
+            "select=id,event_id,title,short_description,description,internal_notes,status,created_at,updated_at,deleted_at",
             $"event_id=eq.{eventId}",
             "order=created_at.desc"
         };
@@ -161,6 +163,8 @@ public static class NarrativeEndpoints
         var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
         if (!access.CanWrite) return Results.Forbid();
         if (string.IsNullOrWhiteSpace(request.Title)) return Results.BadRequest("Title is required.");
+        var shortDescription = NormalizeQuestShortDescription(request.ShortDescription);
+        if (shortDescription?.Length > QuestShortDescriptionMaxLength) return Results.BadRequest($"Short description cannot be longer than {QuestShortDescriptionMaxLength} characters.");
 
         if (await QuestTitleExists(eventId, request.Title.Trim(), null, url!, key!, httpClient))
         {
@@ -174,6 +178,7 @@ public static class NarrativeEndpoints
         {
             event_id = eventId,
             title = request.Title.Trim(),
+            short_description = shortDescription,
             description = request.Description,
             internal_notes = request.InternalNotes,
             status = NarrativeStatuses.Draft
@@ -203,8 +208,13 @@ public static class NarrativeEndpoints
         var row = await GetQuest(eventId, questId, url!, key!, httpClient, includeDeleted: true);
         if (row is null) return Results.NotFound();
         if (row.deleted_at.HasValue) return Results.BadRequest("Deleted quest cannot be edited.");
-        if (row.status == NarrativeStatuses.Locked && (request.Title is not null || request.Description is not null))
+        if (row.status == NarrativeStatuses.Locked && (request.Title is not null || request.ShortDescription is not null || request.Description is not null))
             return Results.BadRequest("Locked quest allows editing internal notes only.");
+
+        var nextShortDescription = request.ShortDescription is null
+            ? row.short_description
+            : NormalizeQuestShortDescription(request.ShortDescription);
+        if (nextShortDescription?.Length > QuestShortDescriptionMaxLength) return Results.BadRequest($"Short description cannot be longer than {QuestShortDescriptionMaxLength} characters.");
 
         var nextTitle = request.Title?.Trim() ?? row.title;
         if (!string.Equals(nextTitle, row.title, StringComparison.OrdinalIgnoreCase) &&
@@ -219,6 +229,7 @@ public static class NarrativeEndpoints
         req.Content = JsonContent.Create(new
         {
             title = nextTitle,
+            short_description = nextShortDescription,
             description = request.Description ?? row.description,
             internal_notes = request.InternalNotes ?? row.internal_notes
         });
@@ -284,7 +295,15 @@ public static class NarrativeEndpoints
         var createReq = new HttpRequestMessage(HttpMethod.Post, $"{url}/rest/v1/narrative_quests");
         createReq.Headers.Add("Prefer", "return=representation");
         AddHeaders(createReq, key!);
-        createReq.Content = JsonContent.Create(new { event_id = eventId, title = clonedTitle, description = source.description, internal_notes = source.internal_notes, status = NarrativeStatuses.Draft });
+        createReq.Content = JsonContent.Create(new
+        {
+            event_id = eventId,
+            title = clonedTitle,
+            short_description = source.short_description,
+            description = source.description,
+            internal_notes = source.internal_notes,
+            status = NarrativeStatuses.Draft
+        });
         var createResp = await httpClient.SendAsync(createReq);
         if (!createResp.IsSuccessStatusCode) return Results.Problem($"Failed to duplicate quest: {createResp.StatusCode}");
         var created = (await createResp.Content.ReadFromJsonAsync<List<SupabaseNarrativeQuestRow>>())?.FirstOrDefault();
@@ -2350,7 +2369,7 @@ public static class NarrativeEndpoints
     }
 
     private static NarrativeQuestDto ToQuestDto(SupabaseNarrativeQuestRow row) =>
-        new(row.id, row.event_id, row.title, row.description, row.internal_notes, row.status, row.created_at, row.updated_at, row.deleted_at);
+        new(row.id, row.event_id, row.title, row.short_description, row.description, row.internal_notes, row.status, row.created_at, row.updated_at, row.deleted_at);
 
     private static NarrativeQuestStepCharacterDto ToQuestStepCharacterDto(SupabaseNarrativeQuestStepCharacterRow row) =>
         new(row.event_id, row.step_id, row.character_id, row.created_at);
@@ -2443,7 +2462,7 @@ public static class NarrativeEndpoints
         {
             $"id=eq.{questId}",
             $"event_id=eq.{eventId}",
-            "select=id,event_id,title,description,internal_notes,status,created_at,updated_at,deleted_at",
+            "select=id,event_id,title,short_description,description,internal_notes,status,created_at,updated_at,deleted_at",
             "limit=1"
         };
         if (!includeDeleted) filters.Add("deleted_at=is.null");
@@ -2567,6 +2586,13 @@ public static class NarrativeEndpoints
         if (!resp.IsSuccessStatusCode) return false;
         var rows = await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativeIdRow>>() ?? [];
         return rows.Any(x => !excludingQuestId.HasValue || x.id != excludingQuestId.Value);
+    }
+
+    private static string? NormalizeQuestShortDescription(string? value)
+    {
+        if (value is null) return null;
+        var normalized = value.Trim();
+        return string.IsNullOrWhiteSpace(normalized) ? null : normalized;
     }
 
     private static async Task<bool> FactionNameExists(Guid eventId, string name, Guid? excludingFactionId, string url, string key, HttpClient httpClient)
