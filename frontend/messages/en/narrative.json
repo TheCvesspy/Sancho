@@ -26,7 +26,7 @@
         "save": "Save",
         "error": "An error occurred",
         "duplicate": "Duplicate",
-        "editTitle": "Edit Quest Name",
+        "editTitle": "Edit Name",
         "create": "Create",
         "delete": "Delete",
         "restore": "Restore",
@@ -319,6 +319,12 @@
             "restore": {
                 "title": "Restore Faction",
                 "description": "Are you sure you want to restore this faction?"
+            },
+            "edit": {
+                "title": "Edit Faction Name",
+                "description": "Change the name of this faction.",
+                "lockedWarning": "Faction is locked. Only internal notes can be edited.",
+                "inlineNote": "Description, goals, and internal notes are edited on the Overview tab inline."
             }
         },
         "notifications": {
@@ -573,7 +579,7 @@
         },
         "modes": {
             "directional": "Directional (A -> B)",
-            "autoMirrored": "Auto-mirrored (A <-> B)"
+            "auto_mirrored": "Auto-mirrored (A <-> B)"
         }
     },
     "stepItems": {

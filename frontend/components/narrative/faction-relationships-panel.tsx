@@ -77,7 +77,7 @@ export function FactionRelationshipsPanel({ factionId, eventId, initialRelations
             setRelationships(prev => [...prev, added]);
 
             // Re-fetch to get auto-mirrored instances if applicable
-            if (relationMode === "autoMirrored") {
+            if (relationMode === "auto_mirrored") {
                 const latest = await narrativeApi.listFactionRelationships(token, eventId, factionId);
                 setRelationships(latest);
             }
@@ -102,10 +102,15 @@ export function FactionRelationshipsPanel({ factionId, eventId, initialRelations
     };
 
     const getTargetName = (rel: NarrativeFactionRelationshipDto) => {
-        if (rel.targetFactionId) return factions.find(f => f.id === rel.targetFactionId)?.name || rel.targetFactionId;
+        if (rel.targetFactionId) {
+            const otherFactionId = rel.targetFactionId === factionId ? rel.sourceFactionId : rel.targetFactionId;
+            return factions.find(f => f.id === otherFactionId)?.name || otherFactionId;
+        }
         if (rel.targetCharacterId) return characters.find(c => c.id === rel.targetCharacterId)?.name || rel.targetCharacterId;
         return "—";
     };
+
+    const filteredRelationships = relationships.filter(rel => !rel.isAutoMirror);
 
     return (
         <div className="space-y-6">
@@ -192,7 +197,7 @@ export function FactionRelationshipsPanel({ factionId, eventId, initialRelations
                             onChange={(e) => setRelationMode(e.target.value)}
                         >
                             <option value="directional">{t("factions.relationships.directionalShort")}</option>
-                            <option value="autoMirrored">{t("factions.relationships.mirroredShort")}</option>
+                            <option value="auto_mirrored">{t("factions.relationships.mirroredShort")}</option>
                         </select>
                     </div>
 
@@ -210,16 +215,16 @@ export function FactionRelationshipsPanel({ factionId, eventId, initialRelations
                     <div>{t("factions.relationships.fields.mode")}</div>
                     {canWrite && <div className="w-10"></div>}
                 </div>
-                {relationships.length === 0 ? (
+                {filteredRelationships.length === 0 ? (
                     <div className="p-8 text-center text-muted-foreground">{t("factions.relationships.noRelationships")}</div>
                 ) : (
                     <div className="divide-y">
-                        {relationships.map(rel => (
+                        {filteredRelationships.map(rel => (
                             <div key={rel.id} className="grid grid-cols-[2fr_1fr_1fr_auto] gap-4 p-4 items-center">
                                 <div className="font-medium">
                                     {getTargetName(rel)}
                                     <span className="ml-2 text-xs text-muted-foreground uppercase">
-                                        {rel.targetFactionId ? t("factions.relationships.targetFaction") : t("factions.relationships.targetCharacter")}
+                                        {(rel.relationMode === "auto_mirrored" || rel.targetFactionId) ? t("factions.relationships.targetFaction") : t("factions.relationships.targetCharacter")}
                                     </span>
                                 </div>
                                 <div><span className="capitalize">{rel.relationType}</span></div>

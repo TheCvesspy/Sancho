@@ -26,7 +26,7 @@
         "save": "Uložit",
         "error": "Nastala chyba",
         "duplicate": "Duplikovat",
-        "editTitle": "Upravit název úkolu",
+        "editTitle": "Upravit název",
         "create": "Vytvořit",
         "delete": "Smazat",
         "restore": "Obnovit",
@@ -314,6 +314,12 @@
             "restore": {
                 "title": "Obnovit frakci",
                 "description": "Opravdu chcete obnovit tuto frakci?"
+            },
+            "edit": {
+                "title": "Upravit název frakce",
+                "description": "Změňte název této frakce.",
+                "lockedWarning": "Frakce je zamčená. Lze upravovat pouze interní poznámky.",
+                "inlineNote": "Popis, cíle a interní poznámky se upravují přímo na záložce Přehled."
             }
         },
         "notifications": {
@@ -568,7 +574,7 @@
         },
         "modes": {
             "directional": "Jednosměrný (A -> B)",
-            "autoMirrored": "Automaticky zrcadlený (A <-> B)"
+            "auto_mirrored": "Automaticky zrcadlený (A <-> B)"
         }
     },
     "stepItems": {
