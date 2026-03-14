@@ -380,6 +380,7 @@
             },
             "maxCopies": {
                 "label": "Max Copies Limit (Optional)",
+                "description": "Optional upper limit for the number of physical copies allowed.",
                 "placeholder": "Leave empty for unlimited"
             }
         },

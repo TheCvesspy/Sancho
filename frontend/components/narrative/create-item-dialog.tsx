@@ -30,6 +30,7 @@ import { Button } from "@/components/ui/button";
 import { PlusCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 
 const createItemSchema = z.object({
     name: z.string().min(1, { message: "Name is required" }),
@@ -126,7 +127,7 @@ export function CreateItemDialog({ eventId, token, onCreated }: CreateItemDialog
                                 <FormItem>
                                     <FormLabel>{t("items.fields.description.label")}</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="Short summary..." {...field} />
+                                        <Input placeholder={t("items.fields.description.placeholder")} {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -154,6 +155,24 @@ export function CreateItemDialog({ eventId, token, onCreated }: CreateItemDialog
                             )}
                         />
 
+                        <FormField
+                            control={form.control}
+                            name="internalNotes"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t("items.fields.internalNotes.label")}</FormLabel>
+                                    <FormControl>
+                                        <Textarea 
+                                            placeholder={t("items.fields.internalNotes.placeholder")} 
+                                            className="min-h-[100px]"
+                                            {...field} 
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
                         {isMultiCopy && (
                             <FormField
                                 control={form.control}
@@ -162,7 +181,7 @@ export function CreateItemDialog({ eventId, token, onCreated }: CreateItemDialog
                                     <FormItem>
                                         <FormLabel>{t("items.fields.maxCopies.label")}</FormLabel>
                                         <FormControl>
-                                            <Input type="number" min="1" placeholder="Unlimited" {...field} value={field.value || ""} onChange={e => field.onChange(e.target.value ? parseInt(e.target.value, 10) : null)} />
+                                            <Input type="number" min="1" placeholder={t("items.fields.maxCopies.placeholder")} {...field} value={field.value || ""} onChange={e => field.onChange(e.target.value ? parseInt(e.target.value, 10) : null)} />
                                         </FormControl>
                                         <FormDescription>{t("items.fields.maxCopies.description")}</FormDescription>
                                         <FormMessage />

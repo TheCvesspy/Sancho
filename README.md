@@ -1,6 +1,6 @@
 # Sancho — LARP Event Management Platform
 
-**Version: 0.15.29**
+**Version: 0.15.31**
 
 Sancho is a single-organization web application for managing LARP (Live Action Role-Playing) groups, covering the full event lifecycle from planning through execution. One deployment serves one organization and supports multiple events.
 
@@ -160,9 +160,10 @@ sancho/
 | `narrative_faction_documents` | Faction Google Drive document links |
 | `narrative_item_documents` | Item Google Drive document links |
 | `narrative_faction_relationships` | Faction vs Faction and Faction vs Character relationships (free-text relation type) |
+| `narrative_item_character_assignments` | Narrative Item Assignments to characters |
 | `narrative_*_links` | Character/faction/item relationships across narrative entities |
 
-**Applied Migrations:** 20 (latest: `20260314180500_remove_faction_relationship_notes`)
+**Applied Migrations:** 21 (latest: `20260314181000_narrative_item_character_assignments`)
 
 ---
 
@@ -248,6 +249,8 @@ sancho/
 
 | Version | Date | Summary |
 |---|---|---|
+| 0.15.31 | 2026-03-14 | Fix: Missing translation key for item max copies and UI improvements in item creation dialog. |
+| 0.15.30 | 2026-03-14 | Fix: Missing narrative_item_character_assignments table created via migration resolving NotFound errors during item assignments fetch. |
 | 0.15.29 | 2026-03-14 | Refactor: Faction Relationships v2 - free-text relation types, notes removal, and Searchable Link Picker implementation. |
 | 0.15.28 | 2026-03-14 | Fix: Language does not follow user profile settings. Implemented app-wide locale redirection in middleware with cookie caching. |
 | 0.15.27 | 2026-03-08 | Implement granular event member module permissions. Update frontend UI/UX and backend fallback checks. |

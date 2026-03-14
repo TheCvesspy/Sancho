@@ -375,6 +375,7 @@
             },
             "maxCopies": {
                 "label": "Maximální počet kopií (Volitelné)",
+                "description": "Volitelný horní limit pro počet povolených fyzických kopií.",
                 "placeholder": "Nechte prázdné pro neomezeno"
             }
         },
