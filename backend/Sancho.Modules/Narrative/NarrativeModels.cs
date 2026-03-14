@@ -259,7 +259,6 @@ public record NarrativeFactionRelationshipDto(
     string RelationMode,
     Guid? MirrorGroupId,
     bool IsAutoMirror,
-    string? Notes,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt
 );
@@ -384,13 +383,11 @@ public record CreateFactionRelationshipRequest(
     Guid? TargetFactionId,
     Guid? TargetCharacterId,
     string RelationType,
-    string RelationMode,
-    string? Notes
+    string RelationMode
 );
 
 public record UpdateFactionRelationshipRequest(
-    string? RelationType,
-    string? Notes
+    string? RelationType
 );
 
 public record CreatePlotRequest(
@@ -588,7 +585,6 @@ internal record SupabaseNarrativeFactionRelationshipRow(
     [property: JsonPropertyName("relation_mode")] string relation_mode,
     [property: JsonPropertyName("mirror_group_id")] Guid? mirror_group_id,
     [property: JsonPropertyName("is_auto_mirror")] bool is_auto_mirror,
-    string? notes,
     [property: JsonPropertyName("created_at")] DateTimeOffset created_at,
     [property: JsonPropertyName("updated_at")] DateTimeOffset updated_at
 );

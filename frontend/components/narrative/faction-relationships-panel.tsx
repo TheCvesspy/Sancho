@@ -6,7 +6,22 @@ import { NarrativeFactionRelationshipDto, NarrativeFactionDto, narrativeApi } fr
 import { CharacterListItemDto, charactersApi } from "@/utils/characters-api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Trash2, Plus, Loader2 } from "lucide-react";
+import { Trash2, Plus, Loader2, Search, Check, ChevronsUpDown } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from "@/components/ui/command";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 interface FactionRelationshipsPanelProps {
     factionId: string;
@@ -27,10 +42,11 @@ export function FactionRelationshipsPanel({ factionId, eventId, initialRelations
     // Form inputs
     const [targetType, setTargetType] = useState<"faction" | "character">("faction");
     const [targetId, setTargetId] = useState("");
-    const [relationType, setRelationType] = useState("ally");
+    const [relationType, setRelationType] = useState("");
     const [relationMode, setRelationMode] = useState("directional");
-    const [notes, setNotes] = useState("");
     const [isSaving, setIsSaving] = useState(false);
+    const [pickerOpen, setPickerOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
 
     useEffect(() => {
         const fetchData = async () => {
@@ -55,9 +71,8 @@ export function FactionRelationshipsPanel({ factionId, eventId, initialRelations
             const added = await narrativeApi.createFactionRelationship(token, eventId, factionId, {
                 targetFactionId: targetType === "faction" ? targetId : null,
                 targetCharacterId: targetType === "character" ? targetId : null,
-                relationType,
-                relationMode,
-                notes: notes || null
+                relationType: relationType.trim() || "ally",
+                relationMode
             });
             setRelationships(prev => [...prev, added]);
 
@@ -68,7 +83,7 @@ export function FactionRelationshipsPanel({ factionId, eventId, initialRelations
             }
 
             setTargetId("");
-            setNotes("");
+            setRelationType("");
         } catch (error) {
             console.error(error);
         } finally {
@@ -112,32 +127,61 @@ export function FactionRelationshipsPanel({ factionId, eventId, initialRelations
 
                     <div className="space-y-1 flex-1 min-w-[200px]">
                         <label className="text-sm font-medium">{t("factions.relationships.target")}</label>
-                        <select
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                            value={targetId}
-                            onChange={(e) => setTargetId(e.target.value)}
-                        >
-                            <option value="">{t("common.select")}</option>
-                            {targetType === "faction"
-                                ? factions.map(f => <option key={f.id} value={f.id}>{f.name}</option>)
-                                : characters.map(c => <option key={c.id} value={c.id}>{c.name}</option>)
-                            }
-                        </select>
+                        <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    aria-expanded={pickerOpen}
+                                    className="w-full justify-between h-10 px-3 bg-background font-normal"
+                                >
+                                    {targetId 
+                                        ? (targetType === "faction" 
+                                            ? factions.find(f => f.id === targetId)?.name 
+                                            : characters.find(c => c.id === targetId)?.name) 
+                                        : t("common.select")}
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[300px] p-0" align="start">
+                                <Command>
+                                    <CommandInput placeholder={t("common.search")} />
+                                    <CommandList>
+                                        <CommandEmpty>{t("common.noResults")}</CommandEmpty>
+                                        <CommandGroup>
+                                            {(targetType === "faction" ? factions : characters).map((item) => (
+                                                <CommandItem
+                                                    key={item.id}
+                                                    value={item.id}
+                                                    onSelect={(currentValue) => {
+                                                        setTargetId(currentValue === targetId ? "" : currentValue);
+                                                        setPickerOpen(false);
+                                                    }}
+                                                >
+                                                    <Check
+                                                        className={cn(
+                                                            "mr-2 h-4 w-4",
+                                                            targetId === item.id ? "opacity-100" : "opacity-0"
+                                                        )}
+                                                    />
+                                                    {item.name}
+                                                </CommandItem>
+                                            ))}
+                                        </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
                     </div>
 
-                    <div className="space-y-1 w-full sm:w-auto">
+                    <div className="space-y-1 w-full sm:w-auto flex-1 min-w-[150px]">
                         <label className="text-sm font-medium">{t("factions.relationships.fields.type")}</label>
-                        <select
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        <Input
                             value={relationType}
+                            placeholder="e.g. Ally, Enemy..."
+                            maxLength={100}
                             onChange={(e) => setRelationType(e.target.value)}
-                        >
-                            <option value="ally">{t("relationships.types.ally")}</option>
-                            <option value="enemy">{t("relationships.types.enemy")}</option>
-                            <option value="neutral">{t("relationships.types.neutral")}</option>
-                            <option value="info-source">{t("relationships.types.info-source")}</option>
-                            <option value="custom">{t("relationships.types.custom")}</option>
-                        </select>
+                        />
                     </div>
 
                     <div className="space-y-1 w-full sm:w-auto">
@@ -147,18 +191,9 @@ export function FactionRelationshipsPanel({ factionId, eventId, initialRelations
                             value={relationMode}
                             onChange={(e) => setRelationMode(e.target.value)}
                         >
-                            <option value="directional">{t("relationships.modes.directional")}</option>
-                            <option value="autoMirrored">{t("relationships.modes.autoMirrored")}</option>
+                            <option value="directional">{t("factions.relationships.directionalShort")}</option>
+                            <option value="autoMirrored">{t("factions.relationships.mirroredShort")}</option>
                         </select>
-                    </div>
-
-                    <div className="space-y-1 flex-1 min-w-[160px]">
-                        <label className="text-sm font-medium">{t("factions.relationships.fields.notes")}</label>
-                        <Input
-                            value={notes}
-                            placeholder="..."
-                            onChange={(e) => setNotes(e.target.value)}
-                        />
                     </div>
 
                     <Button onClick={handleAdd} disabled={!targetId || isSaving}>
@@ -186,9 +221,8 @@ export function FactionRelationshipsPanel({ factionId, eventId, initialRelations
                                     <span className="ml-2 text-xs text-muted-foreground uppercase">
                                         {rel.targetFactionId ? t("factions.relationships.targetFaction") : t("factions.relationships.targetCharacter")}
                                     </span>
-                                    {rel.notes && <p className="text-sm text-muted-foreground font-normal mt-1">{rel.notes}</p>}
                                 </div>
-                                <div><span className="capitalize">{t(`relationships.types.${rel.relationType}` as any) || rel.relationType}</span></div>
+                                <div><span className="capitalize">{rel.relationType}</span></div>
                                 <div className="text-muted-foreground text-sm">
                                     {rel.relationMode === "directional" ? t("factions.relationships.directionalShort") : t("factions.relationships.mirroredShort")}
                                 </div>

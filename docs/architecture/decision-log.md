@@ -117,3 +117,12 @@ Lightweight log of noteworthy architecture and design decisions.
   - Reused shared Google Drive URL validation to avoid duplicate validation logic across modules.
   - Added/updated integration tests for Narrative and EventManagement bindings.
   **Alternatives**: Keep Character seam stubbed longer (rejected due to missing production narrative links and deletion guard enforcement).
+- **Context**: Faction relationships were restricted to a small enum of types and included a legacy notes field that added UI clutter without clear semantic purpose. Large events also required a better target selection mechanism.
+  **Decision**: Refactored Faction Relationships (v2) to support free-text relationship types and implemented the Searchable Link Picker pattern.
+  **Implementation**:
+  - Dropped `notes` column from `narrative_faction_relationships`.
+  - Changed `relation_type` from enum to `varchar(100)`.
+  - Added length validation (100 chars) in backend `NarrativeEndpoints`.
+  - Replaced the Target select field in `faction-relationships-panel.tsx` with a Searchable Link Picker (`Popover` + `Command`) following the project-standard pattern for large option sets.
+  - Overwrote `NarrativeModels.cs` and `narrative-api.ts` to cleanly remove the legacy field from all DTOs and interfaces.
+  **Alternatives**: Keeping the enum and notes (rejected — too restrictive for complex narrative setups); Using a separate notes field only for internal use (rejected — user explicitly requested removal).

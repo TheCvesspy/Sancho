@@ -1,4 +1,4 @@
-﻿using System.Net.Http.Headers;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Builder;
@@ -1034,7 +1034,7 @@ public static class NarrativeEndpoints
         var query = $"{url}/rest/v1/narrative_faction_relationships" +
                     $"?event_id=eq.{eventId}" +
                     $"&or=(source_faction_id.eq.{factionId},target_faction_id.eq.{factionId})" +
-                    "&select=id,event_id,source_faction_id,target_faction_id,target_character_id,relation_type,relation_mode,mirror_group_id,is_auto_mirror,notes,created_at,updated_at" +
+                    "&select=id,event_id,source_faction_id,target_faction_id,target_character_id,relation_type,relation_mode,mirror_group_id,is_auto_mirror,created_at,updated_at" +
                     "&order=created_at.desc";
         var req = new HttpRequestMessage(HttpMethod.Get, query);
         AddHeaders(req, key!);
@@ -1051,6 +1051,7 @@ public static class NarrativeEndpoints
         if (!access.CanWrite) return Results.Forbid();
         if (!await FactionExists(eventId, factionId, url!, key!, httpClient, includeDeleted: false)) return Results.NotFound();
         if (string.IsNullOrWhiteSpace(request.RelationType)) return Results.BadRequest("Relation type is required.");
+        if (request.RelationType.Length > 100) return Results.BadRequest("Relation type cannot be longer than 100 characters.");
         if (!IsValidRelationshipMode(request.RelationMode)) return Results.BadRequest("Relation mode must be 'directional' or 'auto_mirrored'.");
         if ((request.TargetFactionId.HasValue && request.TargetCharacterId.HasValue) || (!request.TargetFactionId.HasValue && !request.TargetCharacterId.HasValue))
             return Results.BadRequest("Exactly one target is required: target faction or target character.");
@@ -1085,8 +1086,7 @@ public static class NarrativeEndpoints
             relation_type = request.RelationType.Trim(),
             relation_mode = request.RelationMode,
             mirror_group_id = mirrorGroupId,
-            is_auto_mirror = false,
-            notes = request.Notes
+            is_auto_mirror = false
         });
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to create faction relationship: {resp.StatusCode}");
@@ -1107,8 +1107,7 @@ public static class NarrativeEndpoints
                 relation_type = request.RelationType.Trim(),
                 relation_mode = request.RelationMode,
                 mirror_group_id = mirrorGroupId,
-                is_auto_mirror = true,
-                notes = request.Notes
+                is_auto_mirror = true
             });
             await httpClient.SendAsync(mirrorReq);
         }
@@ -1125,15 +1124,14 @@ public static class NarrativeEndpoints
         if (current is null) return Results.NotFound();
 
         var nextType = request.RelationType?.Trim() ?? current.relation_type;
-        var nextNotes = request.Notes ?? current.notes;
+        if (nextType.Length > 100) return Results.BadRequest("Relation type cannot be longer than 100 characters.");
 
         var req = new HttpRequestMessage(HttpMethod.Patch, $"{url}/rest/v1/narrative_faction_relationships?id=eq.{relationshipId}&event_id=eq.{eventId}");
         req.Headers.Add("Prefer", "return=representation");
         AddHeaders(req, key!);
         req.Content = JsonContent.Create(new
         {
-            relation_type = nextType,
-            notes = nextNotes
+            relation_type = nextType
         });
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to update faction relationship: {resp.StatusCode}");
@@ -1146,8 +1144,7 @@ public static class NarrativeEndpoints
             AddHeaders(mirrorPatch, key!);
             mirrorPatch.Content = JsonContent.Create(new
             {
-                relation_type = nextType,
-                notes = nextNotes
+                relation_type = nextType
             });
             await httpClient.SendAsync(mirrorPatch);
         }
@@ -2430,7 +2427,6 @@ public static class NarrativeEndpoints
             row.relation_mode,
             row.mirror_group_id,
             row.is_auto_mirror,
-            canReadInternal ? row.notes : null,
             row.created_at,
             row.updated_at
         );
@@ -2651,7 +2647,7 @@ public static class NarrativeEndpoints
                     $"?id=eq.{relationshipId}" +
                     $"&event_id=eq.{eventId}" +
                     $"&or=(source_faction_id.eq.{factionId},target_faction_id.eq.{factionId})" +
-                    "&select=id,event_id,source_faction_id,target_faction_id,target_character_id,relation_type,relation_mode,mirror_group_id,is_auto_mirror,notes,created_at,updated_at" +
+                    "&select=id,event_id,source_faction_id,target_faction_id,target_character_id,relation_type,relation_mode,mirror_group_id,is_auto_mirror,created_at,updated_at" +
                     "&limit=1";
         var req = new HttpRequestMessage(HttpMethod.Get, query);
         AddHeaders(req, key);

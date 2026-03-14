@@ -226,7 +226,6 @@ export interface NarrativeFactionRelationshipDto {
     relationMode: string;
     mirrorGroupId: string | null;
     isAutoMirror: boolean;
-    notes: string | null;
     createdAt: string;
     updatedAt: string;
 }
@@ -295,12 +294,10 @@ export interface CreateFactionRelationshipRequest {
     targetCharacterId?: string | null;
     relationType: string;
     relationMode: string;
-    notes?: string | null;
 }
 
 export interface UpdateFactionRelationshipRequest {
     relationType?: string;
-    notes?: string | null;
 }
 
 // Items

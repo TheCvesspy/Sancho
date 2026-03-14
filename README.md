@@ -1,6 +1,6 @@
 # Sancho — LARP Event Management Platform
 
-**Version: 0.15.28**
+**Version: 0.15.29**
 
 Sancho is a single-organization web application for managing LARP (Live Action Role-Playing) groups, covering the full event lifecycle from planning through execution. One deployment serves one organization and supports multiple events.
 
@@ -53,6 +53,7 @@ Sancho is a single-organization web application for managing LARP (Live Action R
 - Character integration seam activated via `ICharacterNarrativeService` concrete implementation
 - **Frontend UI**: Complete narrative module with 11 panels for all narrative entities including Plotlines, Factions, Quests, and Items with deep linking.
 - **Quest Step Characters**: Support for linking multiple characters/NPCs to specific quest steps (replacing legacy `has_fixed_players` flag).
+- **Faction Relationships v2**: Removed legacy notes field, changed relation type to 100-char free-text, and implemented Searchable Link Picker pattern for targets.
 
 #### Shared UI Components
 - **Rich Text Editor (TipTap)**: Enhanced with full headings (H1-H4), text alignment (left, center, right, justify), text color, and highlight controls.
@@ -158,10 +159,10 @@ sancho/
 | `narrative_quest_documents` | Quest Google Drive document links |
 | `narrative_faction_documents` | Faction Google Drive document links |
 | `narrative_item_documents` | Item Google Drive document links |
-| `narrative_faction_relationships` | Faction vs Faction and Faction vs Character relationships |
+| `narrative_faction_relationships` | Faction vs Faction and Faction vs Character relationships (free-text relation type) |
 | `narrative_*_links` | Character/faction/item relationships across narrative entities |
 
-**Applied Migrations:** 19 (latest: `20260308113000_narrative_quest_short_description`)
+**Applied Migrations:** 20 (latest: `20260314180500_remove_faction_relationship_notes`)
 
 ---
 
@@ -247,6 +248,7 @@ sancho/
 
 | Version | Date | Summary |
 |---|---|---|
+| 0.15.29 | 2026-03-14 | Refactor: Faction Relationships v2 - free-text relation types, notes removal, and Searchable Link Picker implementation. |
 | 0.15.28 | 2026-03-14 | Fix: Language does not follow user profile settings. Implemented app-wide locale redirection in middleware with cookie caching. |
 | 0.15.27 | 2026-03-08 | Implement granular event member module permissions. Update frontend UI/UX and backend fallback checks. |
 | 0.10.2 | 2026-03-08 | Fix NarrativeGraph chunk load error, add Quest Step character links, and quest short description support. |
