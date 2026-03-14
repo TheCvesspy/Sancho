@@ -1,520 +1,626 @@
 # Narrative Locations Backend Implementation Plan
 
 Date: 2026-03-14
-Scope: Backend + DB + API contracts for the Locations sub-entity within Narrative context.
-Out of scope here: frontend implementation details (see `narrative_locations_frontend_plan.md`).
+Scope: Database, backend services, API contracts, tests, and docs for the Locations sub-entity inside the existing `narrative` module.
+Out of scope: frontend implementation details.
 
-## 1. Goals and Constraints
+## 1. Readiness Assessment
 
-### Goals
-- Add location management (basic + dungeon types) to existing Narrative module.
-- Support dungeon floor/room hierarchy with CRUD + reorder.
-- Support flexible quest/plotline/plot linking at location, floor, or room granularity.
-- Support Google Drive document links at all levels (location, floor, room).
-- Extend existing `narrative_document_links` entity_type check constraint.
+The original draft is a strong product and API outline, but it is not yet sufficient as an implementation plan for this repository without tightening several engineering details:
 
-### Hard constraints from current repo rules
-- Module id remains `narrative` (locations are a sub-entity, not a separate module).
-- Event-scoped authorization and RLS isolation are mandatory.
-- No `new HttpClient()`; use DI `HttpClient`.
-- No `.Result` / `.Wait()`.
-- Endpoint outbound call budget: max 3 Supabase HTTP calls.
-- Parallelize independent reads with `Task.WhenAll(...)`.
-- Soft-delete support for locations (not floors/rooms).
-- Batch writes: collect records into arrays for single Supabase REST calls.
+- It does not fully align to the current backend structure, where all Narrative routes live in `backend/Sancho.Modules/Narrative/NarrativeEndpoints.cs` and reuse common helper patterns.
+- Some SQL examples are not executable as written.
+  - `UNIQUE (...)` cannot contain `COALESCE(...)` expressions inside a table constraint. This must be implemented as a unique index.
+- Several cross-entity integrity rules are described, but not yet enforced at the database layer.
+  - `event_id` consistency between location, floor, room, and linked quest/plotline/plot rows must be enforced.
+  - `room_id` belonging to the selected `floor_id` and `location_id` must be enforced.
+- The draft does not yet define which payloads should be aggregated to stay within the backend HTTP-call budget.
+- The migration plan does not yet specify idempotent `DROP POLICY IF EXISTS` / `CREATE POLICY` style consistent with existing Narrative migrations.
 
----
+This document closes those gaps and is implementation-ready pending the open decisions in section 11.
 
-## 2. Current Baseline (Already Implemented)
+## 2. Existing Backend Baseline
 
-- Narrative module is fully implemented with Quests, Plotlines, Plots, Factions, Items.
-- `NarrativeEndpoints.cs` (~1200 lines) handles all existing narrative endpoints.
-- `NarrativeAuthorizationService.cs` handles claims-first access resolution.
-- `NarrativeDocumentLinkService.cs` handles Google Drive link CRUD with entity_type routing.
-- `NarrativeLifecycleService.cs` handles status transitions (Draft ↔ Ready ↔ Locked).
-- `NarrativeModels.cs` contains all DTOs and Supabase row models.
-- `narrative_document_links` table supports entity_types: `quest`, `plotline`, `plot`, `faction`, `item`.
-- RLS function `can_access_narrative_event(event_id, require_write)` is reused by all narrative tables.
+Implementation must fit the current Narrative module rather than introduce a parallel structure.
 
----
+- Routes are already mounted under `/api/events/{eventId:guid}/narrative`.
+- Authorization is handled through `NarrativeAuthorizationService.ResolveEventAccessAsync(...)`.
+- Locking rules already exist for quests, factions, plotlines, and plots through `NarrativeStatuses` and `NarrativeLifecycleService`.
+- Shared Google Drive validation is already handled by `NarrativeDocumentLinkService`.
+- DTOs and Supabase row models live in `backend/Sancho.Modules/Narrative/NarrativeModels.cs`.
+- Integration tests already exist in `backend/Sancho.Modules/Narrative.Tests/NarrativeEndpoints.IntegrationTests.cs`.
+- Existing upsert patterns use PostgREST merge semantics:
+  - `Prefer: return=representation,resolution=merge-duplicates`
 
-## 3. Delivery Strategy
+Implementation should preserve those patterns.
 
-Implement in 4 backend phases to keep changes reviewable.
+## 3. Implementation Goals
 
-### Phase A: Database Migration (narrative_locations schema + RLS + indexes)
+- Add event-scoped Narrative Locations with two immutable types: `basic` and `dungeon`.
+- Support Narrative lifecycle states on locations only: `Draft`, `Ready`, `Locked`.
+- Support dungeon floors and rooms with ordered CRUD and batch reorder.
+- Support Google Drive document links on location, floor, and room.
+- Support many-to-many links between locations and:
+  - quests
+  - plotlines
+  - plots
+- Support link granularity at:
+  - location level
+  - floor level
+  - room level
+- Preserve all authorization, event isolation, and performance requirements from [AGENTS.md](/D:/Sancho/AGENTS.md), [authorization_guidelines.md](/D:/Sancho/docs/architecture/authorization_guidelines.md), and [ARCHITECTURE.md](/D:/Sancho/Basic%20Information/ARCHITECTURE.md).
 
-Create migration `supabase/migrations/2026031x000000_narrative_locations.sql` with:
+## 4. Delivery Strategy
 
-#### 1. Core tables
+Implementation will be delivered in five backend slices:
 
-**`narrative_locations`**
+1. Database migration
+2. Location CRUD and lifecycle endpoints
+3. Dungeon floor and room endpoints
+4. Location link endpoints and reverse link endpoints
+5. Tests, OpenAPI verification, README/doc updates
+
+This order keeps the change reviewable and allows the frontend to start integrating incrementally.
+
+## 5. Database Implementation Plan
+
+Create a new migration:
+
+- `supabase/migrations/20260314xxxxxx_narrative_locations.sql`
+
+The migration must follow existing Narrative migration style:
+
+- `CREATE TABLE IF NOT EXISTS`
+- `DROP POLICY IF EXISTS ...`
+- `CREATE POLICY ...`
+- `CREATE INDEX IF NOT EXISTS`
+- `DROP TRIGGER IF EXISTS ...`
+
+### 5.1 Tables
+
+Create these tables:
+
+- `public.narrative_locations`
+- `public.narrative_dungeon_floors`
+- `public.narrative_dungeon_rooms`
+- `public.narrative_quest_locations`
+- `public.narrative_plotline_locations`
+- `public.narrative_plot_locations`
+
+### 5.2 `narrative_locations`
+
+Columns:
+
+- `id UUID PRIMARY KEY DEFAULT gen_random_uuid()`
+- `event_id UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE`
+- `name TEXT NOT NULL`
+- `description TEXT`
+- `internal_notes TEXT`
+- `location_type TEXT NOT NULL DEFAULT 'basic'`
+- `status TEXT NOT NULL DEFAULT 'Draft'`
+- `created_at TIMESTAMPTZ NOT NULL DEFAULT now()`
+- `updated_at TIMESTAMPTZ NOT NULL DEFAULT now()`
+- `deleted_at TIMESTAMPTZ`
+- `deleted_by UUID REFERENCES public.user_profiles(id)`
+- `deletion_reason TEXT`
+
+Constraints:
+
+- `location_type IN ('basic', 'dungeon')`
+- `status IN ('Draft', 'Ready', 'Locked')`
+
+Indexes:
+
+- unique active-name index:
+  - `CREATE UNIQUE INDEX IF NOT EXISTS uq_narrative_locations_event_name_active ON public.narrative_locations (event_id, lower(name)) WHERE deleted_at IS NULL;`
+- active list index:
+  - `CREATE INDEX IF NOT EXISTS idx_narrative_locations_event_created ON public.narrative_locations (event_id, created_at DESC) WHERE deleted_at IS NULL;`
+- optional filter index if status filtering is included in v1:
+  - `CREATE INDEX IF NOT EXISTS idx_narrative_locations_event_status_created ON public.narrative_locations (event_id, status, created_at DESC) WHERE deleted_at IS NULL;`
+
+### 5.3 `narrative_dungeon_floors`
+
+Columns:
+
+- `id UUID PRIMARY KEY DEFAULT gen_random_uuid()`
+- `location_id UUID NOT NULL REFERENCES public.narrative_locations(id) ON DELETE CASCADE`
+- `event_id UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE`
+- `sort_order INT NOT NULL DEFAULT 0`
+- `name TEXT NOT NULL`
+- `description TEXT`
+- `internal_notes TEXT`
+- `created_at TIMESTAMPTZ NOT NULL DEFAULT now()`
+- `updated_at TIMESTAMPTZ NOT NULL DEFAULT now()`
+
+Indexes:
+
+- `CREATE INDEX IF NOT EXISTS idx_narrative_dungeon_floors_location_sort ON public.narrative_dungeon_floors (location_id, sort_order, id);`
+- `CREATE INDEX IF NOT EXISTS idx_narrative_dungeon_floors_event ON public.narrative_dungeon_floors (event_id);`
+
+### 5.4 `narrative_dungeon_rooms`
+
+Columns:
+
+- `id UUID PRIMARY KEY DEFAULT gen_random_uuid()`
+- `floor_id UUID NOT NULL REFERENCES public.narrative_dungeon_floors(id) ON DELETE CASCADE`
+- `location_id UUID NOT NULL REFERENCES public.narrative_locations(id) ON DELETE CASCADE`
+- `event_id UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE`
+- `sort_order INT NOT NULL DEFAULT 0`
+- `name TEXT NOT NULL`
+- `description TEXT`
+- `internal_notes TEXT`
+- `created_at TIMESTAMPTZ NOT NULL DEFAULT now()`
+- `updated_at TIMESTAMPTZ NOT NULL DEFAULT now()`
+
+Indexes:
+
+- `CREATE INDEX IF NOT EXISTS idx_narrative_dungeon_rooms_floor_sort ON public.narrative_dungeon_rooms (floor_id, sort_order, id);`
+- `CREATE INDEX IF NOT EXISTS idx_narrative_dungeon_rooms_location ON public.narrative_dungeon_rooms (location_id);`
+- `CREATE INDEX IF NOT EXISTS idx_narrative_dungeon_rooms_event ON public.narrative_dungeon_rooms (event_id);`
+
+### 5.5 Link Tables
+
+Each link table stores:
+
+- `event_id`
+- owner entity id (`quest_id`, `plotline_id`, or `plot_id`)
+- `location_id`
+- nullable `floor_id`
+- nullable `room_id`
+- `created_at`
+
+Tables:
+
+- `public.narrative_quest_locations`
+- `public.narrative_plotline_locations`
+- `public.narrative_plot_locations`
+
+Constraints:
+
+- `room_id IS NULL OR floor_id IS NOT NULL`
+
+Uniqueness:
+
+- Use a unique index, not a table constraint, because expression-based normalization is required:
+
 ```sql
-CREATE TABLE public.narrative_locations (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    event_id        UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
-    name            TEXT NOT NULL,
-    description     TEXT,
-    internal_notes  TEXT,
-    location_type   TEXT NOT NULL DEFAULT 'basic',
-    status          TEXT NOT NULL DEFAULT 'Draft',
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-    deleted_at      TIMESTAMPTZ,
-    deleted_by      UUID REFERENCES public.user_profiles(id),
-    deletion_reason TEXT,
-    CONSTRAINT narrative_locations_type_check CHECK (location_type IN ('basic', 'dungeon')),
-    CONSTRAINT narrative_locations_status_check CHECK (status IN ('Draft', 'Ready', 'Locked'))
-);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_narrative_quest_locations_granularity
+  ON public.narrative_quest_locations
+  (
+    quest_id,
+    location_id,
+    COALESCE(floor_id, '00000000-0000-0000-0000-000000000000'::uuid),
+    COALESCE(room_id,  '00000000-0000-0000-0000-000000000000'::uuid)
+  );
 ```
 
-**`narrative_dungeon_floors`**
-```sql
-CREATE TABLE public.narrative_dungeon_floors (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    location_id     UUID NOT NULL REFERENCES public.narrative_locations(id) ON DELETE CASCADE,
-    event_id        UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
-    sort_order      INT NOT NULL DEFAULT 0,
-    name            TEXT NOT NULL,
-    description     TEXT,
-    internal_notes  TEXT,
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-```
-
-**`narrative_dungeon_rooms`**
-```sql
-CREATE TABLE public.narrative_dungeon_rooms (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    floor_id        UUID NOT NULL REFERENCES public.narrative_dungeon_floors(id) ON DELETE CASCADE,
-    location_id     UUID NOT NULL REFERENCES public.narrative_locations(id) ON DELETE CASCADE,
-    event_id        UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
-    sort_order      INT NOT NULL DEFAULT 0,
-    name            TEXT NOT NULL,
-    description     TEXT,
-    internal_notes  TEXT,
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-```
-
-#### 2. Link tables (flexible granularity)
-
-**`narrative_quest_locations`**
-```sql
-CREATE TABLE public.narrative_quest_locations (
-    event_id        UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
-    quest_id        UUID NOT NULL REFERENCES public.narrative_quests(id) ON DELETE CASCADE,
-    location_id     UUID NOT NULL REFERENCES public.narrative_locations(id) ON DELETE CASCADE,
-    floor_id        UUID REFERENCES public.narrative_dungeon_floors(id) ON DELETE CASCADE,
-    room_id         UUID REFERENCES public.narrative_dungeon_rooms(id) ON DELETE CASCADE,
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CONSTRAINT quest_locations_room_requires_floor CHECK (room_id IS NULL OR floor_id IS NOT NULL),
-    CONSTRAINT quest_locations_unique UNIQUE (
-        quest_id,
-        location_id,
-        COALESCE(floor_id, '00000000-0000-0000-0000-000000000000'),
-        COALESCE(room_id, '00000000-0000-0000-0000-000000000000')
-    )
-);
-```
-
-**`narrative_plotline_locations`** — same structure, replacing `quest_id` with `plotline_id UUID FK -> narrative_plotlines(id)`.
-
-**`narrative_plot_locations`** — same structure, replacing `quest_id` with `plot_id UUID FK -> narrative_plots(id)`.
-
-#### 3. Extend existing entity_type check constraint
-
-```sql
-ALTER TABLE public.narrative_document_links
-    DROP CONSTRAINT narrative_document_links_entity_type_check;
-ALTER TABLE public.narrative_document_links
-    ADD CONSTRAINT narrative_document_links_entity_type_check
-    CHECK (entity_type IN ('quest', 'plotline', 'plot', 'faction', 'item', 'location', 'dungeon_floor', 'dungeon_room'));
-```
-
-#### 4. Triggers
-
-Reuse existing `touch_narrative_updated_at()` trigger:
-```sql
-CREATE TRIGGER trg_narrative_locations_touch_updated_at
-    BEFORE UPDATE ON public.narrative_locations
-    FOR EACH ROW EXECUTE FUNCTION touch_narrative_updated_at();
-
-CREATE TRIGGER trg_narrative_dungeon_floors_touch_updated_at
-    BEFORE UPDATE ON public.narrative_dungeon_floors
-    FOR EACH ROW EXECUTE FUNCTION touch_narrative_updated_at();
-
-CREATE TRIGGER trg_narrative_dungeon_rooms_touch_updated_at
-    BEFORE UPDATE ON public.narrative_dungeon_rooms
-    FOR EACH ROW EXECUTE FUNCTION touch_narrative_updated_at();
-```
-
-#### 5. RLS policies
-
-Enable RLS on all 6 new tables. Use identical pattern to existing narrative tables:
-
-```sql
-ALTER TABLE public.narrative_locations ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY narrative_locations_read ON public.narrative_locations
-    FOR SELECT USING (can_access_narrative_event(event_id, false));
-
-CREATE POLICY narrative_locations_insert ON public.narrative_locations
-    FOR INSERT WITH CHECK (can_access_narrative_event(event_id, true));
-
-CREATE POLICY narrative_locations_update ON public.narrative_locations
-    FOR UPDATE USING (can_access_narrative_event(event_id, true));
-
-CREATE POLICY narrative_locations_delete ON public.narrative_locations
-    FOR DELETE USING (can_access_narrative_event(event_id, true));
-```
+Use the same pattern for plotline and plot tables.
 
-Repeat for `narrative_dungeon_floors`, `narrative_dungeon_rooms`, `narrative_quest_locations`, `narrative_plotline_locations`, `narrative_plot_locations`.
+Indexes:
 
-#### 6. Mandatory indexes
+- `(event_id, quest_id, location_id)`
+- `(event_id, location_id, quest_id)`
+- `(event_id, plotline_id, location_id)`
+- `(event_id, location_id, plotline_id)`
+- `(event_id, plot_id, location_id)`
+- `(event_id, location_id, plot_id)`
 
-```sql
--- Location list queries (partial index for active rows)
-CREATE INDEX idx_narrative_locations_event_created
-    ON public.narrative_locations (event_id, created_at DESC)
-    WHERE deleted_at IS NULL;
+These are required for both forward and reverse lookup paths under RLS.
 
--- Location name uniqueness (among non-deleted)
-CREATE UNIQUE INDEX uq_narrative_locations_event_name_active
-    ON public.narrative_locations (event_id, lower(name))
-    WHERE deleted_at IS NULL;
-
--- Floor queries by location
-CREATE INDEX idx_narrative_dungeon_floors_location
-    ON public.narrative_dungeon_floors (location_id, sort_order);
+### 5.6 Cross-Table Integrity Enforcement
 
-CREATE INDEX idx_narrative_dungeon_floors_event
-    ON public.narrative_dungeon_floors (event_id);
+This is the main missing piece from the original draft.
 
--- Room queries by floor and by location
-CREATE INDEX idx_narrative_dungeon_rooms_floor
-    ON public.narrative_dungeon_rooms (floor_id, sort_order);
+The database must enforce these invariants:
 
-CREATE INDEX idx_narrative_dungeon_rooms_location
-    ON public.narrative_dungeon_rooms (location_id);
+- floor `event_id` matches parent location `event_id`
+- room `event_id` matches parent floor and location `event_id`
+- room `location_id` matches its floor's `location_id`
+- quest/plotline/plot link `event_id` matches both sides of the link
+- linked `floor_id` belongs to linked `location_id`
+- linked `room_id` belongs to linked `floor_id` and linked `location_id`
 
-CREATE INDEX idx_narrative_dungeon_rooms_event
-    ON public.narrative_dungeon_rooms (event_id);
+Implementation approach:
 
--- Quest-location links (both directions)
-CREATE INDEX idx_narrative_quest_locations_quest
-    ON public.narrative_quest_locations (event_id, quest_id);
+- Add composite unique indexes on parent tables where needed:
+  - `narrative_locations (id, event_id)`
+  - `narrative_dungeon_floors (id, location_id, event_id)`
+  - `narrative_dungeon_rooms (id, floor_id, location_id, event_id)`
+- Prefer composite foreign keys where PostgreSQL can express them cleanly.
+- Where composite FKs are not sufficient or become too heavy, add `BEFORE INSERT OR UPDATE` validation triggers:
+  - `validate_narrative_dungeon_floor_parent()`
+  - `validate_narrative_dungeon_room_parent()`
+  - `validate_narrative_quest_location_link()`
+  - `validate_narrative_plotline_location_link()`
+  - `validate_narrative_plot_location_link()`
 
-CREATE INDEX idx_narrative_quest_locations_location
-    ON public.narrative_quest_locations (event_id, location_id);
+Trigger functions should raise explicit errors for:
 
--- Plotline-location links (both directions)
-CREATE INDEX idx_narrative_plotline_locations_plotline
-    ON public.narrative_plotline_locations (event_id, plotline_id);
+- mismatched event scope
+- invalid location/floor/room hierarchy
+- floor or room used against a `basic` location
 
-CREATE INDEX idx_narrative_plotline_locations_location
-    ON public.narrative_plotline_locations (event_id, location_id);
+### 5.7 Document Link Constraint Update
 
--- Plot-location links (both directions)
-CREATE INDEX idx_narrative_plot_locations_plot
-    ON public.narrative_plot_locations (event_id, plot_id);
+Extend the existing `narrative_document_links_entity_type_check` constraint to allow:
 
-CREATE INDEX idx_narrative_plot_locations_location
-    ON public.narrative_plot_locations (event_id, location_id);
+- `location`
+- `dungeon_floor`
+- `dungeon_room`
 
--- Document links for new entity types (already indexed by entity_type + entity_id in existing migration)
-```
-
----
+Implementation must be idempotent:
 
-### Phase B: Location CRUD + Documents
+- `ALTER TABLE ... DROP CONSTRAINT IF EXISTS narrative_document_links_entity_type_check;`
+- `ALTER TABLE ... ADD CONSTRAINT narrative_document_links_entity_type_check CHECK (...);`
 
-Add to existing `NarrativeEndpoints.cs` (or create `NarrativeLocationEndpoints.cs` as a partial/extension if the file is too large):
+### 5.8 Triggers
 
-#### Endpoints
-
-**Location CRUD** — base: `/api/events/{eventId:guid}/narrative/locations`
+Reuse existing `public.touch_narrative_updated_at()` on:
 
-| Method | Path | Body | Description |
-|---|---|---|---|
-| GET | `/locations` | — | List locations. Query: `?includeDeleted=true`, `?type=basic\|dungeon` |
-| POST | `/locations` | `{ name, description?, internalNotes?, locationType }` | Create location |
-| GET | `/locations/{locationId}` | — | Get location by id |
-| PATCH | `/locations/{locationId}` | `{ name?, description?, internalNotes? }` | Update location |
-| POST | `/locations/{locationId}/status` | `{ status, confirmUnlock? }` | Change status |
-| DELETE | `/locations/{locationId}` | `{ reason? }` | Soft-delete |
-| POST | `/locations/{locationId}/undelete` | — | Restore |
-
-**Location Documents** — reuse `NarrativeDocumentLinkService` with `entity_type = 'location'`:
-
-| Method | Path | Body | Description |
-|---|---|---|---|
-| GET | `/locations/{locationId}/documents` | — | List documents |
-| POST | `/locations/{locationId}/documents/google-drive` | `{ displayName, url, documentStatus? }` | Add Google Drive link |
-| DELETE | `/locations/{locationId}/documents/{documentId}` | — | Delete document |
-
-#### DTOs (add to NarrativeModels.cs)
-
-```csharp
-// Row model (maps to Supabase snake_case)
-public record NarrativeLocationRow(
-    Guid id, Guid event_id, string name, string? description, string? internal_notes,
-    string location_type, string status,
-    DateTimeOffset created_at, DateTimeOffset updated_at,
-    DateTimeOffset? deleted_at, Guid? deleted_by, string? deletion_reason
-);
-
-// API response DTO (camelCase)
-public record NarrativeLocationDto(
-    Guid Id, Guid EventId, string Name, string? Description, string? InternalNotes,
-    string LocationType, string Status,
-    DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt,
-    DateTimeOffset? DeletedAt
-);
-
-// Request DTOs
-public record CreateNarrativeLocationRequest(string Name, string? Description, string? InternalNotes, string LocationType);
-public record UpdateNarrativeLocationRequest(string? Name, string? Description, string? InternalNotes);
-```
-
-#### Validation rules
-- Name required, max 200 chars.
-- Name unique per event among non-deleted locations (checked via Supabase query before insert).
-- `locationType` must be `basic` or `dungeon`. Immutable after creation.
-- Status transitions: Draft ↔ Ready ↔ Locked. Locked → Ready requires `confirmUnlock = true`.
-- Locked locations reject PATCH updates (except internal notes — consistent with quest behavior).
-- Archived events block writes for non-admin users.
-
----
-
-### Phase C: Dungeon Floor & Room CRUD
-
-#### Floor Endpoints — base: `/api/events/{eventId}/narrative/locations/{locationId}/floors`
-
-| Method | Path | Body | Description |
-|---|---|---|---|
-| GET | `/floors` | — | List floors (ordered by sort_order) |
-| POST | `/floors` | `{ name, description?, internalNotes?, sortOrder? }` | Create floor |
-| PATCH | `/floors/{floorId}` | `{ name?, description?, internalNotes? }` | Update floor |
-| DELETE | `/floors/{floorId}` | — | Hard-delete (cascades rooms) |
-| POST | `/floors/reorder` | `[{ id, sortOrder }]` | Batch reorder |
-
-**Floor Documents:**
-
-| Method | Path | Body | Description |
-|---|---|---|---|
-| GET | `/floors/{floorId}/documents` | — | List floor documents |
-| POST | `/floors/{floorId}/documents/google-drive` | `{ displayName, url, documentStatus? }` | Add Google Drive link |
-| DELETE | `/floors/{floorId}/documents/{documentId}` | — | Delete document |
-
-#### Room Endpoints — base: `.../floors/{floorId}/rooms`
-
-| Method | Path | Body | Description |
-|---|---|---|---|
-| GET | `/rooms` | — | List rooms (ordered by sort_order) |
-| POST | `/rooms` | `{ name, description?, internalNotes?, sortOrder? }` | Create room |
-| PATCH | `/rooms/{roomId}` | `{ name?, description?, internalNotes? }` | Update room |
-| DELETE | `/rooms/{roomId}` | — | Hard-delete |
-| POST | `/rooms/reorder` | `[{ id, sortOrder }]` | Batch reorder |
-
-**Room Documents:**
-
-| Method | Path | Body | Description |
-|---|---|---|---|
-| GET | `/rooms/{roomId}/documents` | — | List room documents |
-| POST | `/rooms/{roomId}/documents/google-drive` | `{ displayName, url, documentStatus? }` | Add Google Drive link |
-| DELETE | `/rooms/{roomId}/documents/{documentId}` | — | Delete document |
-
-#### Floor/Room DTOs
-
-```csharp
-public record NarrativeDungeonFloorRow(
-    Guid id, Guid location_id, Guid event_id, int sort_order,
-    string name, string? description, string? internal_notes,
-    DateTimeOffset created_at, DateTimeOffset updated_at
-);
-
-public record NarrativeDungeonFloorDto(
-    Guid Id, Guid LocationId, Guid EventId, int SortOrder,
-    string Name, string? Description, string? InternalNotes,
-    DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt
-);
-
-public record CreateDungeonFloorRequest(string Name, string? Description, string? InternalNotes, int? SortOrder);
-public record UpdateDungeonFloorRequest(string? Name, string? Description, string? InternalNotes);
-
-public record NarrativeDungeonRoomRow(
-    Guid id, Guid floor_id, Guid location_id, Guid event_id, int sort_order,
-    string name, string? description, string? internal_notes,
-    DateTimeOffset created_at, DateTimeOffset updated_at
-);
-
-public record NarrativeDungeonRoomDto(
-    Guid Id, Guid FloorId, Guid LocationId, Guid EventId, int SortOrder,
-    string Name, string? Description, string? InternalNotes,
-    DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt
-);
-
-public record CreateDungeonRoomRequest(string Name, string? Description, string? InternalNotes, int? SortOrder);
-public record UpdateDungeonRoomRequest(string? Name, string? Description, string? InternalNotes);
-
-public record ReorderRequest(Guid Id, int SortOrder);
-```
-
-#### Validation rules
-- Floor/room creation returns 400 if `location_type != 'dungeon'`.
-- Floor/room operations return 400 if parent location is Locked.
-- Floor name required, max 200 chars.
-- Room name required, max 200 chars.
-- Reorder body: array of `{ id, sortOrder }`. Single batch Supabase call.
-- Deleting a floor cascades (hard-deletes) all rooms on that floor.
-
----
-
-### Phase D: Link Endpoints (Both Directions)
-
-#### Location-side link endpoints — base: `.../locations/{locationId}/links`
-
-| Method | Path | Body | Description |
-|---|---|---|---|
-| GET | `/links/quests` | — | List quest links for this location (all granularities) |
-| PUT | `/links/quests/{questId}` | `{ floorId?, roomId? }` | Upsert quest link |
-| DELETE | `/links/quests/{questId}` | Query: `?floorId=&roomId=` | Delete specific quest link |
-| GET | `/links/plotlines` | — | List plotline links |
-| PUT | `/links/plotlines/{plotlineId}` | `{ floorId?, roomId? }` | Upsert plotline link |
-| DELETE | `/links/plotlines/{plotlineId}` | Query: `?floorId=&roomId=` | Delete specific plotline link |
-| GET | `/links/plots` | — | List plot links |
-| PUT | `/links/plots/{plotId}` | `{ floorId?, roomId? }` | Upsert plot link |
-| DELETE | `/links/plots/{plotId}` | Query: `?floorId=&roomId=` | Delete specific plot link |
-
-#### Reverse link endpoints (added to existing quest/plotline/plot routes)
-
-| Method | Path | Body | Description |
-|---|---|---|---|
-| GET | `/quests/{questId}/links/locations` | — | List location links for a quest |
-| PUT | `/quests/{questId}/links/locations/{locationId}` | `{ floorId?, roomId? }` | Upsert |
-| DELETE | `/quests/{questId}/links/locations/{locationId}` | Query: `?floorId=&roomId=` | Delete |
-| GET | `/plotlines/{plotlineId}/links/locations` | — | Same for plotlines |
-| PUT | `/plotlines/{plotlineId}/links/locations/{locationId}` | `{ floorId?, roomId? }` | Upsert |
-| DELETE | `/plotlines/{plotlineId}/links/locations/{locationId}` | Query: `?floorId=&roomId=` | Delete |
-| GET | `/plots/{plotId}/links/locations` | — | Same for plots |
-| PUT | `/plots/{plotId}/links/locations/{locationId}` | `{ floorId?, roomId? }` | Upsert |
-| DELETE | `/plots/{plotId}/links/locations/{locationId}` | Query: `?floorId=&roomId=` | Delete |
-
-#### Link DTOs
-
-```csharp
-public record NarrativeLocationLinkRow(
-    Guid event_id, Guid quest_id /* or plotline_id or plot_id */,
-    Guid location_id, Guid? floor_id, Guid? room_id,
-    DateTimeOffset created_at
-);
-
-public record NarrativeLocationLinkDto(
-    Guid EventId,
-    Guid? QuestId, Guid? PlotlineId, Guid? PlotId,
-    Guid LocationId, Guid? FloorId, Guid? RoomId,
-    string LocationName, string? FloorName, string? RoomName,
-    DateTimeOffset CreatedAt
-);
-
-public record UpsertLocationLinkRequest(Guid? FloorId, Guid? RoomId);
-```
-
-#### Link validation rules
-- If `roomId` is provided, `floorId` must also be provided (400 if not).
-- If `floorId` is provided, the target location must be dungeon type (400 if basic).
-- `floorId` must belong to the target `locationId` (400 if not).
-- `roomId` must belong to the target `floorId` (400 if not).
-- Duplicate links (same quest + location + floor + room combo) are idempotent (upsert).
-
----
-
-## 4. Backend Structure Changes
-
-### File organization options
-
-Given `NarrativeEndpoints.cs` is already ~1200 lines, consider one of:
-1. **Add to existing file** — keep all narrative endpoints together (simpler, but file grows).
-2. **Split into partial class** — `NarrativeLocationEndpoints.cs` as a static partial or extension method class mapping location routes.
-
-Recommended: **Option 2** — create `NarrativeLocationEndpoints.cs` with a `MapNarrativeLocationEndpoints(this RouteGroupBuilder group)` extension method, called from `MapNarrativeEndpoints()`.
-
-### Existing service reuse
-- `NarrativeAuthorizationService` — reuse `ResolveEventAccessAsync()` for all location endpoints. No changes needed.
-- `NarrativeDocumentLinkService` — reuse for location/floor/room documents. Only new entity_type values needed (`location`, `dungeon_floor`, `dungeon_room`). May need minor update if entity_type validation is hardcoded.
-- `NarrativeLifecycleService` — reuse for location status transitions. Same Draft ↔ Ready ↔ Locked model.
-
----
-
-## 5. Performance Plan (Non-negotiable)
-
-1. **HTTP call budget**
-   - Location list: 1 call (query with filters).
-   - Location detail page: 3 calls max via `Task.WhenAll`:
-     - Call 1: GET location
-     - Call 2: GET floors + rooms (single query joining on location_id, or two parallel sub-calls)
-     - Call 3: GET links (quest + plotline + plot links in parallel sub-calls)
-   - Documents fetched separately only when Documents tab is active (client-side lazy load).
-   - Floor/room reorder: 1 batch call with array body.
-
-2. **Parallel reads**
-   - `Task.WhenAll` for: floors query + rooms query + quest-links query + plotline-links query + plot-links query.
-
-3. **Query shape**
-   - Use narrow `select=` projections.
-   - Location list uses partial index `WHERE deleted_at IS NULL`.
-   - Link queries include joined location/floor/room names to avoid N+1.
-
-4. **Index coverage checklist**
-   - [x] All RLS predicate columns (`event_id`) indexed on every table.
-   - [x] Soft-delete partial indexes on `narrative_locations`.
-   - [x] FK columns on link tables indexed in both directions.
-   - [x] Floor/room sort_order queries covered by `(location_id, sort_order)` and `(floor_id, sort_order)` indexes.
-
----
-
-## 6. Testing Plan
-
-1. **Unit tests**
-   - Location status transition validation (Draft ↔ Ready ↔ Locked, confirm unlock).
-   - Link granularity validation (room requires floor, floor requires dungeon type).
-   - Location type immutability check.
-
-2. **Integration tests**
-   - Auth matrix: `SystemAdmin`, `OrgOwner`, `EventManager`, `narrative:read`, `narrative:write`.
-   - Archived event write denial for non-admins.
-   - Soft-delete/restore flow for locations.
-   - Floor/room CRUD blocked when location is Locked.
-   - Floor/room CRUD blocked when location_type is `basic`.
-   - Link creation with all granularity levels.
-   - Cascade: deleting floor cascades rooms and cleans up links referencing those rooms.
-   - Document links at all three levels (location, floor, room).
-
----
-
-## 7. Suggested Implementation Order (Small PRs)
-
-1. **PR-1**: Migration — tables + constraints + indexes + RLS + triggers.
-2. **PR-2**: Location CRUD + status + soft-delete/restore + documents.
-3. **PR-3**: Floor + Room CRUD + reorder + floor/room documents.
-4. **PR-4**: Link endpoints (location-side + reverse on quest/plotline/plot).
-5. **PR-5**: README update + docs + OpenAPI.
-
----
-
-## 8. Definition of Done
-
-- Location endpoints implemented and wired under `/api/events/{eventId}/narrative/locations/...`.
-- Reverse link endpoints added to existing quest/plotline/plot routes.
-- DB schema + RLS + indexes migrated successfully.
-- `narrative_document_links` entity_type constraint updated.
-- All validation rules enforced (type immutability, lock blocking, granularity constraints).
-- Integration tests cover auth + lifecycle + floor/room cascade + link granularity.
-- README updated with:
-  - Version bump
-  - New endpoints listed
-  - New tables listed
-  - Version history row
+- `public.narrative_locations`
+- `public.narrative_dungeon_floors`
+- `public.narrative_dungeon_rooms`
+
+### 5.9 RLS Policies
+
+Enable RLS and use the existing canonical Narrative pattern on all new tables:
+
+- `FOR SELECT USING (public.can_access_narrative_event(event_id, false))`
+- `FOR ALL USING (public.can_access_narrative_event(event_id, true)) WITH CHECK (public.can_access_narrative_event(event_id, true))`
+
+This keeps authorization aligned with [authorization_guidelines.md](/D:/Sancho/docs/architecture/authorization_guidelines.md).
+
+## 6. Backend Code Implementation Plan
+
+### 6.1 File Structure
+
+Recommended structure:
+
+- keep `NarrativeEndpoints.cs` as the main route registration entrypoint
+- add a new file:
+  - `backend/Sancho.Modules/Narrative/NarrativeLocationEndpoints.cs`
+
+Pattern:
+
+- `MapNarrativeEndpoints(...)` remains the top-level extension
+- it delegates location route registration to a focused helper method
+
+This avoids turning the current endpoint file into an unreviewable monolith.
+
+### 6.2 Model Additions
+
+Add to `backend/Sancho.Modules/Narrative/NarrativeModels.cs`:
+
+- public DTOs
+- request DTOs
+- internal Supabase row models
+
+Required models:
+
+- `NarrativeLocationDto`
+- `NarrativeDungeonFloorDto`
+- `NarrativeDungeonRoomDto`
+- `NarrativeLocationLinkDto`
+- `CreateNarrativeLocationRequest`
+- `UpdateNarrativeLocationRequest`
+- `ChangeNarrativeLocationStatusRequest`
+- `SoftDeleteNarrativeLocationRequest`
+- `CreateDungeonFloorRequest`
+- `UpdateDungeonFloorRequest`
+- `CreateDungeonRoomRequest`
+- `UpdateDungeonRoomRequest`
+- `ReorderNarrativeChildRequest`
+- `UpsertNarrativeLocationLinkRequest`
+- internal row records for all new tables
+
+### 6.3 Route Registration
+
+Add these routes under `/api/events/{eventId:guid}/narrative`.
+
+Location routes:
+
+- `GET /locations`
+- `POST /locations`
+- `GET /locations/{locationId:guid}`
+- `PATCH /locations/{locationId:guid}`
+- `POST /locations/{locationId:guid}/status`
+- `DELETE /locations/{locationId:guid}`
+- `POST /locations/{locationId:guid}/undelete`
+
+Location document routes:
+
+- `GET /locations/{locationId:guid}/documents`
+- `POST /locations/{locationId:guid}/documents/google-drive`
+- `DELETE /locations/{locationId:guid}/documents/{documentId:guid}`
+
+Floor routes:
+
+- `GET /locations/{locationId:guid}/floors`
+- `POST /locations/{locationId:guid}/floors`
+- `PATCH /locations/{locationId:guid}/floors/{floorId:guid}`
+- `DELETE /locations/{locationId:guid}/floors/{floorId:guid}`
+- `POST /locations/{locationId:guid}/floors/reorder`
+
+Floor document routes:
+
+- `GET /locations/{locationId:guid}/floors/{floorId:guid}/documents`
+- `POST /locations/{locationId:guid}/floors/{floorId:guid}/documents/google-drive`
+- `DELETE /locations/{locationId:guid}/floors/{floorId:guid}/documents/{documentId:guid}`
+
+Room routes:
+
+- `GET /locations/{locationId:guid}/floors/{floorId:guid}/rooms`
+- `POST /locations/{locationId:guid}/floors/{floorId:guid}/rooms`
+- `PATCH /locations/{locationId:guid}/floors/{floorId:guid}/rooms/{roomId:guid}`
+- `DELETE /locations/{locationId:guid}/floors/{floorId:guid}/rooms/{roomId:guid}`
+- `POST /locations/{locationId:guid}/floors/{floorId:guid}/rooms/reorder`
+
+Room document routes:
+
+- `GET /locations/{locationId:guid}/floors/{floorId:guid}/rooms/{roomId:guid}/documents`
+- `POST /locations/{locationId:guid}/floors/{floorId:guid}/rooms/{roomId:guid}/documents/google-drive`
+- `DELETE /locations/{locationId:guid}/floors/{floorId:guid}/rooms/{roomId:guid}/documents/{documentId:guid}`
+
+Flat floor document routes:
+
+- `GET /dungeon-floors/{floorId:guid}/documents`
+- `POST /dungeon-floors/{floorId:guid}/documents/google-drive`
+- `DELETE /dungeon-floors/{floorId:guid}/documents/{documentId:guid}`
+
+Flat room document routes:
+
+- `GET /dungeon-rooms/{roomId:guid}/documents`
+- `POST /dungeon-rooms/{roomId:guid}/documents/google-drive`
+- `DELETE /dungeon-rooms/{roomId:guid}/documents/{documentId:guid}`
+
+Location-side link routes:
+
+- `GET /locations/{locationId:guid}/links/quests`
+- `PUT /locations/{locationId:guid}/links/quests/{questId:guid}`
+- `DELETE /locations/{locationId:guid}/links/quests/{questId:guid}`
+- `GET /locations/{locationId:guid}/links/plotlines`
+- `PUT /locations/{locationId:guid}/links/plotlines/{plotlineId:guid}`
+- `DELETE /locations/{locationId:guid}/links/plotlines/{plotlineId:guid}`
+- `GET /locations/{locationId:guid}/links/plots`
+- `PUT /locations/{locationId:guid}/links/plots/{plotId:guid}`
+- `DELETE /locations/{locationId:guid}/links/plots/{plotId:guid}`
+
+Reverse link routes on existing entities:
+
+- `GET /quests/{questId:guid}/links/locations`
+- `PUT /quests/{questId:guid}/links/locations/{locationId:guid}`
+- `DELETE /quests/{questId:guid}/links/locations/{locationId:guid}`
+- `GET /plotlines/{plotlineId:guid}/links/locations`
+- `PUT /plotlines/{plotlineId:guid}/links/locations/{locationId:guid}`
+- `DELETE /plotlines/{plotlineId:guid}/links/locations/{locationId:guid}`
+- `GET /plots/{plotId:guid}/links/locations`
+- `PUT /plots/{plotId:guid}/links/locations/{locationId:guid}`
+- `DELETE /plots/{plotId:guid}/links/locations/{locationId:guid}`
+
+## 7. Endpoint Behavior and Validation
+
+### 7.1 Shared Authorization Rules
+
+All endpoints:
+
+- call `NarrativeAuthorizationService.ResolveEventAccessAsync(...)`
+- require `CanRead` for GETs
+- require `CanWrite` for mutations
+- inherit archived-event write blocking automatically from the existing service
+
+### 7.2 Location CRUD Rules
+
+Create:
+
+- name required
+- max length 200
+- `locationType` must be `basic` or `dungeon`
+- location starts in `Draft`
+- active-name uniqueness checked before insert
+
+Update:
+
+- `locationType` immutable
+- deleted location cannot be edited
+- locked location allows editing `internalNotes` only
+- if name changes, uniqueness check is required
+
+Status:
+
+- use `NarrativeLifecycleService.CanTransition(...)`
+- `Locked -> Ready` requires `confirmUnlock = true`
+
+Delete / Undelete:
+
+- soft-delete only on locations
+- undelete clears `deleted_at`, `deleted_by`, `deletion_reason`
+
+### 7.3 Floor and Room Rules
+
+Floor and room mutations require:
+
+- parent location exists
+- parent location is not soft-deleted
+- parent location type is `dungeon`
+- parent location status is not `Locked`
+
+Floor validation:
+
+- name required
+- max length 200
+
+Room validation:
+
+- name required
+- max length 200
+
+Reorder:
+
+- request body is array of `{ id, sortOrder }`
+- all ids must belong to the specified parent
+- send a single batch upsert/update request to Supabase
+
+Delete:
+
+- floor delete is hard-delete
+- room delete is hard-delete
+- floor delete cascades room delete through FK
+
+### 7.4 Link Rules
+
+Mutation validation:
+
+- target location must exist and not be soft-deleted
+- target quest/plotline/plot must exist
+- if `roomId` is provided, `floorId` is required
+- if `floorId` is provided, location must be `dungeon`
+- `floorId` must belong to `locationId`
+- `roomId` must belong to `floorId` and `locationId`
+- deleted locations are not linkable
+- links against deleted quests/plotlines/plots are not allowed
+
+Upsert:
+
+- use `Prefer: return=representation,resolution=merge-duplicates`
+- database uniqueness must make identical links idempotent
+
+Delete:
+
+- delete uses the exact location/floor/room tuple
+- delete request uses a request body carrying the exact tuple:
+  - `locationId`
+  - optional `floorId`
+  - optional `roomId`
+- this is preferred because the deleted relation is identified by a composite payload, not a single resource id
+
+### 7.5 Document Rules
+
+Reuse the current `ListDocuments(...)`, `AddGoogleDriveDocument(...)`, and `DeleteDocument(...)` pattern.
+
+Before document mutation:
+
+- verify the parent entity exists in the correct hierarchy
+- for floor and room, verify parent location is `dungeon`
+
+Entity type mapping:
+
+- location -> `location`
+- floor -> `dungeon_floor`
+- room -> `dungeon_room`
+
+## 8. Performance Plan
+
+The implementation must stay within the repo HTTP-call budget.
+
+### 8.1 List Endpoints
+
+- `GET /locations` -> 1 Supabase call
+  - supports `q`, `type`, `status`, and `includeDeleted`
+- `GET /locations/{locationId}` -> up to 3 Supabase calls
+  - call 1: location
+  - call 2: floors and rooms in parallel
+  - call 3: optional lightweight link summary in parallel if included in the detail contract
+- `GET /locations/{locationId}/floors` -> 1 call
+- `GET /locations/{locationId}/floors/{floorId}/rooms` -> 1 call
+
+### 8.2 Detail Screen Support
+
+Confirmed API contract:
+
+- `GET /locations/{locationId}` returns the location plus embedded floors and rooms
+
+Documents should remain lazy-loaded per tab.
+
+### 8.3 Parallelism
+
+When a handler needs independent reads:
+
+- use `Task.WhenAll(...)`
+
+Expected cases:
+
+- reverse link lookup plus entity existence checks
+- overview aggregation
+- parallel floor/room and link summary reads
+
+### 8.4 Batch Writes
+
+Reorder endpoints must issue one batch write each.
+
+No looped per-row `POST` or `PATCH` calls.
+
+## 9. Test Plan
+
+Add tests to `backend/Sancho.Modules/Narrative.Tests/NarrativeEndpoints.IntegrationTests.cs`.
+
+### 9.1 Authorization
+
+- user without narrative access cannot list locations
+- explicit `narrative:read` can view location data but not mutate
+- explicit `narrative:write` can mutate
+- EventManager can mutate within managed event only
+- archived event denies write for non-admin users
+
+### 9.2 Lifecycle and Soft Delete
+
+- create location defaults to `Draft`
+- locked location rejects name/description edits but allows internal notes
+- locked to ready requires `confirmUnlock`
+- deleted location is hidden from default list
+- undelete restores visibility
+
+### 9.3 Dungeon Structure
+
+- cannot create floor on `basic` location
+- cannot create room under invalid floor
+- cannot modify floor or room when parent location is locked
+- reorder updates persisted sort order
+- deleting floor removes its rooms
+
+### 9.4 Links
+
+- create location-level link
+- create floor-level link
+- create room-level link
+- room without floor is rejected
+- floor not belonging to location is rejected
+- room not belonging to floor is rejected
+- duplicate upsert is idempotent
+- reverse endpoints return linked locations
+
+### 9.5 Documents
+
+- can add/list/delete location documents
+- can add/list/delete floor documents
+- can add/list/delete room documents
+
+## 10. Documentation and Contract Updates
+
+As part of implementation:
+
+- update README before commit per [AGENTS.md](/D:/Sancho/AGENTS.md)
+- add endpoints to README API section
+- add tables to README database schema section
+- add version history row with 2026-03-14 date
+- update relevant architecture docs if route structure or domain ownership changes
+- ensure OpenAPI output is regenerated if the repo currently tracks generated API docs
+
+## 11. Confirmed Decisions
+
+Confirmed decisions:
+
+1. `GET /locations/{locationId}` returns location metadata with embedded floors and rooms.
+2. `GET /locations` includes `q`, `type`, `status`, and `includeDeleted`.
+3. Reverse link endpoints suppress soft-deleted locations by default and expose them when `includeDeleted=true`.
+4. Floor and room documents are exposed through both nested and flat routes.
+5. Deleting a specific location-link tuple uses request-body deletion.
+
+## 12. Definition of Done
+
+- migration created and applied successfully
+- all new tables have RLS, indexes, and hierarchy validation
+- new narrative location DTOs and row models added
+- location, floor, room, link, and document endpoints implemented
+- reverse location-link endpoints implemented on quests, plotlines, and plots
+- integration tests cover auth, lifecycle, hierarchy, and links
+- README and related docs updated

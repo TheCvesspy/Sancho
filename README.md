@@ -1,6 +1,6 @@
 # Sancho — LARP Event Management Platform
 
-**Version: 0.15.31**
+**Version: 0.15.32**
 
 Sancho is a single-organization web application for managing LARP (Live Action Role-Playing) groups, covering the full event lifecycle from planning through execution. One deployment serves one organization and supports multiple events.
 
@@ -54,6 +54,7 @@ Sancho is a single-organization web application for managing LARP (Live Action R
 - **Frontend UI**: Complete narrative module with 11 panels for all narrative entities including Plotlines, Factions, Quests, and Items with deep linking.
 - **Quest Step Characters**: Support for linking multiple characters/NPCs to specific quest steps (replacing legacy `has_fixed_players` flag).
 - **Faction Relationships v2**: Removed legacy notes field, changed relation type to 100-char free-text, and implemented Searchable Link Picker pattern for targets.
+- **Narrative Locations backend**: Added event-scoped locations and dungeon hierarchy endpoints with lifecycle, soft-delete, Google Drive documents, and quest/plotline/plot location links.
 
 #### Shared UI Components
 - **Rich Text Editor (TipTap)**: Enhanced with full headings (H1-H4), text alignment (left, center, right, justify), text color, and highlight controls.
@@ -161,9 +162,15 @@ sancho/
 | `narrative_item_documents` | Item Google Drive document links |
 | `narrative_faction_relationships` | Faction vs Faction and Faction vs Character relationships (free-text relation type) |
 | `narrative_item_character_assignments` | Narrative Item Assignments to characters |
+| `narrative_locations` | Event-scoped narrative locations with lifecycle and soft-delete |
+| `narrative_dungeon_floors` | Ordered dungeon floors within a narrative location |
+| `narrative_dungeon_rooms` | Ordered dungeon rooms within dungeon floors |
+| `narrative_quest_locations` | Quest to location/floor/room narrative links |
+| `narrative_plotline_locations` | Plotline to location/floor/room narrative links |
+| `narrative_plot_locations` | Plot to location/floor/room narrative links |
 | `narrative_*_links` | Character/faction/item relationships across narrative entities |
 
-**Applied Migrations:** 21 (latest: `20260314181000_narrative_item_character_assignments`)
+**Applied Migrations:** 22 (latest: `20260314190000_narrative_locations`)
 
 ---
 
@@ -242,6 +249,9 @@ sancho/
 - Plots: CRUD, status transitions, soft-delete, restore
 - Plot plotline links and direct links (character/faction/item)
 - Plot inherited link read model
+- Locations: CRUD, status transitions, soft-delete, restore, search/filter list, and dungeon detail payloads
+- Dungeon floors and rooms: CRUD, reorder, and nested/flat document endpoints
+- Narrative location links: quest/plotline/plot linking at location, floor, or room granularity from both directions
 
 ---
 
@@ -249,6 +259,7 @@ sancho/
 
 | Version | Date | Summary |
 |---|---|---|
+| 0.15.32 | 2026-03-14 | Add Narrative Locations backend API, database migration, dungeon hierarchy, and location linking support. |
 | 0.15.31 | 2026-03-14 | Fix: Missing translation key for item max copies and UI improvements in item creation dialog. |
 | 0.15.30 | 2026-03-14 | Fix: Missing narrative_item_character_assignments table created via migration resolving NotFound errors during item assignments fetch. |
 | 0.15.29 | 2026-03-14 | Refactor: Faction Relationships v2 - free-text relation types, notes removal, and Searchable Link Picker implementation. |
@@ -325,4 +336,6 @@ cd backend && dotnet run --project Sancho.API
 - **Invite-only** — registration requires a valid invite token; Google OAuth is for existing users only
 
 See `docs/architecture/` for detailed RBAC model, auth model, and design decisions.
+
+
 

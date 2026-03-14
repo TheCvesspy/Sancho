@@ -652,3 +652,215 @@ internal record SupabaseEventStatusRow(
 internal record SupabaseNarrativeIdRow(
     Guid id
 );
+
+
+public record NarrativeLocationDto(
+    Guid Id,
+    Guid EventId,
+    string Name,
+    string? Description,
+    string? InternalNotes,
+    string LocationType,
+    string Status,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt,
+    DateTimeOffset? DeletedAt
+);
+
+public record NarrativeDungeonRoomDto(
+    Guid Id,
+    Guid FloorId,
+    Guid LocationId,
+    Guid EventId,
+    int SortOrder,
+    string Name,
+    string? Description,
+    string? InternalNotes,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt
+);
+
+public record NarrativeDungeonFloorDto(
+    Guid Id,
+    Guid LocationId,
+    Guid EventId,
+    int SortOrder,
+    string Name,
+    string? Description,
+    string? InternalNotes,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt,
+    IReadOnlyList<NarrativeDungeonRoomDto> Rooms
+);
+
+public record NarrativeLocationDetailDto(
+    Guid Id,
+    Guid EventId,
+    string Name,
+    string? Description,
+    string? InternalNotes,
+    string LocationType,
+    string Status,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt,
+    DateTimeOffset? DeletedAt,
+    IReadOnlyList<NarrativeDungeonFloorDto> Floors
+);
+
+public record NarrativeLocationLinkDto(
+    Guid EventId,
+    Guid LocationId,
+    Guid? FloorId,
+    Guid? RoomId,
+    Guid? QuestId,
+    Guid? PlotlineId,
+    Guid? PlotId,
+    string LocationName,
+    string? FloorName,
+    string? RoomName,
+    string? QuestTitle,
+    string? PlotlineTitle,
+    string? PlotTitle,
+    DateTimeOffset CreatedAt
+);
+
+public record CreateNarrativeLocationRequest(
+    string Name,
+    string? Description,
+    string? InternalNotes,
+    string LocationType
+);
+
+public record UpdateNarrativeLocationRequest(
+    string? Name,
+    string? Description,
+    string? InternalNotes
+);
+
+public record CreateDungeonFloorRequest(
+    string Name,
+    string? Description,
+    string? InternalNotes,
+    int? SortOrder
+);
+
+public record UpdateDungeonFloorRequest(
+    string? Name,
+    string? Description,
+    string? InternalNotes
+);
+
+public record CreateDungeonRoomRequest(
+    string Name,
+    string? Description,
+    string? InternalNotes,
+    int? SortOrder
+);
+
+public record UpdateDungeonRoomRequest(
+    string? Name,
+    string? Description,
+    string? InternalNotes
+);
+
+public record ReorderNarrativeChildRequest(
+    Guid Id,
+    int SortOrder
+);
+
+public record UpsertNarrativeLocationLinkRequest(
+    Guid? FloorId,
+    Guid? RoomId
+);
+
+public record DeleteNarrativeLocationLinkRequest(
+    Guid LocationId,
+    Guid? FloorId,
+    Guid? RoomId
+);
+
+internal sealed record SupabaseNamedLocationLinkRow(
+    [property: JsonPropertyName("name")] string? name
+);
+
+internal sealed record SupabaseNamedQuestLinkRow(
+    [property: JsonPropertyName("title")] string? title
+);
+
+internal sealed record SupabaseNarrativeLocationRow(
+    Guid id,
+    [property: JsonPropertyName("event_id")] Guid event_id,
+    string name,
+    string? description,
+    [property: JsonPropertyName("internal_notes")] string? internal_notes,
+    [property: JsonPropertyName("location_type")] string location_type,
+    string status,
+    [property: JsonPropertyName("created_at")] DateTimeOffset created_at,
+    [property: JsonPropertyName("updated_at")] DateTimeOffset updated_at,
+    [property: JsonPropertyName("deleted_at")] DateTimeOffset? deleted_at
+);
+
+internal sealed record SupabaseNarrativeDungeonFloorRow(
+    Guid id,
+    [property: JsonPropertyName("location_id")] Guid location_id,
+    [property: JsonPropertyName("event_id")] Guid event_id,
+    [property: JsonPropertyName("sort_order")] int sort_order,
+    string name,
+    string? description,
+    [property: JsonPropertyName("internal_notes")] string? internal_notes,
+    [property: JsonPropertyName("created_at")] DateTimeOffset created_at,
+    [property: JsonPropertyName("updated_at")] DateTimeOffset updated_at
+);
+
+internal sealed record SupabaseNarrativeDungeonRoomRow(
+    Guid id,
+    [property: JsonPropertyName("floor_id")] Guid floor_id,
+    [property: JsonPropertyName("location_id")] Guid location_id,
+    [property: JsonPropertyName("event_id")] Guid event_id,
+    [property: JsonPropertyName("sort_order")] int sort_order,
+    string name,
+    string? description,
+    [property: JsonPropertyName("internal_notes")] string? internal_notes,
+    [property: JsonPropertyName("created_at")] DateTimeOffset created_at,
+    [property: JsonPropertyName("updated_at")] DateTimeOffset updated_at
+);
+
+internal sealed record SupabaseNarrativeQuestLocationRow(
+    [property: JsonPropertyName("event_id")] Guid event_id,
+    [property: JsonPropertyName("quest_id")] Guid quest_id,
+    [property: JsonPropertyName("location_id")] Guid location_id,
+    [property: JsonPropertyName("floor_id")] Guid? floor_id,
+    [property: JsonPropertyName("room_id")] Guid? room_id,
+    [property: JsonPropertyName("created_at")] DateTimeOffset created_at,
+    SupabaseNamedLocationLinkRow? location,
+    SupabaseNamedLocationLinkRow? floor,
+    SupabaseNamedLocationLinkRow? room,
+    SupabaseNamedQuestLinkRow? quest
+);
+
+internal sealed record SupabaseNarrativePlotlineLocationRow(
+    [property: JsonPropertyName("event_id")] Guid event_id,
+    [property: JsonPropertyName("plotline_id")] Guid plotline_id,
+    [property: JsonPropertyName("location_id")] Guid location_id,
+    [property: JsonPropertyName("floor_id")] Guid? floor_id,
+    [property: JsonPropertyName("room_id")] Guid? room_id,
+    [property: JsonPropertyName("created_at")] DateTimeOffset created_at,
+    SupabaseNamedLocationLinkRow? location,
+    SupabaseNamedLocationLinkRow? floor,
+    SupabaseNamedLocationLinkRow? room,
+    SupabaseNamedQuestLinkRow? plotline
+);
+
+internal sealed record SupabaseNarrativePlotLocationRow(
+    [property: JsonPropertyName("event_id")] Guid event_id,
+    [property: JsonPropertyName("plot_id")] Guid plot_id,
+    [property: JsonPropertyName("location_id")] Guid location_id,
+    [property: JsonPropertyName("floor_id")] Guid? floor_id,
+    [property: JsonPropertyName("room_id")] Guid? room_id,
+    [property: JsonPropertyName("created_at")] DateTimeOffset created_at,
+    SupabaseNamedLocationLinkRow? location,
+    SupabaseNamedLocationLinkRow? floor,
+    SupabaseNamedLocationLinkRow? room,
+    SupabaseNamedQuestLinkRow? plot
+);
+
