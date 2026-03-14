@@ -133,6 +133,7 @@ public static class NarrativeEndpoints
         group.MapPut("/plots/{plotId:guid}/links/items/{itemId:guid}", UpsertPlotItem);
         group.MapDelete("/plots/{plotId:guid}/links/items/{itemId:guid}", DeletePlotItem);
         group.MapGet("/plots/{plotId:guid}/links/inherited", GetPlotInheritedLinks);
+        group.MapNarrativeLocationEndpoints();
     }
 
     private static async Task<IResult> ListQuests(Guid eventId, ClaimsPrincipal user, [FromQuery] bool includeDeleted, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)

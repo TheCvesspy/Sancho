@@ -76,13 +76,14 @@ public static class NarrativeLocationEndpoints
         group.MapDelete("/plots/{plotId:guid}/links/locations/{locationId:guid}", DeletePlotLocationLink);
     }
 
-    private static async Task<IResult> ListLocations(Guid eventId, ClaimsPrincipal user, [FromQuery] bool includeDeleted, [FromQuery] string? type, [FromQuery] string? status, [FromQuery] string? q, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
+    private static async Task<IResult> ListLocations(Guid eventId, ClaimsPrincipal user, [FromQuery] bool? includeDeleted, [FromQuery] string? type, [FromQuery] string? status, [FromQuery] string? q, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
     {
         if (!TryConfig(config, out var url, out var key, out var error)) return error!;
         var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
         if (!access.CanRead) return Results.Forbid();
         if (!string.IsNullOrWhiteSpace(type) && !IsValidLocationType(type)) return Results.BadRequest("Location type must be 'basic' or 'dungeon'.");
         if (!string.IsNullOrWhiteSpace(status) && !NarrativeStatuses.All.Contains(status)) return Results.BadRequest("Unknown location status.");
+        var showDeleted = includeDeleted ?? false;
 
         var filters = new List<string>
         {
@@ -90,7 +91,7 @@ public static class NarrativeLocationEndpoints
             $"event_id=eq.{eventId}",
             "order=created_at.desc"
         };
-        if (!includeDeleted) filters.Add("deleted_at=is.null");
+        if (!showDeleted) filters.Add("deleted_at=is.null");
         if (!string.IsNullOrWhiteSpace(type)) filters.Add($"location_type=eq.{Uri.EscapeDataString(type.Trim())}");
         if (!string.IsNullOrWhiteSpace(status)) filters.Add($"status=eq.{Uri.EscapeDataString(status.Trim())}");
         if (!string.IsNullOrWhiteSpace(q)) filters.Add($"name=ilike.{Uri.EscapeDataString($"*{q.Trim()}*")}");
@@ -602,14 +603,14 @@ public static class NarrativeLocationEndpoints
     private static async Task<IResult> DeleteLocationPlotLink(Guid eventId, Guid locationId, Guid plotId, ClaimsPrincipal user, [FromBody] DeleteNarrativeLocationLinkRequest request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
         => await DeleteLocationLinkInternal(eventId, locationId, plotId, user, request, config, httpClient, authz, "plot");
 
-    private static async Task<IResult> ListQuestLocationLinks(Guid eventId, Guid questId, ClaimsPrincipal user, [FromQuery] bool includeDeleted, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
-        => await ListReverseLocationLinksInternal(eventId, questId, user, includeDeleted, config, httpClient, authz, "quest");
+    private static async Task<IResult> ListQuestLocationLinks(Guid eventId, Guid questId, ClaimsPrincipal user, [FromQuery] bool? includeDeleted, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
+        => await ListReverseLocationLinksInternal(eventId, questId, user, includeDeleted ?? false, config, httpClient, authz, "quest");
 
-    private static async Task<IResult> ListPlotlineLocationLinks(Guid eventId, Guid plotlineId, ClaimsPrincipal user, [FromQuery] bool includeDeleted, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
-        => await ListReverseLocationLinksInternal(eventId, plotlineId, user, includeDeleted, config, httpClient, authz, "plotline");
+    private static async Task<IResult> ListPlotlineLocationLinks(Guid eventId, Guid plotlineId, ClaimsPrincipal user, [FromQuery] bool? includeDeleted, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
+        => await ListReverseLocationLinksInternal(eventId, plotlineId, user, includeDeleted ?? false, config, httpClient, authz, "plotline");
 
-    private static async Task<IResult> ListPlotLocationLinks(Guid eventId, Guid plotId, ClaimsPrincipal user, [FromQuery] bool includeDeleted, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
-        => await ListReverseLocationLinksInternal(eventId, plotId, user, includeDeleted, config, httpClient, authz, "plot");
+    private static async Task<IResult> ListPlotLocationLinks(Guid eventId, Guid plotId, ClaimsPrincipal user, [FromQuery] bool? includeDeleted, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
+        => await ListReverseLocationLinksInternal(eventId, plotId, user, includeDeleted ?? false, config, httpClient, authz, "plot");
 
     private static async Task<IResult> UpsertQuestLocationLink(Guid eventId, Guid questId, Guid locationId, ClaimsPrincipal user, [FromBody] UpsertNarrativeLocationLinkRequest request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
         => await UpsertLocationLinkInternal(eventId, locationId, questId, user, request, config, httpClient, authz, "quest");
@@ -1122,5 +1123,8 @@ public static class NarrativeLocationEndpoints
         return true;
     }
 }
+
+
+
 
 

@@ -96,8 +96,7 @@ public class NarrativeEndpointsIntegrationTests
                 TargetFactionId: factionB,
                 TargetCharacterId: null,
                 RelationType: "ally",
-                RelationMode: "auto_mirrored",
-                Notes: "mutual"));
+                RelationMode: "auto_mirrored"));
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         Assert.Equal(2, fake.Relationships.Count);
@@ -159,6 +158,115 @@ public class NarrativeEndpointsIntegrationTests
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
     }
 
+
+    [Fact]
+    public async Task EventManager_Can_Create_And_Get_Dungeon_Location_With_Embedded_Floors_And_Rooms()
+    {
+        var eventId = Guid.NewGuid();
+        var managerId = Guid.NewGuid();
+        var fake = new FakeSupabaseHandler();
+        fake.SeedEvent(eventId, "active");
+        fake.SeedManager(eventId, managerId);
+
+        using var client = CreateClient(fake);
+        AddAuthHeaders(client, managerId);
+
+        var createResponse = await client.PostAsJsonAsync(
+            $"/api/events/{eventId}/narrative/locations",
+            new CreateNarrativeLocationRequest(
+                Name: "Dark Dungeon",
+                Description: "Below the hill",
+                InternalNotes: null,
+                LocationType: "dungeon"));
+
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+        var created = await createResponse.Content.ReadFromJsonAsync<NarrativeLocationDto>();
+        Assert.NotNull(created);
+
+        var floorId = Guid.NewGuid();
+        var roomId = Guid.NewGuid();
+        fake.SeedFloor(eventId, created!.Id, floorId, "Basement", 1);
+        fake.SeedRoom(eventId, created.Id, floorId, roomId, "Cellar", 2);
+
+        var detailResponse = await client.GetAsync($"/api/events/{eventId}/narrative/locations/{created.Id}");
+        Assert.Equal(HttpStatusCode.OK, detailResponse.StatusCode);
+        var detail = await detailResponse.Content.ReadFromJsonAsync<NarrativeLocationDetailDto>();
+        Assert.NotNull(detail);
+        Assert.Equal("dungeon", detail!.LocationType);
+        Assert.Single(detail.Floors);
+        Assert.Equal("Basement", detail.Floors[0].Name);
+        Assert.Single(detail.Floors[0].Rooms);
+        Assert.Equal("Cellar", detail.Floors[0].Rooms[0].Name);
+    }
+
+    [Fact]
+    public async Task Basic_Location_Rejects_Floor_Creation()
+    {
+        var eventId = Guid.NewGuid();
+        var managerId = Guid.NewGuid();
+        var fake = new FakeSupabaseHandler();
+        fake.SeedEvent(eventId, "active");
+        fake.SeedManager(eventId, managerId);
+
+        using var client = CreateClient(fake);
+        AddAuthHeaders(client, managerId);
+
+        var createResponse = await client.PostAsJsonAsync(
+            $"/api/events/{eventId}/narrative/locations",
+            new CreateNarrativeLocationRequest(
+                Name: "Village Square",
+                Description: null,
+                InternalNotes: null,
+                LocationType: "basic"));
+        var created = await createResponse.Content.ReadFromJsonAsync<NarrativeLocationDto>();
+        Assert.NotNull(created);
+
+        var floorResponse = await client.PostAsJsonAsync(
+            $"/api/events/{eventId}/narrative/locations/{created!.Id}/floors",
+            new CreateDungeonFloorRequest(
+                Name: "Impossible Floor",
+                Description: null,
+                InternalNotes: null,
+                SortOrder: 0));
+
+        Assert.Equal(HttpStatusCode.BadRequest, floorResponse.StatusCode);
+        var body = await floorResponse.Content.ReadAsStringAsync();
+        Assert.Contains("dungeon", body, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Quest_Location_Links_Hide_Deleted_Locations_By_Default_And_Show_Them_When_Requested()
+    {
+        var eventId = Guid.NewGuid();
+        var managerId = Guid.NewGuid();
+        var questId = Guid.NewGuid();
+        var activeLocationId = Guid.NewGuid();
+        var deletedLocationId = Guid.NewGuid();
+        var fake = new FakeSupabaseHandler();
+        fake.SeedEvent(eventId, "active");
+        fake.SeedManager(eventId, managerId);
+        fake.SeedQuest(eventId, questId, "Find the Gate");
+        fake.SeedLocation(eventId, activeLocationId, "Gatehouse", "basic");
+        fake.SeedLocation(eventId, deletedLocationId, "Forgotten Crypt", "basic", deletedAt: DateTimeOffset.UtcNow);
+        fake.QuestLocationLinks.Add(new QuestLocationLinkState(eventId, questId, activeLocationId, null, null, DateTimeOffset.UtcNow));
+        fake.QuestLocationLinks.Add(new QuestLocationLinkState(eventId, questId, deletedLocationId, null, null, DateTimeOffset.UtcNow));
+
+        using var client = CreateClient(fake);
+        AddAuthHeaders(client, managerId);
+
+        var defaultResponse = await client.GetAsync($"/api/events/{eventId}/narrative/quests/{questId}/links/locations");
+        Assert.Equal(HttpStatusCode.OK, defaultResponse.StatusCode);
+        var defaultLinks = await defaultResponse.Content.ReadFromJsonAsync<List<NarrativeLocationLinkDto>>();
+        Assert.NotNull(defaultLinks);
+        Assert.Single(defaultLinks!);
+        Assert.Equal(activeLocationId, defaultLinks[0].LocationId);
+
+        var includeDeletedResponse = await client.GetAsync($"/api/events/{eventId}/narrative/quests/{questId}/links/locations?includeDeleted=true");
+        Assert.Equal(HttpStatusCode.OK, includeDeletedResponse.StatusCode);
+        var allLinks = await includeDeletedResponse.Content.ReadFromJsonAsync<List<NarrativeLocationLinkDto>>();
+        Assert.NotNull(allLinks);
+        Assert.Equal(2, allLinks!.Count);
+    }
     private static HttpClient CreateClient(FakeSupabaseHandler fakeSupabase)
     {
         var builder = new WebHostBuilder()
@@ -282,6 +390,11 @@ internal sealed class FakeSupabaseHandler : HttpMessageHandler
     public Dictionary<(Guid EventId, Guid UserId), string> Permissions { get; } = new();
     public Dictionary<Guid, CharacterState> Characters { get; } = new();
     public Dictionary<Guid, FactionState> Factions { get; } = new();
+    public Dictionary<Guid, QuestState> Quests { get; } = new();
+    public Dictionary<Guid, LocationState> Locations { get; } = new();
+    public Dictionary<Guid, DungeonFloorState> Floors { get; } = new();
+    public Dictionary<Guid, DungeonRoomState> Rooms { get; } = new();
+    public List<QuestLocationLinkState> QuestLocationLinks { get; } = [];
     public Dictionary<Guid, ItemState> Items { get; } = new();
     public List<ItemAssignmentState> ItemAssignments { get; } = [];
     public List<FactionRelationshipState> Relationships { get; } = [];
@@ -291,6 +404,10 @@ internal sealed class FakeSupabaseHandler : HttpMessageHandler
     public void SetPermission(Guid eventId, Guid userId, string permission) => Permissions[(eventId, userId)] = permission;
     public void SeedCharacter(Guid eventId, Guid characterId) => Characters[characterId] = new(characterId, eventId, null);
     public void SeedFaction(Guid eventId, Guid factionId, string name) => Factions[factionId] = new(factionId, eventId, name, null);
+    public void SeedQuest(Guid eventId, Guid questId, string title, DateTimeOffset? deletedAt = null) => Quests[questId] = new(questId, eventId, title, deletedAt);
+    public void SeedLocation(Guid eventId, Guid locationId, string name, string locationType, string status = "Draft", DateTimeOffset? deletedAt = null) => Locations[locationId] = new(locationId, eventId, name, null, null, locationType, status, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, deletedAt);
+    public void SeedFloor(Guid eventId, Guid locationId, Guid floorId, string name, int sortOrder = 0) => Floors[floorId] = new(floorId, locationId, eventId, sortOrder, name, null, null, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow);
+    public void SeedRoom(Guid eventId, Guid locationId, Guid floorId, Guid roomId, string name, int sortOrder = 0) => Rooms[roomId] = new(roomId, floorId, locationId, eventId, sortOrder, name, null, null, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow);
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
@@ -337,6 +454,247 @@ internal sealed class FakeSupabaseHandler : HttpMessageHandler
             return JsonOk(rows);
         }
 
+        if (path.EndsWith("/rest/v1/narrative_locations", StringComparison.OrdinalIgnoreCase))
+        {
+            if (request.Method == HttpMethod.Get)
+            {
+                var eventId = TryGuid(query, "event_id");
+                var id = TryGuid(query, "id");
+                var name = TryILike(query, "name");
+                var type = TryEq(query, "location_type");
+                var status = TryEq(query, "status");
+                var includeDeleted = !query.Contains("deleted_at=is.null", StringComparison.OrdinalIgnoreCase);
+                var rows = Locations.Values
+                    .Where(x =>
+                        (!eventId.HasValue || x.EventId == eventId)
+                        && (!id.HasValue || x.Id == id)
+                        && (string.IsNullOrWhiteSpace(name) || x.Name.Contains(name.Trim('*'), StringComparison.OrdinalIgnoreCase))
+                        && (string.IsNullOrWhiteSpace(type) || string.Equals(x.LocationType, type, StringComparison.OrdinalIgnoreCase))
+                        && (string.IsNullOrWhiteSpace(status) || string.Equals(x.Status, status, StringComparison.OrdinalIgnoreCase))
+                        && (includeDeleted || x.DeletedAt is null))
+                    .Select(x => x.ToRow())
+                    .ToList();
+                return JsonOk(rows);
+            }
+
+            if (request.Method == HttpMethod.Post)
+            {
+                using var doc = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
+                var row = new LocationState(
+                    Id: Guid.NewGuid(),
+                    EventId: doc.RootElement.GetProperty("event_id").GetGuid(),
+                    Name: doc.RootElement.GetProperty("name").GetString() ?? "Unnamed",
+                    Description: TryString(doc.RootElement, "description"),
+                    InternalNotes: TryString(doc.RootElement, "internal_notes"),
+                    LocationType: doc.RootElement.GetProperty("location_type").GetString() ?? "basic",
+                    Status: doc.RootElement.TryGetProperty("status", out var statusProp) ? statusProp.GetString() ?? "Draft" : "Draft",
+                    CreatedAt: DateTimeOffset.UtcNow,
+                    UpdatedAt: DateTimeOffset.UtcNow,
+                    DeletedAt: null);
+                Locations[row.Id] = row;
+                return JsonOk(new[] { row.ToRow() });
+            }
+
+            if (request.Method == HttpMethod.Patch)
+            {
+                var id = TryGuid(query, "id");
+                if (!id.HasValue || !Locations.TryGetValue(id.Value, out var current)) return new HttpResponseMessage(HttpStatusCode.NotFound);
+                using var doc = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
+                var updated = current.Apply(doc.RootElement);
+                Locations[id.Value] = updated;
+                return JsonOk(new[] { updated.ToRow() });
+            }
+        }
+
+        if (path.EndsWith("/rest/v1/narrative_dungeon_floors", StringComparison.OrdinalIgnoreCase))
+        {
+            if (request.Method == HttpMethod.Get)
+            {
+                var eventId = TryGuid(query, "event_id");
+                var id = TryGuid(query, "id");
+                var locationId = TryGuid(query, "location_id");
+                var rows = Floors.Values
+                    .Where(x => (!eventId.HasValue || x.EventId == eventId) && (!id.HasValue || x.Id == id) && (!locationId.HasValue || x.LocationId == locationId))
+                    .OrderBy(x => x.SortOrder)
+                    .Select(x => x.ToRow())
+                    .ToList();
+                return JsonOk(rows);
+            }
+
+            if (request.Method == HttpMethod.Post)
+            {
+                using var doc = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
+                if (request.RequestUri!.Query.Contains("on_conflict=id", StringComparison.OrdinalIgnoreCase))
+                {
+                    var updatedRows = new List<object>();
+                    foreach (var element in doc.RootElement.EnumerateArray())
+                    {
+                        var id = element.GetProperty("id").GetGuid();
+                        if (Floors.TryGetValue(id, out var current))
+                        {
+                            var updated = current with { SortOrder = element.GetProperty("sort_order").GetInt32(), UpdatedAt = DateTimeOffset.UtcNow };
+                            Floors[id] = updated;
+                            updatedRows.Add(updated.ToRow());
+                        }
+                    }
+                    return JsonOk(updatedRows);
+                }
+
+                var row = new DungeonFloorState(
+                    Id: Guid.NewGuid(),
+                    LocationId: doc.RootElement.GetProperty("location_id").GetGuid(),
+                    EventId: doc.RootElement.GetProperty("event_id").GetGuid(),
+                    SortOrder: doc.RootElement.GetProperty("sort_order").GetInt32(),
+                    Name: doc.RootElement.GetProperty("name").GetString() ?? "Unnamed",
+                    Description: TryString(doc.RootElement, "description"),
+                    InternalNotes: TryString(doc.RootElement, "internal_notes"),
+                    CreatedAt: DateTimeOffset.UtcNow,
+                    UpdatedAt: DateTimeOffset.UtcNow);
+                Floors[row.Id] = row;
+                return JsonOk(new[] { row.ToRow() });
+            }
+
+            if (request.Method == HttpMethod.Patch)
+            {
+                var id = TryGuid(query, "id");
+                if (!id.HasValue || !Floors.TryGetValue(id.Value, out var current)) return new HttpResponseMessage(HttpStatusCode.NotFound);
+                using var doc = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
+                var updated = current.Apply(doc.RootElement);
+                Floors[id.Value] = updated;
+                return JsonOk(new[] { updated.ToRow() });
+            }
+
+            if (request.Method == HttpMethod.Delete)
+            {
+                var id = TryGuid(query, "id");
+                if (id.HasValue)
+                {
+                    Floors.Remove(id.Value);
+                    Rooms.Where(x => x.Value.FloorId == id.Value).Select(x => x.Key).ToList().ForEach(key => Rooms.Remove(key));
+                }
+                return new HttpResponseMessage(HttpStatusCode.NoContent);
+            }
+        }
+
+        if (path.EndsWith("/rest/v1/narrative_dungeon_rooms", StringComparison.OrdinalIgnoreCase))
+        {
+            if (request.Method == HttpMethod.Get)
+            {
+                var eventId = TryGuid(query, "event_id");
+                var id = TryGuid(query, "id");
+                var locationId = TryGuid(query, "location_id");
+                var floorId = TryGuid(query, "floor_id");
+                var rows = Rooms.Values
+                    .Where(x => (!eventId.HasValue || x.EventId == eventId) && (!id.HasValue || x.Id == id) && (!locationId.HasValue || x.LocationId == locationId) && (!floorId.HasValue || x.FloorId == floorId))
+                    .OrderBy(x => x.SortOrder)
+                    .Select(x => x.ToRow())
+                    .ToList();
+                return JsonOk(rows);
+            }
+
+            if (request.Method == HttpMethod.Post)
+            {
+                using var doc = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
+                if (request.RequestUri!.Query.Contains("on_conflict=id", StringComparison.OrdinalIgnoreCase))
+                {
+                    var updatedRows = new List<object>();
+                    foreach (var element in doc.RootElement.EnumerateArray())
+                    {
+                        var id = element.GetProperty("id").GetGuid();
+                        if (Rooms.TryGetValue(id, out var current))
+                        {
+                            var updated = current with { SortOrder = element.GetProperty("sort_order").GetInt32(), UpdatedAt = DateTimeOffset.UtcNow };
+                            Rooms[id] = updated;
+                            updatedRows.Add(updated.ToRow());
+                        }
+                    }
+                    return JsonOk(updatedRows);
+                }
+
+                var row = new DungeonRoomState(
+                    Id: Guid.NewGuid(),
+                    FloorId: doc.RootElement.GetProperty("floor_id").GetGuid(),
+                    LocationId: doc.RootElement.GetProperty("location_id").GetGuid(),
+                    EventId: doc.RootElement.GetProperty("event_id").GetGuid(),
+                    SortOrder: doc.RootElement.GetProperty("sort_order").GetInt32(),
+                    Name: doc.RootElement.GetProperty("name").GetString() ?? "Unnamed",
+                    Description: TryString(doc.RootElement, "description"),
+                    InternalNotes: TryString(doc.RootElement, "internal_notes"),
+                    CreatedAt: DateTimeOffset.UtcNow,
+                    UpdatedAt: DateTimeOffset.UtcNow);
+                Rooms[row.Id] = row;
+                return JsonOk(new[] { row.ToRow() });
+            }
+
+            if (request.Method == HttpMethod.Patch)
+            {
+                var id = TryGuid(query, "id");
+                if (!id.HasValue || !Rooms.TryGetValue(id.Value, out var current)) return new HttpResponseMessage(HttpStatusCode.NotFound);
+                using var doc = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
+                var updated = current.Apply(doc.RootElement);
+                Rooms[id.Value] = updated;
+                return JsonOk(new[] { updated.ToRow() });
+            }
+
+            if (request.Method == HttpMethod.Delete)
+            {
+                var id = TryGuid(query, "id");
+                if (id.HasValue) Rooms.Remove(id.Value);
+                return new HttpResponseMessage(HttpStatusCode.NoContent);
+            }
+        }
+
+        if (path.EndsWith("/rest/v1/narrative_quests", StringComparison.OrdinalIgnoreCase) && request.Method == HttpMethod.Get)
+        {
+            var eventId = TryGuid(query, "event_id");
+            var id = TryGuid(query, "id");
+            var rows = Quests.Values
+                .Where(x => (!eventId.HasValue || x.EventId == eventId) && (!id.HasValue || x.Id == id) && (!query.Contains("deleted_at=is.null", StringComparison.OrdinalIgnoreCase) || x.DeletedAt is null))
+                .Select(x => x.ToRow())
+                .ToList();
+            return JsonOk(rows);
+        }
+
+        if (path.EndsWith("/rest/v1/narrative_quest_locations", StringComparison.OrdinalIgnoreCase))
+        {
+            if (request.Method == HttpMethod.Get)
+            {
+                var eventId = TryGuid(query, "event_id");
+                var questId = TryGuid(query, "quest_id");
+                var locationId = TryGuid(query, "location_id");
+                var includeDeletedLocations = !query.Contains("location.deleted_at=is.null", StringComparison.OrdinalIgnoreCase);
+                var rows = QuestLocationLinks
+                    .Where(x => (!eventId.HasValue || x.EventId == eventId) && (!questId.HasValue || x.QuestId == questId) && (!locationId.HasValue || x.LocationId == locationId))
+                    .Where(x => includeDeletedLocations || (Locations.TryGetValue(x.LocationId, out var loc) && loc.DeletedAt is null))
+                    .Select(x => x.ToRow(Locations, Floors, Rooms, Quests))
+                    .ToList();
+                return JsonOk(rows);
+            }
+
+            if (request.Method == HttpMethod.Post)
+            {
+                using var doc = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
+                var eventId = doc.RootElement.GetProperty("event_id").GetGuid();
+                var questId = doc.RootElement.GetProperty("quest_id").GetGuid();
+                var locationId = doc.RootElement.GetProperty("location_id").GetGuid();
+                var floorId = TryGuid(doc.RootElement, "floor_id");
+                var roomId = TryGuid(doc.RootElement, "room_id");
+                QuestLocationLinks.RemoveAll(x => x.EventId == eventId && x.QuestId == questId && x.LocationId == locationId && x.FloorId == floorId && x.RoomId == roomId);
+                QuestLocationLinks.Add(new QuestLocationLinkState(eventId, questId, locationId, floorId, roomId, DateTimeOffset.UtcNow));
+                return JsonOk(Array.Empty<object>());
+            }
+
+            if (request.Method == HttpMethod.Delete)
+            {
+                var eventId = TryGuid(query, "event_id");
+                var questId = TryGuid(query, "quest_id");
+                var locationId = TryGuid(query, "location_id");
+                var floorId = ParseNullableGuidFilter(query, "floor_id");
+                var roomId = ParseNullableGuidFilter(query, "room_id");
+                QuestLocationLinks.RemoveAll(x => (!eventId.HasValue || x.EventId == eventId) && (!questId.HasValue || x.QuestId == questId) && (!locationId.HasValue || x.LocationId == locationId) && x.FloorId == floorId && x.RoomId == roomId);
+                return new HttpResponseMessage(HttpStatusCode.NoContent);
+            }
+        }
         if (path.EndsWith("/rest/v1/narrative_items", StringComparison.OrdinalIgnoreCase))
         {
             if (request.Method == HttpMethod.Get)
@@ -493,6 +851,31 @@ internal sealed class FakeSupabaseHandler : HttpMessageHandler
         return null;
     }
 
+    private static string? TryEq(string query, string key)
+    {
+        foreach (var part in query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var idx = part.IndexOf('=');
+            if (idx <= 0 || !string.Equals(part[..idx], key, StringComparison.OrdinalIgnoreCase)) continue;
+            var value = Uri.UnescapeDataString(part[(idx + 1)..]);
+            if (value.StartsWith("eq.", StringComparison.OrdinalIgnoreCase)) return value[3..];
+        }
+        return null;
+    }
+
+    private static Guid? ParseNullableGuidFilter(string query, string key)
+    {
+        foreach (var part in query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var idx = part.IndexOf('=');
+            if (idx <= 0 || !string.Equals(part[..idx], key, StringComparison.OrdinalIgnoreCase)) continue;
+            var value = Uri.UnescapeDataString(part[(idx + 1)..]);
+            if (string.Equals(value, "is.null", StringComparison.OrdinalIgnoreCase)) return null;
+            if (value.StartsWith("eq.", StringComparison.OrdinalIgnoreCase) && Guid.TryParse(value[3..], out var id)) return id;
+        }
+        return null;
+    }
+
     private static Guid? TryGuid(JsonElement root, string key)
         => root.TryGetProperty(key, out var v) && v.ValueKind != JsonValueKind.Null ? v.GetGuid() : null;
 
@@ -608,3 +991,151 @@ internal sealed record FactionRelationshipState(
         updated_at = UpdatedAt
     };
 }
+
+
+
+
+
+
+internal sealed record QuestState(Guid Id, Guid EventId, string Title, DateTimeOffset? DeletedAt)
+{
+    public object ToRow() => new
+    {
+        id = Id,
+        event_id = EventId,
+        title = Title,
+        short_description = (string?)null,
+        description = (string?)null,
+        internal_notes = (string?)null,
+        status = "Draft",
+        created_at = DateTimeOffset.UtcNow,
+        updated_at = DateTimeOffset.UtcNow,
+        deleted_at = DeletedAt
+    };
+}
+
+internal sealed record LocationState(
+    Guid Id,
+    Guid EventId,
+    string Name,
+    string? Description,
+    string? InternalNotes,
+    string LocationType,
+    string Status,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt,
+    DateTimeOffset? DeletedAt)
+{
+    public object ToRow() => new
+    {
+        id = Id,
+        event_id = EventId,
+        name = Name,
+        description = Description,
+        internal_notes = InternalNotes,
+        location_type = LocationType,
+        status = Status,
+        created_at = CreatedAt,
+        updated_at = UpdatedAt,
+        deleted_at = DeletedAt
+    };
+
+    public LocationState Apply(JsonElement root)
+    {
+        var name = root.TryGetProperty("name", out var nameProp) && nameProp.ValueKind != JsonValueKind.Null ? nameProp.GetString() ?? Name : Name;
+        var description = root.TryGetProperty("description", out var descriptionProp) ? (descriptionProp.ValueKind == JsonValueKind.Null ? null : descriptionProp.GetString()) : Description;
+        var internalNotes = root.TryGetProperty("internal_notes", out var notesProp) ? (notesProp.ValueKind == JsonValueKind.Null ? null : notesProp.GetString()) : InternalNotes;
+        var status = root.TryGetProperty("status", out var statusProp) && statusProp.ValueKind != JsonValueKind.Null ? statusProp.GetString() ?? Status : Status;
+        var deletedAt = root.TryGetProperty("deleted_at", out var deletedAtProp) ? (deletedAtProp.ValueKind == JsonValueKind.Null ? null : deletedAtProp.GetDateTimeOffset()) : DeletedAt;
+        return this with { Name = name, Description = description, InternalNotes = internalNotes, Status = status, DeletedAt = deletedAt, UpdatedAt = DateTimeOffset.UtcNow };
+    }
+}
+
+internal sealed record DungeonFloorState(
+    Guid Id,
+    Guid LocationId,
+    Guid EventId,
+    int SortOrder,
+    string Name,
+    string? Description,
+    string? InternalNotes,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt)
+{
+    public object ToRow() => new
+    {
+        id = Id,
+        location_id = LocationId,
+        event_id = EventId,
+        sort_order = SortOrder,
+        name = Name,
+        description = Description,
+        internal_notes = InternalNotes,
+        created_at = CreatedAt,
+        updated_at = UpdatedAt
+    };
+
+    public DungeonFloorState Apply(JsonElement root)
+    {
+        var name = root.TryGetProperty("name", out var nameProp) && nameProp.ValueKind != JsonValueKind.Null ? nameProp.GetString() ?? Name : Name;
+        var description = root.TryGetProperty("description", out var descriptionProp) ? (descriptionProp.ValueKind == JsonValueKind.Null ? null : descriptionProp.GetString()) : Description;
+        var internalNotes = root.TryGetProperty("internal_notes", out var notesProp) ? (notesProp.ValueKind == JsonValueKind.Null ? null : notesProp.GetString()) : InternalNotes;
+        return this with { Name = name, Description = description, InternalNotes = internalNotes, UpdatedAt = DateTimeOffset.UtcNow };
+    }
+}
+
+internal sealed record DungeonRoomState(
+    Guid Id,
+    Guid FloorId,
+    Guid LocationId,
+    Guid EventId,
+    int SortOrder,
+    string Name,
+    string? Description,
+    string? InternalNotes,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt)
+{
+    public object ToRow() => new
+    {
+        id = Id,
+        floor_id = FloorId,
+        location_id = LocationId,
+        event_id = EventId,
+        sort_order = SortOrder,
+        name = Name,
+        description = Description,
+        internal_notes = InternalNotes,
+        created_at = CreatedAt,
+        updated_at = UpdatedAt
+    };
+
+    public DungeonRoomState Apply(JsonElement root)
+    {
+        var name = root.TryGetProperty("name", out var nameProp) && nameProp.ValueKind != JsonValueKind.Null ? nameProp.GetString() ?? Name : Name;
+        var description = root.TryGetProperty("description", out var descriptionProp) ? (descriptionProp.ValueKind == JsonValueKind.Null ? null : descriptionProp.GetString()) : Description;
+        var internalNotes = root.TryGetProperty("internal_notes", out var notesProp) ? (notesProp.ValueKind == JsonValueKind.Null ? null : notesProp.GetString()) : InternalNotes;
+        return this with { Name = name, Description = description, InternalNotes = internalNotes, UpdatedAt = DateTimeOffset.UtcNow };
+    }
+}
+
+internal sealed record QuestLocationLinkState(Guid EventId, Guid QuestId, Guid LocationId, Guid? FloorId, Guid? RoomId, DateTimeOffset CreatedAt)
+{
+    public object ToRow(IReadOnlyDictionary<Guid, LocationState> locations, IReadOnlyDictionary<Guid, DungeonFloorState> floors, IReadOnlyDictionary<Guid, DungeonRoomState> rooms, IReadOnlyDictionary<Guid, QuestState> quests)
+        => new
+        {
+            event_id = EventId,
+            quest_id = QuestId,
+            location_id = LocationId,
+            floor_id = FloorId,
+            room_id = RoomId,
+            created_at = CreatedAt,
+            location = locations.TryGetValue(LocationId, out var location) ? new { name = location.Name } : null,
+            floor = FloorId.HasValue && floors.TryGetValue(FloorId.Value, out var floor) ? new { name = floor.Name } : null,
+            room = RoomId.HasValue && rooms.TryGetValue(RoomId.Value, out var room) ? new { name = room.Name } : null,
+            quest = quests.TryGetValue(QuestId, out var quest) ? new { title = quest.Title } : null
+        };
+}
+
+
+
