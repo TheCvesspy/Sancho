@@ -64,7 +64,7 @@ public static class CharacterEndpoints
         var response = await httpClient.SendAsync(request);
         if (!response.IsSuccessStatusCode) return Results.Problem($"Failed to list characters: {response.StatusCode}");
         var rows = await response.Content.ReadFromJsonAsync<List<SupabaseCharacterRow>>() ?? [];
-        return Results.Ok(rows.Select(ToDetail));
+        return Results.Ok(rows.Select(r => ToDetail(r, access.CanWrite)));
     }
 
     private static async Task<IResult> CreateCharacter(Guid eventId, ClaimsPrincipal user, [FromBody] CreateCharacterRequest request, IConfiguration config, HttpClient httpClient, CharacterAuthorizationService authz)
@@ -91,7 +91,7 @@ public static class CharacterEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to create character: {resp.StatusCode}");
         var created = (await resp.Content.ReadFromJsonAsync<List<SupabaseCharacterRow>>())?.FirstOrDefault();
-        return created is null ? Results.Problem("Character created but no payload returned.") : Results.Created($"/api/events/{eventId}/characters/{created.id}", ToDetail(created));
+        return created is null ? Results.Problem("Character created but no payload returned.") : Results.Created($"/api/events/{eventId}/characters/{created.id}", ToDetail(created, access.CanWrite));
     }
 
     private static async Task<IResult> GetCharacterById(Guid eventId, Guid characterId, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient, CharacterAuthorizationService authz)
@@ -101,7 +101,7 @@ public static class CharacterEndpoints
         if (!access.CanRead) return Results.Forbid();
 
         var row = await GetCharacter(eventId, characterId, url!, key!, httpClient, includeDeleted: true);
-        return row is null ? Results.NotFound() : Results.Ok(ToDetail(row));
+        return row is null ? Results.NotFound() : Results.Ok(ToDetail(row, access.CanWrite));
     }
 
     private static async Task<IResult> UpdateCharacterProfile(Guid eventId, Guid characterId, ClaimsPrincipal user, [FromBody] UpdateCharacterProfileRequest request, IConfiguration config, HttpClient httpClient, CharacterAuthorizationService authz)
@@ -139,7 +139,7 @@ public static class CharacterEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to update character: {resp.StatusCode}");
         var updated = (await resp.Content.ReadFromJsonAsync<List<SupabaseCharacterRow>>())?.FirstOrDefault();
-        return updated is null ? Results.Problem("Character update payload missing.") : Results.Ok(ToDetail(updated));
+        return updated is null ? Results.Problem("Character update payload missing.") : Results.Ok(ToDetail(updated, access.CanWrite));
     }
 
     private static async Task<IResult> ChangeStatus(Guid eventId, Guid characterId, ClaimsPrincipal user, [FromBody] ChangeCharacterStatusRequest request, IConfiguration config, HttpClient httpClient, CharacterAuthorizationService authz)
@@ -161,7 +161,7 @@ public static class CharacterEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to change status: {resp.StatusCode}");
         var updated = (await resp.Content.ReadFromJsonAsync<List<SupabaseCharacterRow>>())?.FirstOrDefault();
-        return updated is null ? Results.Problem("Character status payload missing.") : Results.Ok(ToDetail(updated));
+        return updated is null ? Results.Problem("Character status payload missing.") : Results.Ok(ToDetail(updated, access.CanWrite));
     }
 
     private static async Task<IResult> DuplicateCharacter(Guid eventId, Guid characterId, ClaimsPrincipal user, [FromBody] DuplicateCharacterRequest request, IConfiguration config, HttpClient httpClient, CharacterAuthorizationService authz)
@@ -205,7 +205,7 @@ public static class CharacterEndpoints
             await httpClient.SendAsync(batchReq);
         }
 
-        return Results.Created($"/api/events/{eventId}/characters/{created.id}", ToDetail(created));
+        return Results.Created($"/api/events/{eventId}/characters/{created.id}", ToDetail(created, access.CanWrite));
     }
 
     private static async Task<IResult> SoftDeleteCharacter(Guid eventId, Guid characterId, ClaimsPrincipal user, [FromBody] CharacterDeleteRequest request, IConfiguration config, HttpClient httpClient, CharacterAuthorizationService authz, ICharacterNarrativeService narrativeService)
@@ -520,7 +520,7 @@ public static class CharacterEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to confirm photo: {resp.StatusCode}");
         var updated = (await resp.Content.ReadFromJsonAsync<List<SupabaseCharacterRow>>())?.FirstOrDefault();
-        return updated is null ? Results.Problem("Photo confirmed but payload missing.") : Results.Ok(ToDetail(updated));
+        return updated is null ? Results.Problem("Photo confirmed but payload missing.") : Results.Ok(ToDetail(updated, access.CanWrite));
     }
 
     private static async Task<IResult> RemovePhoto(Guid eventId, Guid characterId, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient, CharacterAuthorizationService authz, CharacterStorageService storage)
@@ -556,8 +556,8 @@ public static class CharacterEndpoints
         return Results.Ok(new CharacterNarrativeLinksDto(factionsTask.Result, relationshipsTask.Result, questsTask.Result));
     }
 
-    private static CharacterDetailDto ToDetail(SupabaseCharacterRow row) =>
-        new(row.id, row.event_id, row.name, row.race, row.status, row.biography, row.notes, row.player_user_id, row.photo_url, row.created_at, row.updated_at, row.deleted_at);
+    private static CharacterDetailDto ToDetail(SupabaseCharacterRow row, bool canReadInternal) =>
+        new(row.id, row.event_id, row.name, row.race, row.status, row.biography, canReadInternal ? row.notes : null, row.player_user_id, row.photo_url, row.created_at, row.updated_at, row.deleted_at);
 
     private static CharacterAbilityDto ToAbilityDto(SupabaseCharacterAbilityRow row) =>
         new(row.id, row.character_id, row.category, row.name, row.value, row.description, row.sort_order, row.created_at, row.updated_at);

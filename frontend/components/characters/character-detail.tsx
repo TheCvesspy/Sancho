@@ -224,7 +224,7 @@ export function CharacterDetail({
 
                 <TabsContent value="profile" className="mt-6">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="md:col-span-2 space-y-6">
+                        <div className={`${character.notes !== null ? "md:col-span-2" : "md:col-span-3"} space-y-6`}>
                             <div className="bg-card rounded-lg border p-6">
                                 <EditableRichText
                                     title={t("detail.biography.title")}
@@ -236,8 +236,8 @@ export function CharacterDetail({
                             </div>
                         </div>
 
-                        <div className="space-y-6">
-                            {(canWrite || character.notes) && (
+                        {character.notes !== null && (
+                            <div className="space-y-6">
                                 <div className="bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-900/50 p-6">
                                     <div className="flex items-center justify-between mb-2">
                                         <h3 className="text-lg font-semibold text-amber-900 dark:text-amber-500 flex items-center gap-2">
@@ -281,8 +281,8 @@ export function CharacterDetail({
                                         </div>
                                     )}
                                 </div>
-                            )}
-                        </div>
+                            </div>
+                        )}
                     </div>
                 </TabsContent>
 

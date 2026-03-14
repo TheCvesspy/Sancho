@@ -113,29 +113,31 @@ export function ItemDetail({
                 </TabsList>
 
                 <TabsContent value="overview" className="space-y-6">
-                    <div className="rounded-lg border bg-card p-6">
-                        <EditableRichText
-                            title={t("items.fields.description.label")}
-                            initialHtml={item.description || ""}
-                            onSave={async (val) => await handleUpdate({ description: val })}
-                            isReadOnly={!canWrite}
-                            placeholder={t("items.fields.description.placeholder")}
-                        />
-                    </div>
-
-                    {canWrite && (
-                        <div className="rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 p-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className={`${canWrite ? "lg:col-span-2" : "lg:col-span-3"} rounded-lg border bg-card p-6`}>
                             <EditableRichText
-                                title={t("items.fields.internalNotes.label")}
-                                description={t("common.internalNotesHint")}
-                                variant="amber"
-                                initialHtml={item.internalNotes || ""}
-                                onSave={async (val) => await handleUpdate({ internalNotes: val })}
+                                title={t("items.fields.description.label")}
+                                initialHtml={item.description || ""}
+                                onSave={async (val) => await handleUpdate({ description: val })}
                                 isReadOnly={!canWrite}
-                                placeholder={t("items.fields.internalNotes.placeholder")}
+                                placeholder={t("items.fields.description.placeholder")}
                             />
                         </div>
-                    )}
+
+                        {canWrite && (
+                            <div className="lg:col-span-1 rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 p-6">
+                                <EditableRichText
+                                    title={t("items.fields.internalNotes.label")}
+                                    description={t("common.internalNotesHint")}
+                                    variant="amber"
+                                    initialHtml={item.internalNotes || ""}
+                                    onSave={async (val) => await handleUpdate({ internalNotes: val })}
+                                    isReadOnly={!canWrite}
+                                    placeholder={t("items.fields.internalNotes.placeholder")}
+                                />
+                            </div>
+                        )}
+                    </div>
                 </TabsContent>
 
                 <TabsContent value="assignments">

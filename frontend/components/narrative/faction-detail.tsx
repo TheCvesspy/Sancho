@@ -177,7 +177,7 @@ export function FactionDetail({
 
                 <TabsContent value="overview" className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-6">
+                        <div className={`${canWrite ? "md:col-span-1" : "md:col-span-2"} space-y-6`}>
                             <div className="rounded-lg border bg-card p-6">
                                 <EditableRichText
                                     title={t("factions.fields.description.label")}
@@ -199,8 +199,8 @@ export function FactionDetail({
                             </div>
                         </div>
 
-                        <div className="space-y-6">
-                            {canWrite && (
+                        {canWrite && (
+                            <div className="space-y-6">
                                 <div className="rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 p-6">
                                     <EditableRichText
                                         title={t("factions.fields.internalNotes.label")}
@@ -212,8 +212,8 @@ export function FactionDetail({
                                         onSave={(html) => handleSaveField("internalNotes", html)}
                                     />
                                 </div>
-                            )}
-                        </div>
+                            </div>
+                        )}
                     </div>
                 </TabsContent>
 

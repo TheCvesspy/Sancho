@@ -154,7 +154,7 @@ public static class NarrativeEndpoints
         var response = await httpClient.SendAsync(request);
         if (!response.IsSuccessStatusCode) return Results.Problem($"Failed to list quests: {response.StatusCode}");
         var rows = await response.Content.ReadFromJsonAsync<List<SupabaseNarrativeQuestRow>>() ?? [];
-        return Results.Ok(rows.Select(ToQuestDto));
+        return Results.Ok(rows.Select(r => ToQuestDto(r, access.CanWrite)));
     }
 
     private static async Task<IResult> CreateQuest(Guid eventId, ClaimsPrincipal user, [FromBody] CreateQuestRequest request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -186,7 +186,7 @@ public static class NarrativeEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to create quest: {resp.StatusCode}");
         var created = (await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativeQuestRow>>())?.FirstOrDefault();
-        return created is null ? Results.Problem("Quest created but no payload returned.") : Results.Created($"/api/events/{eventId}/narrative/quests/{created.id}", ToQuestDto(created));
+        return created is null ? Results.Problem("Quest created but no payload returned.") : Results.Created($"/api/events/{eventId}/narrative/quests/{created.id}", ToQuestDto(created, access.CanWrite));
     }
 
     private static async Task<IResult> GetQuestById(Guid eventId, Guid questId, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -196,7 +196,7 @@ public static class NarrativeEndpoints
         if (!access.CanRead) return Results.Forbid();
 
         var row = await GetQuest(eventId, questId, url!, key!, httpClient, includeDeleted: true);
-        return row is null ? Results.NotFound() : Results.Ok(ToQuestDto(row));
+        return row is null ? Results.NotFound() : Results.Ok(ToQuestDto(row, access.CanWrite));
     }
 
     private static async Task<IResult> UpdateQuest(Guid eventId, Guid questId, ClaimsPrincipal user, [FromBody] UpdateQuestRequest request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -236,7 +236,7 @@ public static class NarrativeEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to update quest: {resp.StatusCode}");
         var updated = (await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativeQuestRow>>())?.FirstOrDefault();
-        return updated is null ? Results.Problem("Quest update payload missing.") : Results.Ok(ToQuestDto(updated));
+        return updated is null ? Results.Problem("Quest update payload missing.") : Results.Ok(ToQuestDto(updated, access.CanWrite));
     }
 
     private static async Task<IResult> ChangeQuestStatus(Guid eventId, Guid questId, ClaimsPrincipal user, [FromBody] ChangeNarrativeStatusRequest request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -260,7 +260,7 @@ public static class NarrativeEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to change quest status: {resp.StatusCode}");
         var updated = (await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativeQuestRow>>())?.FirstOrDefault();
-        return updated is null ? Results.Problem("Quest status payload missing.") : Results.Ok(ToQuestDto(updated));
+        return updated is null ? Results.Problem("Quest status payload missing.") : Results.Ok(ToQuestDto(updated, access.CanWrite));
     }
 
     private static async Task<IResult> SoftDeleteQuest(Guid eventId, Guid questId, ClaimsPrincipal user, [FromBody] NarrativeDeleteRequest request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -408,7 +408,7 @@ public static class NarrativeEndpoints
             }
         }
 
-        return Results.Created($"/api/events/{eventId}/narrative/quests/{created.id}", ToQuestDto(created));
+        return Results.Created($"/api/events/{eventId}/narrative/quests/{created.id}", ToQuestDto(created, access.CanWrite));
     }
 
     private static async Task<IResult> UndeleteQuest(Guid eventId, Guid questId, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -436,7 +436,7 @@ public static class NarrativeEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to list quest steps: {resp.StatusCode}");
         var rows = await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativeQuestStepRow>>() ?? [];
-        return Results.Ok(rows.Select(ToQuestStepDto));
+        return Results.Ok(rows.Select(r => ToQuestStepDto(r, access.CanWrite)));
     }
 
     private static async Task<IResult> CreateQuestStep(Guid eventId, Guid questId, ClaimsPrincipal user, [FromBody] CreateQuestStepRequest request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -464,7 +464,7 @@ public static class NarrativeEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to create quest step: {resp.StatusCode}");
         var created = (await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativeQuestStepRow>>())?.FirstOrDefault();
-        return created is null ? Results.Problem("Quest step created but payload missing.") : Results.Created($"/api/events/{eventId}/narrative/quests/{questId}/steps/{created.id}", ToQuestStepDto(created));
+        return created is null ? Results.Problem("Quest step created but payload missing.") : Results.Created($"/api/events/{eventId}/narrative/quests/{questId}/steps/{created.id}", ToQuestStepDto(created, access.CanWrite));
     }
 
     private static async Task<IResult> UpdateQuestStep(Guid eventId, Guid questId, Guid stepId, ClaimsPrincipal user, [FromBody] UpdateQuestStepRequest request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -492,7 +492,7 @@ public static class NarrativeEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to update quest step: {resp.StatusCode}");
         var updated = (await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativeQuestStepRow>>())?.FirstOrDefault();
-        return updated is null ? Results.Problem("Quest step update payload missing.") : Results.Ok(ToQuestStepDto(updated));
+        return updated is null ? Results.Problem("Quest step update payload missing.") : Results.Ok(ToQuestStepDto(updated, access.CanWrite));
     }
 
     private static async Task<IResult> DeleteQuestStep(Guid eventId, Guid questId, Guid stepId, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -839,7 +839,7 @@ public static class NarrativeEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to list factions: {resp.StatusCode}");
         var rows = await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativeFactionRow>>() ?? [];
-        return Results.Ok(rows.Select(ToFactionDto));
+        return Results.Ok(rows.Select(r => ToFactionDto(r, access.CanWrite)));
     }
 
     private static async Task<IResult> CreateFaction(Guid eventId, ClaimsPrincipal user, [FromBody] CreateFactionRequest request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -869,7 +869,7 @@ public static class NarrativeEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to create faction: {resp.StatusCode}");
         var created = (await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativeFactionRow>>())?.FirstOrDefault();
-        return created is null ? Results.Problem("Faction created but no payload returned.") : Results.Created($"/api/events/{eventId}/narrative/factions/{created.id}", ToFactionDto(created));
+        return created is null ? Results.Problem("Faction created but no payload returned.") : Results.Created($"/api/events/{eventId}/narrative/factions/{created.id}", ToFactionDto(created, access.CanWrite));
     }
 
     private static async Task<IResult> GetFactionById(Guid eventId, Guid factionId, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -879,7 +879,7 @@ public static class NarrativeEndpoints
         if (!access.CanRead) return Results.Forbid();
 
         var row = await GetFaction(eventId, factionId, url!, key!, httpClient, includeDeleted: true);
-        return row is null ? Results.NotFound() : Results.Ok(ToFactionDto(row));
+        return row is null ? Results.NotFound() : Results.Ok(ToFactionDto(row, access.CanWrite));
     }
 
     private static async Task<IResult> UpdateFaction(Guid eventId, Guid factionId, ClaimsPrincipal user, [FromBody] UpdateFactionRequest request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -915,7 +915,7 @@ public static class NarrativeEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to update faction: {resp.StatusCode}");
         var updated = (await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativeFactionRow>>())?.FirstOrDefault();
-        return updated is null ? Results.Problem("Faction update payload missing.") : Results.Ok(ToFactionDto(updated));
+        return updated is null ? Results.Problem("Faction update payload missing.") : Results.Ok(ToFactionDto(updated, access.CanWrite));
     }
 
     private static async Task<IResult> ChangeFactionStatus(Guid eventId, Guid factionId, ClaimsPrincipal user, [FromBody] ChangeNarrativeStatusRequest request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -939,7 +939,7 @@ public static class NarrativeEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to change faction status: {resp.StatusCode}");
         var updated = (await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativeFactionRow>>())?.FirstOrDefault();
-        return updated is null ? Results.Problem("Faction status payload missing.") : Results.Ok(ToFactionDto(updated));
+        return updated is null ? Results.Problem("Faction status payload missing.") : Results.Ok(ToFactionDto(updated, access.CanWrite));
     }
 
     private static async Task<IResult> SoftDeleteFaction(Guid eventId, Guid factionId, ClaimsPrincipal user, [FromBody] NarrativeDeleteRequest request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -1041,7 +1041,7 @@ public static class NarrativeEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to list faction relationships: {resp.StatusCode}");
         var rows = await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativeFactionRelationshipRow>>() ?? [];
-        return Results.Ok(rows.Select(ToFactionRelationshipDto));
+        return Results.Ok(rows.Select(r => ToFactionRelationshipDto(r, access.CanWrite)));
     }
 
     private static async Task<IResult> CreateFactionRelationship(Guid eventId, Guid factionId, ClaimsPrincipal user, [FromBody] CreateFactionRelationshipRequest request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -1113,7 +1113,7 @@ public static class NarrativeEndpoints
             await httpClient.SendAsync(mirrorReq);
         }
 
-        return Results.Created($"/api/events/{eventId}/narrative/factions/{factionId}/relationships/{created.id}", ToFactionRelationshipDto(created));
+        return Results.Created($"/api/events/{eventId}/narrative/factions/{factionId}/relationships/{created.id}", ToFactionRelationshipDto(created, access.CanWrite));
     }
 
     private static async Task<IResult> UpdateFactionRelationship(Guid eventId, Guid factionId, Guid relationshipId, ClaimsPrincipal user, [FromBody] UpdateFactionRelationshipRequest request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -1152,7 +1152,7 @@ public static class NarrativeEndpoints
             await httpClient.SendAsync(mirrorPatch);
         }
 
-        return Results.Ok(ToFactionRelationshipDto(updated));
+        return Results.Ok(ToFactionRelationshipDto(updated, access.CanWrite));
     }
 
     private static async Task<IResult> DeleteFactionRelationship(Guid eventId, Guid factionId, Guid relationshipId, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -1224,7 +1224,7 @@ public static class NarrativeEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to list items: {resp.StatusCode}");
         var rows = await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativeItemRow>>() ?? [];
-        return Results.Ok(rows.Select(ToItemDto));
+        return Results.Ok(rows.Select(r => ToItemDto(r, access.CanWrite)));
     }
 
     private static async Task<IResult> CreateItem(Guid eventId, ClaimsPrincipal user, [FromBody] CreateItemRequest request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -1256,7 +1256,7 @@ public static class NarrativeEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to create item: {resp.StatusCode}");
         var created = (await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativeItemRow>>())?.FirstOrDefault();
-        return created is null ? Results.Problem("Item created but no payload returned.") : Results.Created($"/api/events/{eventId}/narrative/items/{created.id}", ToItemDto(created));
+        return created is null ? Results.Problem("Item created but no payload returned.") : Results.Created($"/api/events/{eventId}/narrative/items/{created.id}", ToItemDto(created, access.CanWrite));
     }
 
     private static async Task<IResult> GetItemById(Guid eventId, Guid itemId, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -1266,7 +1266,7 @@ public static class NarrativeEndpoints
         if (!access.CanRead) return Results.Forbid();
 
         var row = await GetItem(eventId, itemId, url!, key!, httpClient, includeDeleted: true);
-        return row is null ? Results.NotFound() : Results.Ok(ToItemDto(row));
+        return row is null ? Results.NotFound() : Results.Ok(ToItemDto(row, access.CanWrite));
     }
 
     private static async Task<IResult> UpdateItem(Guid eventId, Guid itemId, ClaimsPrincipal user, [FromBody] UpdateItemRequest request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -1307,7 +1307,7 @@ public static class NarrativeEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to update item: {resp.StatusCode}");
         var updated = (await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativeItemRow>>())?.FirstOrDefault();
-        return updated is null ? Results.Problem("Item update payload missing.") : Results.Ok(ToItemDto(updated));
+        return updated is null ? Results.Problem("Item update payload missing.") : Results.Ok(ToItemDto(updated, access.CanWrite));
     }
 
     private static async Task<IResult> ChangeItemStatus(Guid eventId, Guid itemId, ClaimsPrincipal user, [FromBody] ChangeNarrativeStatusRequest request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -1329,7 +1329,7 @@ public static class NarrativeEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to change item status: {resp.StatusCode}");
         var updated = (await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativeItemRow>>())?.FirstOrDefault();
-        return updated is null ? Results.Problem("Item status payload missing.") : Results.Ok(ToItemDto(updated));
+        return updated is null ? Results.Problem("Item status payload missing.") : Results.Ok(ToItemDto(updated, access.CanWrite));
     }
 
     private static async Task<IResult> SoftDeleteItem(Guid eventId, Guid itemId, ClaimsPrincipal user, [FromBody] NarrativeDeleteRequest request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -1374,7 +1374,7 @@ public static class NarrativeEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to list item assignments: {resp.StatusCode}");
         var rows = await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativeItemAssignmentRow>>() ?? [];
-        return Results.Ok(rows.Select(ToItemAssignmentDto));
+        return Results.Ok(rows.Select(r => ToItemAssignmentDto(r, access.CanWrite)));
     }
 
     private static async Task<IResult> AssignItemToCharacter(Guid eventId, Guid itemId, Guid characterId, ClaimsPrincipal user, [FromBody] ItemAssignmentRequest request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -1413,7 +1413,7 @@ public static class NarrativeEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to assign item: {resp.StatusCode}");
         var row = (await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativeItemAssignmentRow>>())?.FirstOrDefault();
-        return row is null ? Results.NoContent() : Results.Ok(ToItemAssignmentDto(row));
+        return row is null ? Results.NoContent() : Results.Ok(ToItemAssignmentDto(row, access.CanWrite));
     }
 
     private static async Task<IResult> RemoveItemAssignment(Guid eventId, Guid itemId, Guid characterId, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -1519,7 +1519,7 @@ public static class NarrativeEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to list plotlines: {resp.StatusCode}");
         var rows = await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativePlotlineRow>>() ?? [];
-        return Results.Ok(rows.Select(ToPlotlineDto));
+        return Results.Ok(rows.Select(r => ToPlotlineDto(r, access.CanWrite)));
     }
 
     private static async Task<IResult> CreatePlotline(Guid eventId, ClaimsPrincipal user, [FromBody] CreatePlotlineRequest request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -1545,7 +1545,7 @@ public static class NarrativeEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to create plotline: {resp.StatusCode}");
         var created = (await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativePlotlineRow>>())?.FirstOrDefault();
-        return created is null ? Results.Problem("Plotline created but no payload returned.") : Results.Created($"/api/events/{eventId}/narrative/plotlines/{created.id}", ToPlotlineDto(created));
+        return created is null ? Results.Problem("Plotline created but no payload returned.") : Results.Created($"/api/events/{eventId}/narrative/plotlines/{created.id}", ToPlotlineDto(created, access.CanWrite));
     }
 
     private static async Task<IResult> GetPlotlineById(Guid eventId, Guid plotlineId, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -1554,7 +1554,7 @@ public static class NarrativeEndpoints
         var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
         if (!access.CanRead) return Results.Forbid();
         var row = await GetPlotline(eventId, plotlineId, url!, key!, httpClient, includeDeleted: true);
-        return row is null ? Results.NotFound() : Results.Ok(ToPlotlineDto(row));
+        return row is null ? Results.NotFound() : Results.Ok(ToPlotlineDto(row, access.CanWrite));
     }
 
     private static async Task<IResult> UpdatePlotline(Guid eventId, Guid plotlineId, ClaimsPrincipal user, [FromBody] UpdatePlotlineRequest request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -1587,7 +1587,7 @@ public static class NarrativeEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to update plotline: {resp.StatusCode}");
         var updated = (await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativePlotlineRow>>())?.FirstOrDefault();
-        return updated is null ? Results.Problem("Plotline update payload missing.") : Results.Ok(ToPlotlineDto(updated));
+        return updated is null ? Results.Problem("Plotline update payload missing.") : Results.Ok(ToPlotlineDto(updated, access.CanWrite));
     }
 
     private static async Task<IResult> ChangePlotlineStatus(Guid eventId, Guid plotlineId, ClaimsPrincipal user, [FromBody] ChangeNarrativeStatusRequest request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -1610,7 +1610,7 @@ public static class NarrativeEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to change plotline status: {resp.StatusCode}");
         var updated = (await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativePlotlineRow>>())?.FirstOrDefault();
-        return updated is null ? Results.Problem("Plotline status payload missing.") : Results.Ok(ToPlotlineDto(updated));
+        return updated is null ? Results.Problem("Plotline status payload missing.") : Results.Ok(ToPlotlineDto(updated, access.CanWrite));
     }
 
     private static async Task<IResult> SoftDeletePlotline(Guid eventId, Guid plotlineId, ClaimsPrincipal user, [FromBody] NarrativeDeleteRequest request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -2015,7 +2015,7 @@ public static class NarrativeEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to list plots: {resp.StatusCode}");
         var rows = await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativePlotRow>>() ?? [];
-        return Results.Ok(rows.Select(ToPlotDto));
+        return Results.Ok(rows.Select(r => ToPlotDto(r, access.CanWrite)));
     }
 
     private static async Task<IResult> CreatePlot(Guid eventId, ClaimsPrincipal user, [FromBody] CreatePlotRequest request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -2041,7 +2041,7 @@ public static class NarrativeEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to create plot: {resp.StatusCode}");
         var created = (await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativePlotRow>>())?.FirstOrDefault();
-        return created is null ? Results.Problem("Plot created but no payload returned.") : Results.Created($"/api/events/{eventId}/narrative/plots/{created.id}", ToPlotDto(created));
+        return created is null ? Results.Problem("Plot created but no payload returned.") : Results.Created($"/api/events/{eventId}/narrative/plots/{created.id}", ToPlotDto(created, access.CanWrite));
     }
 
     private static async Task<IResult> GetPlotById(Guid eventId, Guid plotId, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -2050,7 +2050,7 @@ public static class NarrativeEndpoints
         var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
         if (!access.CanRead) return Results.Forbid();
         var row = await GetPlot(eventId, plotId, url!, key!, httpClient, includeDeleted: true);
-        return row is null ? Results.NotFound() : Results.Ok(ToPlotDto(row));
+        return row is null ? Results.NotFound() : Results.Ok(ToPlotDto(row, access.CanWrite));
     }
 
     private static async Task<IResult> UpdatePlot(Guid eventId, Guid plotId, ClaimsPrincipal user, [FromBody] UpdatePlotRequest request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -2083,7 +2083,7 @@ public static class NarrativeEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to update plot: {resp.StatusCode}");
         var updated = (await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativePlotRow>>())?.FirstOrDefault();
-        return updated is null ? Results.Problem("Plot update payload missing.") : Results.Ok(ToPlotDto(updated));
+        return updated is null ? Results.Problem("Plot update payload missing.") : Results.Ok(ToPlotDto(updated, access.CanWrite));
     }
 
     private static async Task<IResult> ChangePlotStatus(Guid eventId, Guid plotId, ClaimsPrincipal user, [FromBody] ChangeNarrativeStatusRequest request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -2104,7 +2104,7 @@ public static class NarrativeEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to change plot status: {resp.StatusCode}");
         var updated = (await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativePlotRow>>())?.FirstOrDefault();
-        return updated is null ? Results.Problem("Plot status payload missing.") : Results.Ok(ToPlotDto(updated));
+        return updated is null ? Results.Problem("Plot status payload missing.") : Results.Ok(ToPlotDto(updated, access.CanWrite));
     }
 
     private static async Task<IResult> SoftDeletePlot(Guid eventId, Guid plotId, ClaimsPrincipal user, [FromBody] NarrativeDeleteRequest request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -2368,38 +2368,38 @@ public static class NarrativeEndpoints
         ));
     }
 
-    private static NarrativeQuestDto ToQuestDto(SupabaseNarrativeQuestRow row) =>
-        new(row.id, row.event_id, row.title, row.short_description, row.description, row.internal_notes, row.status, row.created_at, row.updated_at, row.deleted_at);
+    private static NarrativeQuestDto ToQuestDto(SupabaseNarrativeQuestRow row, bool canReadInternal) =>
+        new(row.id, row.event_id, row.title, row.short_description, row.description, canReadInternal ? row.internal_notes : null, row.status, row.created_at, row.updated_at, row.deleted_at);
 
     private static NarrativeQuestStepCharacterDto ToQuestStepCharacterDto(SupabaseNarrativeQuestStepCharacterRow row) =>
         new(row.event_id, row.step_id, row.character_id, row.created_at);
 
-    private static NarrativeQuestStepDto ToQuestStepDto(SupabaseNarrativeQuestStepRow row) =>
-        new(row.id, row.quest_id, row.event_id, row.sort_order, row.summary, row.notes, row.created_at, row.updated_at);
+    private static NarrativeQuestStepDto ToQuestStepDto(SupabaseNarrativeQuestStepRow row, bool canReadInternal) =>
+        new(row.id, row.quest_id, row.event_id, row.sort_order, row.summary, canReadInternal ? row.notes : null, row.created_at, row.updated_at);
 
     private static NarrativeDocumentLinkDto ToDocumentDto(SupabaseNarrativeDocumentLinkRow row) =>
         new(row.id, row.event_id, row.entity_type, row.entity_id, row.display_name, row.url, row.document_status, row.source_type, row.created_by, row.created_at);
 
-    private static NarrativeFactionDto ToFactionDto(SupabaseNarrativeFactionRow row) =>
-        new(row.id, row.event_id, row.name, row.sigil_url, row.description, row.goals, row.internal_notes, row.status, row.created_at, row.updated_at, row.deleted_at);
+    private static NarrativeFactionDto ToFactionDto(SupabaseNarrativeFactionRow row, bool canReadInternal) =>
+        new(row.id, row.event_id, row.name, row.sigil_url, row.description, row.goals, canReadInternal ? row.internal_notes : null, row.status, row.created_at, row.updated_at, row.deleted_at);
 
-    private static NarrativeItemDto ToItemDto(SupabaseNarrativeItemRow row) =>
-        new(row.id, row.event_id, row.name, row.description, row.internal_notes, row.status, row.is_multi_copy, row.max_copies, row.created_at, row.updated_at, row.deleted_at);
+    private static NarrativeItemDto ToItemDto(SupabaseNarrativeItemRow row, bool canReadInternal) =>
+        new(row.id, row.event_id, row.name, row.description, canReadInternal ? row.internal_notes : null, row.status, row.is_multi_copy, row.max_copies, row.created_at, row.updated_at, row.deleted_at);
 
     private static NarrativeFactionMemberDto ToFactionMemberDto(SupabaseNarrativeFactionMemberRow row) =>
         new(row.event_id, row.faction_id, row.character_id, row.role, row.created_at);
 
-    private static NarrativeItemAssignmentDto ToItemAssignmentDto(SupabaseNarrativeItemAssignmentRow row) =>
-        new(row.event_id, row.item_id, row.character_id, row.assigned_by, row.assigned_at, row.notes);
+    private static NarrativeItemAssignmentDto ToItemAssignmentDto(SupabaseNarrativeItemAssignmentRow row, bool canReadInternal) =>
+        new(row.event_id, row.item_id, row.character_id, row.assigned_by, row.assigned_at, canReadInternal ? row.notes : null);
 
-    private static NarrativePlotlineDto ToPlotlineDto(SupabaseNarrativePlotlineRow row) =>
-        new(row.id, row.event_id, row.title, row.description, row.internal_notes, row.status, row.created_at, row.updated_at, row.deleted_at);
+    private static NarrativePlotlineDto ToPlotlineDto(SupabaseNarrativePlotlineRow row, bool canReadInternal) =>
+        new(row.id, row.event_id, row.title, row.description, canReadInternal ? row.internal_notes : null, row.status, row.created_at, row.updated_at, row.deleted_at);
 
     private static NarrativePlotlinePhaseDto ToPlotlinePhaseDto(SupabaseNarrativePlotlinePhaseRow row) =>
         new(row.id, row.plotline_id, row.event_id, row.sort_order, row.title, row.summary, row.created_at, row.updated_at);
 
-    private static NarrativePlotDto ToPlotDto(SupabaseNarrativePlotRow row) =>
-        new(row.id, row.event_id, row.title, row.description, row.internal_notes, row.status, row.created_at, row.updated_at, row.deleted_at);
+    private static NarrativePlotDto ToPlotDto(SupabaseNarrativePlotRow row, bool canReadInternal) =>
+        new(row.id, row.event_id, row.title, row.description, canReadInternal ? row.internal_notes : null, row.status, row.created_at, row.updated_at, row.deleted_at);
 
     private static NarrativePlotlineQuestLinkDto ToPlotlineQuestLinkDto(SupabaseNarrativePlotlineQuestRow row) =>
         new(row.event_id, row.plotline_id, row.quest_id, row.phase_id, row.sort_order, row.created_at);
@@ -2419,7 +2419,7 @@ public static class NarrativeEndpoints
     private static NarrativeQuestStepItemLinkDto ToQuestStepItemLinkDto(SupabaseNarrativeQuestStepItemRow row) =>
         new(row.event_id, row.step_id, row.item_id, row.link_type, row.created_at);
 
-    private static NarrativeFactionRelationshipDto ToFactionRelationshipDto(SupabaseNarrativeFactionRelationshipRow row) =>
+    private static NarrativeFactionRelationshipDto ToFactionRelationshipDto(SupabaseNarrativeFactionRelationshipRow row, bool canReadInternal) =>
         new(
             row.id,
             row.event_id,
@@ -2430,7 +2430,7 @@ public static class NarrativeEndpoints
             row.relation_mode,
             row.mirror_group_id,
             row.is_auto_mirror,
-            row.notes,
+            canReadInternal ? row.notes : null,
             row.created_at,
             row.updated_at
         );

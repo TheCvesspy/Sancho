@@ -283,31 +283,33 @@ export function QuestDetail({
                         token={token}
                     />
 
-                    {/* Description */}
-                    <div className="rounded-lg border bg-card p-6">
-                        <EditableRichText
-                            title={t("quests.fields.description.label")}
-                            initialHtml={quest.description || ""}
-                            placeholder={t("quests.fields.description.placeholder")}
-                            isReadOnly={!canWrite || !!quest.deletedAt}
-                            onSave={(html) => handleSaveField("description", html)}
-                        />
-                    </div>
-
-                    {/* Internal Notes (admin only) */}
-                    {canWrite && (
-                        <div className="rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {/* Description */}
+                        <div className={`rounded-lg border bg-card p-6 ${canWrite ? "md:col-span-2" : "md:col-span-3"}`}>
                             <EditableRichText
-                                title={t("quests.fields.internalNotes.label")}
-                                description={t("common.internalNotesHint")}
-                                variant="amber"
-                                initialHtml={quest.internalNotes || ""}
-                                placeholder={t("quests.fields.internalNotes.placeholder")}
-                                isReadOnly={!!quest.deletedAt}
-                                onSave={(html) => handleSaveField("internalNotes", html)}
+                                title={t("quests.fields.description.label")}
+                                initialHtml={quest.description || ""}
+                                placeholder={t("quests.fields.description.placeholder")}
+                                isReadOnly={!canWrite || !!quest.deletedAt}
+                                onSave={(html) => handleSaveField("description", html)}
                             />
                         </div>
-                    )}
+
+                        {/* Internal Notes (admin only) */}
+                        {canWrite && (
+                            <div className="md:col-span-1 rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 p-6">
+                                <EditableRichText
+                                    title={t("quests.fields.internalNotes.label")}
+                                    description={t("common.internalNotesHint")}
+                                    variant="amber"
+                                    initialHtml={quest.internalNotes || ""}
+                                    placeholder={t("quests.fields.internalNotes.placeholder")}
+                                    isReadOnly={!canWrite || !!quest.deletedAt}
+                                    onSave={(html) => handleSaveField("internalNotes", html)}
+                                />
+                            </div>
+                        )}
+                    </div>
                 </TabsContent>
 
                 <TabsContent value="links">
