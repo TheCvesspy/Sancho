@@ -60,6 +60,16 @@ Lightweight log of noteworthy architecture and design decisions.
   - Created `event_member_permissions` for explicit per-module (`none`, `read`, `write`) grants.
   - Default user access restricted to `read` on `communications` (all other modules `none`).
 
+## 2026-03-14
+
+- **Context**: The application language often defaulted to English, ignoring the user's preferred language saved in their profile (stored in `user_profiles.locale`). This occurred because `next-intl` routing was based solely on the URL path, and there was no mechanism to bridge the database preference with the URL prefix.
+  **Decision**: Implemented dynamic locale redirection in the frontend middleware (`updateSession`).
+  **Implementation**:
+  - The middleware now checks the user's preferred locale from Supabase when a session is updated.
+  - If the current URL locale doesn't match the preference, a `NextResponse.redirect` is issued to the same path with the correct locale prefix.
+  - **Performance**: Introduced a `sancho_locale` cookie to cache the preference, avoiding an extra database query on every request. The database is only queried if the cookie is missing or if the URL locale manually changed.
+  **Alternatives**: Force locale prefix at all times via `next-intl` (rejected — already in use, but didn't solve the preference bridge); Client-side redirect (rejected — causes "flash" of wrong language and inferior user experience).
+
 - **Context**: Defining a concrete backend design for Event Management with multi-event support and operational controls.
   **Decision**: Standardized Event module API under `/api/events` with explicit lifecycle operations (archive, soft-delete, restore), integrated access-control management (event managers + per-module grants), and read models for stats and recent activity.
   **Implementation**:
