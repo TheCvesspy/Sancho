@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5293";
+import { API_BASE_URL } from "@/lib/api-config";
 
 async function fetcher<T>(url: string, options?: RequestInit): Promise<T> {
     const fullUrl = url.startsWith("http") ? url : `${API_BASE_URL}${url}`;

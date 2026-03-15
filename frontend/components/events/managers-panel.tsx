@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useTranslations, useLocale } from "next-intl";
+import { API_BASE_URL } from "@/lib/api-config";
 import {
     Table,
     TableBody,
@@ -75,8 +76,6 @@ export function ManagersPanel({ eventId, token, isOrgOrSysAdmin }: ManagersPanel
 
     const fetchUsers = async () => {
         try {
-            // Identity API base URL
-            const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5293";
             const resp = await fetch(`${API_BASE_URL}/api/identity/users`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });

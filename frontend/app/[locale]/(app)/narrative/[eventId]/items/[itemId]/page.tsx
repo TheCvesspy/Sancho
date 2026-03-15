@@ -6,7 +6,7 @@ import { eventsApi } from "@/utils/events-api";
 import { ItemDetail } from "@/components/narrative/item-detail";
 import { fetchEventPermissions, resolveModuleAccess } from "@/utils/permissions";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5293";
+import { API_BASE_URL } from "@/lib/api-config";
 
 export default async function ItemDetailPage({
     params

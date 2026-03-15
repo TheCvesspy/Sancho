@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { eventsApi } from "@/utils/events-api";
 import { EventsList } from "@/components/events/events-list";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5293";
+import { API_BASE_URL } from "@/lib/api-config";
 
 export default async function EventsPage({
     params,

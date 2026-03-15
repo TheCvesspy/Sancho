@@ -1,0 +1,10 @@
+.git/
+.claude/
+node_modules/
+.next/
+bin/
+obj/
+.vs/
+*.user
+.env*.local
+.env

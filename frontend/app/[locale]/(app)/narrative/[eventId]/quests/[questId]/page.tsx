@@ -7,7 +7,7 @@ import { QuestDetail } from "@/components/narrative/quest-detail";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchEventPermissions, resolveModuleAccess } from "@/utils/permissions";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5293";
+import { API_BASE_URL } from "@/lib/api-config";
 
 export default async function QuestDetailPage({
     params
