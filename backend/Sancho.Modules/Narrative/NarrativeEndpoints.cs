@@ -967,7 +967,7 @@ public static class NarrativeEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to list factions: {resp.StatusCode}");
         var rows = await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativeFactionRow>>() ?? [];
-        return Results.Ok(rows.Select(r => ToFactionDto(r, access.CanWrite)));
+        return Results.Ok(rows.Select(r => ToFactionDto(r, access.CanWrite, url)));
     }
 
     private static async Task<IResult> CreateFaction(Guid eventId, ClaimsPrincipal user, [FromBody] CreateFactionRequest request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -997,7 +997,7 @@ public static class NarrativeEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to create faction: {resp.StatusCode}");
         var created = (await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativeFactionRow>>())?.FirstOrDefault();
-        return created is null ? Results.Problem("Faction created but no payload returned.") : Results.Created($"/api/events/{eventId}/narrative/factions/{created.id}", ToFactionDto(created, access.CanWrite));
+        return created is null ? Results.Problem("Faction created but no payload returned.") : Results.Created($"/api/events/{eventId}/narrative/factions/{created.id}", ToFactionDto(created, access.CanWrite, url));
     }
 
     private static async Task<IResult> GetFactionById(Guid eventId, Guid factionId, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -1007,7 +1007,7 @@ public static class NarrativeEndpoints
         if (!access.CanRead) return Results.Forbid();
 
         var row = await GetFaction(eventId, factionId, url!, key!, httpClient, includeDeleted: true);
-        return row is null ? Results.NotFound() : Results.Ok(ToFactionDto(row, access.CanWrite));
+        return row is null ? Results.NotFound() : Results.Ok(ToFactionDto(row, access.CanWrite, url));
     }
 
     private static async Task<IResult> UpdateFaction(Guid eventId, Guid factionId, ClaimsPrincipal user, [FromBody] UpdateFactionRequest request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -1043,7 +1043,7 @@ public static class NarrativeEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to update faction: {resp.StatusCode}");
         var updated = (await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativeFactionRow>>())?.FirstOrDefault();
-        return updated is null ? Results.Problem("Faction update payload missing.") : Results.Ok(ToFactionDto(updated, access.CanWrite));
+        return updated is null ? Results.Problem("Faction update payload missing.") : Results.Ok(ToFactionDto(updated, access.CanWrite, url));
     }
 
     private static async Task<IResult> ChangeFactionStatus(Guid eventId, Guid factionId, ClaimsPrincipal user, [FromBody] ChangeNarrativeStatusRequest request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -1067,7 +1067,7 @@ public static class NarrativeEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to change faction status: {resp.StatusCode}");
         var updated = (await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativeFactionRow>>())?.FirstOrDefault();
-        return updated is null ? Results.Problem("Faction status payload missing.") : Results.Ok(ToFactionDto(updated, access.CanWrite));
+        return updated is null ? Results.Problem("Faction status payload missing.") : Results.Ok(ToFactionDto(updated, access.CanWrite, url));
     }
 
     private static async Task<IResult> SoftDeleteFaction(Guid eventId, Guid factionId, ClaimsPrincipal user, [FromBody] NarrativeDeleteRequest request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -1131,7 +1131,7 @@ public static class NarrativeEndpoints
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to confirm sigil: {resp.StatusCode}");
         var updated = (await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativeFactionRow>>())?.FirstOrDefault();
-        return updated is null ? Results.Problem("Sigil confirmed but payload missing.") : Results.Ok(ToFactionDto(updated, access.CanWrite));
+        return updated is null ? Results.Problem("Sigil confirmed but payload missing.") : Results.Ok(ToFactionDto(updated, access.CanWrite, url));
     }
 
     private static async Task<IResult> RemoveSigil(Guid eventId, Guid factionId, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz, NarrativeStorageService storage)
@@ -2561,8 +2561,15 @@ public static class NarrativeEndpoints
     private static NarrativeDocumentLinkDto ToDocumentDto(SupabaseNarrativeDocumentLinkRow row) =>
         new(row.id, row.event_id, row.entity_type, row.entity_id, row.display_name, row.url, row.document_status, row.source_type, row.created_by, row.created_at);
 
-    private static NarrativeFactionDto ToFactionDto(SupabaseNarrativeFactionRow row, bool canReadInternal) =>
-        new(row.id, row.event_id, row.name, row.sigil_url, row.description, row.goals, canReadInternal ? row.internal_notes : null, row.status, row.created_at, row.updated_at, row.deleted_at);
+    private static NarrativeFactionDto ToFactionDto(SupabaseNarrativeFactionRow row, bool canReadInternal, string? supabaseUrl = null) =>
+        new(row.id, row.event_id, row.name, ToPublicSigilUrl(row.sigil_url, supabaseUrl), row.description, row.goals, canReadInternal ? row.internal_notes : null, row.status, row.created_at, row.updated_at, row.deleted_at);
+
+    private static string? ToPublicSigilUrl(string? sigilPath, string? supabaseUrl) =>
+        string.IsNullOrWhiteSpace(sigilPath) || string.IsNullOrWhiteSpace(supabaseUrl)
+            ? sigilPath
+            : sigilPath.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+                ? sigilPath
+                : $"{supabaseUrl.TrimEnd('/')}/storage/v1/object/public/narrative/{sigilPath}";
 
     private static NarrativeItemDto ToItemDto(SupabaseNarrativeItemRow row, bool canReadInternal) =>
         new(row.id, row.event_id, row.name, row.description, canReadInternal ? row.internal_notes : null, row.status, row.is_multi_copy, row.max_copies, row.created_at, row.updated_at, row.deleted_at);

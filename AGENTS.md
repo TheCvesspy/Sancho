@@ -38,12 +38,42 @@ Sancho is a **single-organization** web app for a LARP group, covering the full 
 - The API Gateway (ASP.NET Core) routes to bounded contexts.
 - Supabase is shared for Auth, DB, Storage, and Realtime; apply RLS for **org/event membership** isolation.
 
+## Naming & Casing Conventions
+
+These rules are mandatory across the entire stack. Casing mismatches between layers cause silent deserialization failures (properties default to `null`/`0`) which surface as runtime bugs.
+
+### JSON Property Names by Layer
+
+| Layer | Casing | Example | Enforced by |
+|---|---|---|---|
+| **Frontend** (TypeScript interfaces, JSON bodies) | `camelCase` | `fileName`, `contentType`, `sizeBytes` | Convention |
+| **Backend public DTOs** (request/response records) | `PascalCase` | `FileName`, `ContentType`, `SizeBytes` | ASP.NET auto-binds camelCase ↔ PascalCase |
+| **Supabase row records** (internal) | `snake_case` | `file_name`, `content_type`, `size_bytes` | `[property: JsonPropertyName("...")]` on every multi-word property |
+| **Database columns** | `snake_case` | `file_name`, `content_type`, `size_bytes` | Migration SQL |
+| **API URL paths** | `kebab-case` | `/sigil/upload-url` | Route registration |
+| **Module identifiers** (DB strings, API paths, constants) | `snake_case` | `npc_org`, `event_management` | Convention |
+
+### Rules
+
+1. **Frontend → Backend**: The frontend sends `camelCase` JSON. ASP.NET Core minimal APIs deserialize this case-insensitively into `PascalCase` record properties. No `[JsonPropertyName]` is needed on public request/response DTOs.
+2. **Backend → Supabase**: When building `JsonContent.Create(new { ... })` for Supabase REST calls, use `snake_case` property names in the anonymous object (e.g., `event_id = eventId`).
+3. **Supabase → Backend**: Internal `Supabase*Row` records must annotate every multi-word property with `[property: JsonPropertyName("snake_case")]`. Single-word properties (e.g., `id`, `title`, `status`) don't need it.
+4. **Backend → Frontend**: ASP.NET Core serializes response DTOs to `camelCase` automatically. Public DTOs use `PascalCase` in C# — the framework handles the conversion.
+5. **Supabase Storage paths**: Use `snake_case` or plain segments — no special casing rules. Store **relative paths** in the DB (e.g., `{eventId}/{factionId}/sigil/sigil.png`); convert to full public URLs in the mapper/DTO layer, not in the database.
+
+### Checklist for New DTOs
+
+- [ ] Public request/response records: `PascalCase` properties, no `JsonPropertyName` needed
+- [ ] Supabase row records: `snake_case` properties with `[property: JsonPropertyName("...")]` on multi-word names
+- [ ] Anonymous objects for Supabase REST calls: `snake_case` property names
+- [ ] Frontend interfaces: `camelCase` matching the public DTO names (auto-converted by ASP.NET)
+- [ ] Storage file paths stored in DB are relative; full URLs are built in the DTO mapper
+
 ## Coding Standards (Backend)
 - Follow clean architecture conventions already in `backend/`.
 - Keep DTOs and domain models separated.
 - Prefer explicit typing and clear validation for external inputs.
 - Favor deterministic, testable services. Avoid static singletons except configuration.
-- **Module Identifiers**: Always use `lowercase_snake_case` for module names in API paths, database strings, and constants (e.g., `npc_org`, `event_management`).
 
 ## Performance Standards (Backend)
 

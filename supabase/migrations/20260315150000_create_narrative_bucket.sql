@@ -8,7 +8,7 @@ INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_typ
 VALUES (
   'narrative',
   'narrative',
-  false,
+  true,
   10485760, -- 10MB
   ARRAY[
     'image/jpeg',
