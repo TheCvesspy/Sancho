@@ -11,10 +11,12 @@ import {
     NarrativeItemDto,
     NarrativeQuestStepDto,
     NarrativeQuestStepCharacterDto,
+    NarrativeLocationDto,
+    NarrativeLocationLinkDto,
 } from "@/utils/narrative-api";
 import { CharacterListItemDto, charactersApi } from "@/utils/characters-api";
 import { Button } from "@/components/ui/button";
-import { Trash2, Plus, Loader2, Users, Shield, Package, Users2 } from "lucide-react";
+import { Trash2, Plus, Loader2, Users, Shield, Package, Users2, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -48,33 +50,43 @@ export function QuestLinksPanel({
     const [questSteps, setQuestSteps] = useState<NarrativeQuestStepDto[]>([]);
     const [stepCharacters, setStepCharacters] = useState<Record<string, NarrativeQuestStepCharacterDto[]>>({});
 
+    // Location links
+    const [locationLinks, setLocationLinks] = useState<NarrativeLocationLinkDto[]>([]);
+
     // Lookup data
     const [allCharacters, setAllCharacters] = useState<CharacterListItemDto[]>([]);
     const [allFactions, setAllFactions] = useState<NarrativeFactionDto[]>([]);
     const [allItems, setAllItems] = useState<NarrativeItemDto[]>([]);
+    const [allLocations, setAllLocations] = useState<NarrativeLocationDto[]>([]);
 
     // Add form state
     const [selectedChar, setSelectedChar] = useState("");
     const [charRole, setCharRole] = useState("");
     const [selectedFaction, setSelectedFaction] = useState("");
     const [selectedItem, setSelectedItem] = useState("");
+    const [selectedLocation, setSelectedLocation] = useState("");
     const [savingChar, setSavingChar] = useState(false);
     const [savingFaction, setSavingFaction] = useState(false);
     const [savingItem, setSavingItem] = useState(false);
+    const [savingLocation, setSavingLocation] = useState(false);
 
     useEffect(() => {
         const load = async () => {
             try {
-                const [chars, factions, items, steps] = await Promise.all([
+                const [chars, factions, items, steps, locations, locLinks] = await Promise.all([
                     charactersApi.listCharacters(token, eventId),
                     narrativeApi.listFactions(token, eventId),
                     narrativeApi.listItems(token, eventId),
                     narrativeApi.listQuestSteps(token, eventId, questId),
+                    narrativeApi.listLocations(token, eventId),
+                    narrativeApi.listQuestLocationLinks(token, eventId, questId),
                 ]);
                 setAllCharacters(chars);
                 setAllFactions(factions);
                 setAllItems(items);
                 setQuestSteps(steps);
+                setAllLocations(locations);
+                setLocationLinks(locLinks);
 
                 // Load step characters
                 const entries = await Promise.all(
@@ -160,6 +172,39 @@ export function QuestLinksPanel({
             setItemLinks((prev) => prev.filter((l) => l.itemId !== itemId));
         } catch (e: any) { toast.error(e.message); }
     };
+
+    // ── Locations ──────────────────────────────────────────────────────────
+
+    const addLocation = async () => {
+        if (!selectedLocation) return;
+        setSavingLocation(true);
+        try {
+            await narrativeApi.upsertQuestLocationLink(token, eventId, questId, selectedLocation);
+            const links = await narrativeApi.listQuestLocationLinks(token, eventId, questId);
+            setLocationLinks(links);
+            setSelectedLocation("");
+            toast.success(t("common.add"));
+        } catch (e: any) { toast.error(e.message); } finally { setSavingLocation(false); }
+    };
+
+    const removeLocation = async (link: NarrativeLocationLinkDto) => {
+        if (!confirm(t("common.deleteConfirm"))) return;
+        try {
+            await narrativeApi.deleteQuestLocationLink(token, eventId, questId, link.locationId, {
+                floorId: link.floorId,
+                roomId: link.roomId,
+            });
+            setLocationLinks((prev) => prev.filter((l) => !(l.locationId === link.locationId && l.floorId === link.floorId && l.roomId === link.roomId)));
+        } catch (e: any) { toast.error(e.message); }
+    };
+
+    const formatLocationGranularity = (link: NarrativeLocationLinkDto) => {
+        if (link.roomId && link.floorName && link.roomName) return `${link.floorName} > ${link.roomName}`;
+        if (link.floorId && link.floorName) return link.floorName;
+        return t("locations.links.granularity.entireLocation");
+    };
+
+    const linkedLocationIds = new Set(locationLinks.map((l) => l.locationId));
 
     const getName = (list: { id: string; name: string }[], id: string) =>
         list.find((x) => x.id === id)?.name || id;
@@ -336,6 +381,54 @@ export function QuestLinksPanel({
                                 <p className="text-sm text-muted-foreground">{t("quests.steps.characters.empty")}</p>
                             </div>
                         )}
+                    </div>
+                )}
+            </section>
+
+            {/* ── Locations ────────────────────────────────────────────── */}
+            <section className="space-y-3">
+                <div className="flex items-center gap-2">
+                    <MapPin className="h-5 w-5 text-muted-foreground" />
+                    <h3 className="text-lg font-semibold">{t("locations.links.locations")}</h3>
+                </div>
+
+                {locationLinks.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">{t("common.noDescription")}</p>
+                ) : (
+                    <div className="divide-y rounded-md border">
+                        {locationLinks.map((link, idx) => (
+                            <div key={`${link.locationId}-${link.floorId}-${link.roomId}-${idx}`} className="flex items-center justify-between px-4 py-3">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="font-medium">{link.locationName}</span>
+                                    <Badge variant="outline" className="text-xs">
+                                        {formatLocationGranularity(link)}
+                                    </Badge>
+                                </div>
+                                {canWrite && (
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeLocation(link)}>
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {canWrite && (
+                    <div className="flex gap-2">
+                        <select
+                            className="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm flex-1"
+                            value={selectedLocation}
+                            onChange={(e) => setSelectedLocation(e.target.value)}
+                        >
+                            <option value="">{t("common.select")}</option>
+                            {allLocations.filter((l) => !linkedLocationIds.has(l.id)).map((l) => (
+                                <option key={l.id} value={l.id}>{l.name}</option>
+                            ))}
+                        </select>
+                        <Button size="sm" onClick={addLocation} disabled={!selectedLocation || savingLocation}>
+                            {savingLocation ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                        </Button>
                     </div>
                 )}
             </section>

@@ -9,13 +9,15 @@ import {
     NarrativePlotlineDto,
     NarrativePlotDto,
     NarrativeFactionDto,
-    NarrativeItemDto
+    NarrativeItemDto,
+    NarrativeLocationDto
 } from "@/utils/narrative-api";
 import { QuestsList } from "./quests-list";
 import { FactionsList } from "./factions-list";
 import { ItemsList } from "./items-list";
 import { PlotlinesList } from "./plotlines-list";
 import { PlotsList } from "./plots-list";
+import { LocationsList } from "./locations-list";
 
 interface NarrativeHubProps {
     event: EventDetailDto;
@@ -24,6 +26,7 @@ interface NarrativeHubProps {
     initialPlots: NarrativePlotDto[];
     initialFactions: NarrativeFactionDto[];
     initialItems: NarrativeItemDto[];
+    initialLocations: NarrativeLocationDto[];
     canWrite: boolean;
     token: string;
 }
@@ -35,6 +38,7 @@ export function NarrativeHub({
     initialPlots,
     initialFactions,
     initialItems,
+    initialLocations,
     canWrite,
     token
 }: NarrativeHubProps) {
@@ -65,6 +69,9 @@ export function NarrativeHub({
                     </TabsTrigger>
                     <TabsTrigger value="items" className="flex-1 sm:flex-none py-2 px-4 shadow-none data-[state=active]:bg-background">
                         {t("hub.tabs.items")} ({initialItems.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="locations" className="flex-1 sm:flex-none py-2 px-4 shadow-none data-[state=active]:bg-background">
+                        {t("hub.tabs.locations")} ({initialLocations.length})
                     </TabsTrigger>
                 </TabsList>
 
@@ -104,6 +111,14 @@ export function NarrativeHub({
                     <ItemsList
                         eventId={event.id}
                         initialItems={initialItems}
+                        canWrite={canWrite}
+                        token={token}
+                    />
+                </TabsContent>
+                <TabsContent value="locations" className="space-y-4">
+                    <LocationsList
+                        eventId={event.id}
+                        initialLocations={initialLocations}
                         canWrite={canWrite}
                         token={token}
                     />

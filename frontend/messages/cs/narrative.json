@@ -8,7 +8,8 @@
             "plotlines": "Dějové linky",
             "plots": "Zápletky",
             "factions": "Frakce",
-            "items": "Předměty"
+            "items": "Předměty",
+            "locations": "Lokace"
         }
     },
     "status": {
@@ -563,6 +564,162 @@
             "restored": "Zápletka obnovena",
             "plotlineLinked": "Dějová linka navázána",
             "plotlineUnlinked": "Vazba dějové linky odstraněna"
+        }
+    },
+    "locations": {
+        "title": "Lokace",
+        "description": "Správa lokací, dungeonů a jejich propojení",
+        "create": "Nová lokace",
+        "update": "Upravit lokaci",
+        "type": {
+            "basic": "Základní",
+            "dungeon": "Dungeon"
+        },
+        "allTypes": "Všechny typy",
+        "list": {
+            "empty": "Nenalezeny žádné lokace.",
+            "searchPlaceholder": "Hledat lokace...",
+            "columns": {
+                "name": "Název",
+                "type": "Typ",
+                "status": "Stav",
+                "createdAt": "Vytvořeno"
+            }
+        },
+        "detail": {
+            "tabs": {
+                "overview": "Přehled",
+                "floorsAndRooms": "Patra a místnosti",
+                "links": "Vazby",
+                "documents": "Dokumenty"
+            }
+        },
+        "fields": {
+            "name": {
+                "label": "Název",
+                "placeholder": "Zadejte název lokace"
+            },
+            "locationType": {
+                "label": "Typ lokace"
+            },
+            "description": {
+                "label": "Popis",
+                "placeholder": "Zadejte popis lokace..."
+            },
+            "internalNotes": {
+                "label": "Interní poznámky",
+                "placeholder": "Zadejte interní poznámky (pouze pro adminy)..."
+            }
+        },
+        "floors": {
+            "title": "Patra dungeonu",
+            "add": "Přidat patro",
+            "empty": "Zatím nejsou definována žádná patra.",
+            "fields": {
+                "name": {
+                    "label": "Název patra",
+                    "placeholder": "Zadejte název patra"
+                },
+                "description": {
+                    "label": "Popis",
+                    "placeholder": "Zadejte popis patra..."
+                },
+                "internalNotes": {
+                    "label": "Interní poznámky",
+                    "placeholder": "Interní poznámky k tomuto patru..."
+                }
+            },
+            "rooms": "místností",
+            "roomCount": "{count} místností",
+            "documents": "Dokumenty patra",
+            "addDialog": {
+                "title": "Přidat patro dungeonu",
+                "description": "Přidat nové patro k tomuto dungeonu.",
+                "submit": "Přidat patro"
+            },
+            "notifications": {
+                "created": "Patro přidáno",
+                "updated": "Patro upraveno",
+                "deleted": "Patro odstraněno",
+                "reordered": "Patra přeuspořádána"
+            }
+        },
+        "rooms": {
+            "title": "Místnosti",
+            "add": "Přidat místnost",
+            "empty": "Na tomto patře nejsou žádné místnosti.",
+            "fields": {
+                "name": {
+                    "label": "Název místnosti",
+                    "placeholder": "Zadejte název místnosti"
+                },
+                "description": {
+                    "label": "Popis",
+                    "placeholder": "Zadejte popis místnosti..."
+                },
+                "internalNotes": {
+                    "label": "Interní poznámky",
+                    "placeholder": "Interní poznámky k této místnosti..."
+                }
+            },
+            "documents": "Dokumenty místnosti",
+            "addDialog": {
+                "title": "Přidat místnost",
+                "description": "Přidat novou místnost k tomuto patru.",
+                "submit": "Přidat místnost"
+            },
+            "notifications": {
+                "created": "Místnost přidána",
+                "updated": "Místnost upravena",
+                "deleted": "Místnost odstraněna",
+                "reordered": "Místnosti přeuspořádány"
+            }
+        },
+        "links": {
+            "quests": "Propojené úkoly",
+            "plotlines": "Propojené dějové linky",
+            "plots": "Propojené zápletky",
+            "locations": "Propojené lokace",
+            "addQuest": "Přidat vazbu na úkol",
+            "addPlotline": "Přidat vazbu na dějovou linku",
+            "addPlot": "Přidat vazbu na zápletku",
+            "addLocation": "Přidat vazbu na lokaci",
+            "granularity": {
+                "label": "Úroveň vazby",
+                "entireLocation": "Celá lokace",
+                "specificFloor": "Konkrétní patro",
+                "specificRoom": "Konkrétní místnost",
+                "floor": "Patro",
+                "room": "Místnost"
+            }
+        },
+        "dialogs": {
+            "create": {
+                "title": "Vytvořit lokaci",
+                "description": "Přidat novou lokaci k této akci."
+            },
+            "delete": {
+                "title": "Smazat lokaci",
+                "description": "Opravdu chcete smazat tuto lokaci?"
+            },
+            "restore": {
+                "title": "Obnovit lokaci",
+                "description": "Opravdu chcete obnovit tuto lokaci?"
+            },
+            "edit": {
+                "title": "Upravit název lokace",
+                "description": "Změňte název této lokace.",
+                "lockedWarning": "Lokace je zamčená. Lze upravovat pouze interní poznámky.",
+                "inlineNote": "Popis a interní poznámky se upravují přímo na záložce Přehled."
+            }
+        },
+        "notifications": {
+            "created": "Lokace vytvořena",
+            "updated": "Lokace upravena",
+            "deleted": "Lokace smazána",
+            "restored": "Lokace obnovena",
+            "linkAdded": "Vazba přidána",
+            "linkRemoved": "Vazba odstraněna"
         }
     },
     "relationships": {

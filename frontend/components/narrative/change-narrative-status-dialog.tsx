@@ -26,7 +26,7 @@ import { narrativeApi, ChangeNarrativeStatusRequest } from "@/utils/narrative-ap
 interface ChangeNarrativeStatusDialogProps {
     eventId: string;
     entityId: string;
-    entityType: "quest" | "faction" | "plotline" | "plot";
+    entityType: "quest" | "faction" | "plotline" | "plot" | "location";
     currentStatus: string;
     token: string;
     onStatusChanged: (newStatus: string) => void;
@@ -65,6 +65,8 @@ export function ChangeNarrativeStatusDialog({
                 await narrativeApi.changePlotlineStatus(token, eventId, entityId, req);
             } else if (entityType === "plot") {
                 await narrativeApi.changePlotStatus(token, eventId, entityId, req);
+            } else if (entityType === "location") {
+                await narrativeApi.changeLocationStatus(token, eventId, entityId, req);
             }
 
             onStatusChanged(status);

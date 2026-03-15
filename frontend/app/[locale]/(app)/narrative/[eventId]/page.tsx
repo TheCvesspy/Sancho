@@ -59,13 +59,14 @@ export default async function EventNarrativePage({
     const includeDeleted = sp.showDeleted === "true" && isOrgOrSysAdmin;
 
     try {
-        const [event, quests, plotlines, plots, factions, items] = await Promise.all([
+        const [event, quests, plotlines, plots, factions, items, locations] = await Promise.all([
             eventsApi.getEvent(token, eventId),
             narrativeApi.listQuests(token, eventId, includeDeleted),
             narrativeApi.listPlotlines(token, eventId, includeDeleted),
             narrativeApi.listPlots(token, eventId, includeDeleted),
             narrativeApi.listFactions(token, eventId, includeDeleted),
             narrativeApi.listItems(token, eventId, includeDeleted),
+            narrativeApi.listLocations(token, eventId, includeDeleted),
         ]);
 
         return (
@@ -77,6 +78,7 @@ export default async function EventNarrativePage({
                     initialPlots={plots}
                     initialFactions={factions}
                     initialItems={items}
+                    initialLocations={locations}
                     canWrite={canWrite}
                     token={token}
                 />

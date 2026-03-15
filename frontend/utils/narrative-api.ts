@@ -26,7 +26,9 @@ async function fetcher<T>(url: string, options?: RequestInit): Promise<T> {
         return undefined as any as T;
     }
 
-    return response.json();
+    const text = await response.text();
+    if (!text) return undefined as any as T;
+    return JSON.parse(text) as T;
 }
 
 // --- DTOs ---
@@ -230,6 +232,67 @@ export interface NarrativeFactionRelationshipDto {
     updatedAt: string;
 }
 
+// Location DTOs
+export interface NarrativeLocationDto {
+    id: string;
+    eventId: string;
+    name: string;
+    description: string | null;
+    internalNotes: string | null;
+    locationType: string;
+    status: string;
+    createdAt: string;
+    updatedAt: string;
+    deletedAt: string | null;
+}
+
+export interface NarrativeLocationDetailDto extends NarrativeLocationDto {
+    floors: NarrativeDungeonFloorDto[];
+}
+
+export interface NarrativeDungeonFloorDto {
+    id: string;
+    locationId: string;
+    eventId: string;
+    sortOrder: number;
+    name: string;
+    description: string | null;
+    internalNotes: string | null;
+    createdAt: string;
+    updatedAt: string;
+    rooms: NarrativeDungeonRoomDto[];
+}
+
+export interface NarrativeDungeonRoomDto {
+    id: string;
+    floorId: string;
+    locationId: string;
+    eventId: string;
+    sortOrder: number;
+    name: string;
+    description: string | null;
+    internalNotes: string | null;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface NarrativeLocationLinkDto {
+    eventId: string;
+    locationId: string;
+    floorId: string | null;
+    roomId: string | null;
+    questId: string | null;
+    plotlineId: string | null;
+    plotId: string | null;
+    locationName: string;
+    floorName: string | null;
+    roomName: string | null;
+    questTitle: string | null;
+    plotlineTitle: string | null;
+    plotTitle: string | null;
+    createdAt: string;
+}
+
 
 // --- Requests ---
 
@@ -366,6 +429,62 @@ export interface UpdatePlotRequest {
 
 export interface UpsertPlotPlotlineRequest {
     sortOrder: number;
+}
+
+// Locations
+export interface CreateLocationRequest {
+    name: string;
+    description?: string | null;
+    internalNotes?: string | null;
+    locationType: string;
+}
+
+export interface UpdateLocationRequest {
+    name?: string;
+    description?: string | null;
+    internalNotes?: string | null;
+}
+
+export interface CreateDungeonFloorRequest {
+    name: string;
+    description?: string | null;
+    internalNotes?: string | null;
+    sortOrder?: number;
+}
+
+export interface UpdateDungeonFloorRequest {
+    name?: string;
+    description?: string | null;
+    internalNotes?: string | null;
+}
+
+export interface CreateDungeonRoomRequest {
+    name: string;
+    description?: string | null;
+    internalNotes?: string | null;
+    sortOrder?: number;
+}
+
+export interface UpdateDungeonRoomRequest {
+    name?: string;
+    description?: string | null;
+    internalNotes?: string | null;
+}
+
+export interface ReorderNarrativeChildRequest {
+    id: string;
+    sortOrder: number;
+}
+
+export interface UpsertNarrativeLocationLinkRequest {
+    floorId?: string | null;
+    roomId?: string | null;
+}
+
+export interface DeleteNarrativeLocationLinkRequest {
+    locationId: string;
+    floorId?: string | null;
+    roomId?: string | null;
 }
 
 // Shared
@@ -1071,5 +1190,295 @@ export const narrativeApi = {
         fetcher<void>(`/api/events/${eventId}/narrative/plots/${plotId}/documents/${documentId}`, {
             method: "DELETE",
             headers: { Authorization: `Bearer ${token}` },
+        }),
+
+    // ═══════ LOCATIONS ═══════
+
+    // Location CRUD
+    listLocations: (token: string, eventId: string, includeDeleted?: boolean) =>
+        fetcher<NarrativeLocationDto[]>(`/api/events/${eventId}/narrative/locations${includeDeleted ? "?includeDeleted=true" : ""}`, {
+            headers: { Authorization: `Bearer ${token}` },
+        }),
+
+    getLocation: (token: string, eventId: string, locationId: string) =>
+        fetcher<NarrativeLocationDetailDto>(`/api/events/${eventId}/narrative/locations/${locationId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+        }),
+
+    createLocation: (token: string, eventId: string, data: CreateLocationRequest) =>
+        fetcher<NarrativeLocationDto>(`/api/events/${eventId}/narrative/locations`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        }),
+
+    updateLocation: (token: string, eventId: string, locationId: string, data: UpdateLocationRequest) =>
+        fetcher<NarrativeLocationDto>(`/api/events/${eventId}/narrative/locations/${locationId}`, {
+            method: "PATCH",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        }),
+
+    changeLocationStatus: (token: string, eventId: string, locationId: string, data: ChangeNarrativeStatusRequest) =>
+        fetcher<NarrativeLocationDto>(`/api/events/${eventId}/narrative/locations/${locationId}/status`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        }),
+
+    deleteLocation: (token: string, eventId: string, locationId: string, reason?: string) =>
+        fetcher<void>(`/api/events/${eventId}/narrative/locations/${locationId}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ reason: reason || null }),
+        }),
+
+    undeleteLocation: (token: string, eventId: string, locationId: string) =>
+        fetcher<void>(`/api/events/${eventId}/narrative/locations/${locationId}/undelete`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+        }),
+
+    // Location Documents
+    listLocationDocuments: (token: string, eventId: string, locationId: string) =>
+        fetcher<NarrativeDocumentLinkDto[]>(`/api/events/${eventId}/narrative/locations/${locationId}/documents`, {
+            headers: { Authorization: `Bearer ${token}` },
+        }),
+
+    addLocationGoogleDriveDocument: (token: string, eventId: string, locationId: string, data: AddNarrativeGoogleDriveLinkRequest) =>
+        fetcher<NarrativeDocumentLinkDto>(`/api/events/${eventId}/narrative/locations/${locationId}/documents/google-drive`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        }),
+
+    deleteLocationDocument: (token: string, eventId: string, locationId: string, documentId: string) =>
+        fetcher<void>(`/api/events/${eventId}/narrative/locations/${locationId}/documents/${documentId}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+        }),
+
+    // Floor CRUD
+    listFloors: (token: string, eventId: string, locationId: string) =>
+        fetcher<NarrativeDungeonFloorDto[]>(`/api/events/${eventId}/narrative/locations/${locationId}/floors`, {
+            headers: { Authorization: `Bearer ${token}` },
+        }),
+
+    createFloor: (token: string, eventId: string, locationId: string, data: CreateDungeonFloorRequest) =>
+        fetcher<NarrativeDungeonFloorDto>(`/api/events/${eventId}/narrative/locations/${locationId}/floors`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        }),
+
+    updateFloor: (token: string, eventId: string, locationId: string, floorId: string, data: UpdateDungeonFloorRequest) =>
+        fetcher<NarrativeDungeonFloorDto>(`/api/events/${eventId}/narrative/locations/${locationId}/floors/${floorId}`, {
+            method: "PATCH",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        }),
+
+    deleteFloor: (token: string, eventId: string, locationId: string, floorId: string) =>
+        fetcher<void>(`/api/events/${eventId}/narrative/locations/${locationId}/floors/${floorId}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+        }),
+
+    reorderFloors: (token: string, eventId: string, locationId: string, data: ReorderNarrativeChildRequest[]) =>
+        fetcher<NarrativeDungeonFloorDto[]>(`/api/events/${eventId}/narrative/locations/${locationId}/floors/reorder`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        }),
+
+    // Floor Documents (nested path)
+    listFloorDocumentsNested: (token: string, eventId: string, locationId: string, floorId: string) =>
+        fetcher<NarrativeDocumentLinkDto[]>(`/api/events/${eventId}/narrative/locations/${locationId}/floors/${floorId}/documents`, {
+            headers: { Authorization: `Bearer ${token}` },
+        }),
+
+    addFloorGoogleDriveDocumentNested: (token: string, eventId: string, locationId: string, floorId: string, data: AddNarrativeGoogleDriveLinkRequest) =>
+        fetcher<NarrativeDocumentLinkDto>(`/api/events/${eventId}/narrative/locations/${locationId}/floors/${floorId}/documents/google-drive`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        }),
+
+    deleteFloorDocumentNested: (token: string, eventId: string, locationId: string, floorId: string, documentId: string) =>
+        fetcher<void>(`/api/events/${eventId}/narrative/locations/${locationId}/floors/${floorId}/documents/${documentId}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+        }),
+
+    // Room CRUD
+    listRooms: (token: string, eventId: string, locationId: string, floorId: string) =>
+        fetcher<NarrativeDungeonRoomDto[]>(`/api/events/${eventId}/narrative/locations/${locationId}/floors/${floorId}/rooms`, {
+            headers: { Authorization: `Bearer ${token}` },
+        }),
+
+    createRoom: (token: string, eventId: string, locationId: string, floorId: string, data: CreateDungeonRoomRequest) =>
+        fetcher<NarrativeDungeonRoomDto>(`/api/events/${eventId}/narrative/locations/${locationId}/floors/${floorId}/rooms`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        }),
+
+    updateRoom: (token: string, eventId: string, locationId: string, floorId: string, roomId: string, data: UpdateDungeonRoomRequest) =>
+        fetcher<NarrativeDungeonRoomDto>(`/api/events/${eventId}/narrative/locations/${locationId}/floors/${floorId}/rooms/${roomId}`, {
+            method: "PATCH",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        }),
+
+    deleteRoom: (token: string, eventId: string, locationId: string, floorId: string, roomId: string) =>
+        fetcher<void>(`/api/events/${eventId}/narrative/locations/${locationId}/floors/${floorId}/rooms/${roomId}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+        }),
+
+    reorderRooms: (token: string, eventId: string, locationId: string, floorId: string, data: ReorderNarrativeChildRequest[]) =>
+        fetcher<NarrativeDungeonRoomDto[]>(`/api/events/${eventId}/narrative/locations/${locationId}/floors/${floorId}/rooms/reorder`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        }),
+
+    // Room Documents (nested path)
+    listRoomDocumentsNested: (token: string, eventId: string, locationId: string, floorId: string, roomId: string) =>
+        fetcher<NarrativeDocumentLinkDto[]>(`/api/events/${eventId}/narrative/locations/${locationId}/floors/${floorId}/rooms/${roomId}/documents`, {
+            headers: { Authorization: `Bearer ${token}` },
+        }),
+
+    addRoomGoogleDriveDocumentNested: (token: string, eventId: string, locationId: string, floorId: string, roomId: string, data: AddNarrativeGoogleDriveLinkRequest) =>
+        fetcher<NarrativeDocumentLinkDto>(`/api/events/${eventId}/narrative/locations/${locationId}/floors/${floorId}/rooms/${roomId}/documents/google-drive`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        }),
+
+    deleteRoomDocumentNested: (token: string, eventId: string, locationId: string, floorId: string, roomId: string, documentId: string) =>
+        fetcher<void>(`/api/events/${eventId}/narrative/locations/${locationId}/floors/${floorId}/rooms/${roomId}/documents/${documentId}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+        }),
+
+    // Location Links — Quest
+    listLocationQuestLinks: (token: string, eventId: string, locationId: string) =>
+        fetcher<NarrativeLocationLinkDto[]>(`/api/events/${eventId}/narrative/locations/${locationId}/links/quests`, {
+            headers: { Authorization: `Bearer ${token}` },
+        }),
+
+    upsertLocationQuestLink: (token: string, eventId: string, locationId: string, questId: string, data?: UpsertNarrativeLocationLinkRequest) =>
+        fetcher<void>(`/api/events/${eventId}/narrative/locations/${locationId}/links/quests/${questId}`, {
+            method: "PUT",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify(data || {}),
+        }),
+
+    deleteLocationQuestLink: (token: string, eventId: string, locationId: string, questId: string, data: DeleteNarrativeLocationLinkRequest) =>
+        fetcher<void>(`/api/events/${eventId}/narrative/locations/${locationId}/links/quests/${questId}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        }),
+
+    // Location Links — Plotline
+    listLocationPlotlineLinks: (token: string, eventId: string, locationId: string) =>
+        fetcher<NarrativeLocationLinkDto[]>(`/api/events/${eventId}/narrative/locations/${locationId}/links/plotlines`, {
+            headers: { Authorization: `Bearer ${token}` },
+        }),
+
+    upsertLocationPlotlineLink: (token: string, eventId: string, locationId: string, plotlineId: string, data?: UpsertNarrativeLocationLinkRequest) =>
+        fetcher<void>(`/api/events/${eventId}/narrative/locations/${locationId}/links/plotlines/${plotlineId}`, {
+            method: "PUT",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify(data || {}),
+        }),
+
+    deleteLocationPlotlineLink: (token: string, eventId: string, locationId: string, plotlineId: string, data: DeleteNarrativeLocationLinkRequest) =>
+        fetcher<void>(`/api/events/${eventId}/narrative/locations/${locationId}/links/plotlines/${plotlineId}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        }),
+
+    // Location Links — Plot
+    listLocationPlotLinks: (token: string, eventId: string, locationId: string) =>
+        fetcher<NarrativeLocationLinkDto[]>(`/api/events/${eventId}/narrative/locations/${locationId}/links/plots`, {
+            headers: { Authorization: `Bearer ${token}` },
+        }),
+
+    upsertLocationPlotLink: (token: string, eventId: string, locationId: string, plotId: string, data?: UpsertNarrativeLocationLinkRequest) =>
+        fetcher<void>(`/api/events/${eventId}/narrative/locations/${locationId}/links/plots/${plotId}`, {
+            method: "PUT",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify(data || {}),
+        }),
+
+    deleteLocationPlotLink: (token: string, eventId: string, locationId: string, plotId: string, data: DeleteNarrativeLocationLinkRequest) =>
+        fetcher<void>(`/api/events/${eventId}/narrative/locations/${locationId}/links/plots/${plotId}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        }),
+
+    // Reverse Links — Quest → Locations
+    listQuestLocationLinks: (token: string, eventId: string, questId: string, includeDeleted?: boolean) =>
+        fetcher<NarrativeLocationLinkDto[]>(`/api/events/${eventId}/narrative/quests/${questId}/links/locations${includeDeleted ? "?includeDeleted=true" : ""}`, {
+            headers: { Authorization: `Bearer ${token}` },
+        }),
+
+    upsertQuestLocationLink: (token: string, eventId: string, questId: string, locationId: string, data?: UpsertNarrativeLocationLinkRequest) =>
+        fetcher<void>(`/api/events/${eventId}/narrative/quests/${questId}/links/locations/${locationId}`, {
+            method: "PUT",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify(data || {}),
+        }),
+
+    deleteQuestLocationLink: (token: string, eventId: string, questId: string, locationId: string, data: DeleteNarrativeLocationLinkRequest) =>
+        fetcher<void>(`/api/events/${eventId}/narrative/quests/${questId}/links/locations/${locationId}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        }),
+
+    // Reverse Links — Plotline → Locations
+    listPlotlineLocationLinks: (token: string, eventId: string, plotlineId: string, includeDeleted?: boolean) =>
+        fetcher<NarrativeLocationLinkDto[]>(`/api/events/${eventId}/narrative/plotlines/${plotlineId}/links/locations${includeDeleted ? "?includeDeleted=true" : ""}`, {
+            headers: { Authorization: `Bearer ${token}` },
+        }),
+
+    upsertPlotlineLocationLink: (token: string, eventId: string, plotlineId: string, locationId: string, data?: UpsertNarrativeLocationLinkRequest) =>
+        fetcher<void>(`/api/events/${eventId}/narrative/plotlines/${plotlineId}/links/locations/${locationId}`, {
+            method: "PUT",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify(data || {}),
+        }),
+
+    deletePlotlineLocationLink: (token: string, eventId: string, plotlineId: string, locationId: string, data: DeleteNarrativeLocationLinkRequest) =>
+        fetcher<void>(`/api/events/${eventId}/narrative/plotlines/${plotlineId}/links/locations/${locationId}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        }),
+
+    // Reverse Links — Plot → Locations
+    listPlotLocationLinks: (token: string, eventId: string, plotId: string, includeDeleted?: boolean) =>
+        fetcher<NarrativeLocationLinkDto[]>(`/api/events/${eventId}/narrative/plots/${plotId}/links/locations${includeDeleted ? "?includeDeleted=true" : ""}`, {
+            headers: { Authorization: `Bearer ${token}` },
+        }),
+
+    upsertPlotLocationLink: (token: string, eventId: string, plotId: string, locationId: string, data?: UpsertNarrativeLocationLinkRequest) =>
+        fetcher<void>(`/api/events/${eventId}/narrative/plots/${plotId}/links/locations/${locationId}`, {
+            method: "PUT",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify(data || {}),
+        }),
+
+    deletePlotLocationLink: (token: string, eventId: string, plotId: string, locationId: string, data: DeleteNarrativeLocationLinkRequest) =>
+        fetcher<void>(`/api/events/${eventId}/narrative/plots/${plotId}/links/locations/${locationId}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify(data),
         }),
 };

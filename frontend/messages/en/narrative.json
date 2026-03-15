@@ -8,7 +8,8 @@
             "plotlines": "Plotlines",
             "plots": "Plots",
             "factions": "Factions",
-            "items": "Items"
+            "items": "Items",
+            "locations": "Locations"
         }
     },
     "status": {
@@ -568,6 +569,162 @@
             "restored": "Plot restored",
             "plotlineLinked": "Plotline linked",
             "plotlineUnlinked": "Plotline unlinked"
+        }
+    },
+    "locations": {
+        "title": "Locations",
+        "description": "Manage locations, dungeons, and their connections",
+        "create": "New Location",
+        "update": "Update Location",
+        "type": {
+            "basic": "Basic",
+            "dungeon": "Dungeon"
+        },
+        "allTypes": "All Types",
+        "list": {
+            "empty": "No locations found.",
+            "searchPlaceholder": "Search locations...",
+            "columns": {
+                "name": "Name",
+                "type": "Type",
+                "status": "Status",
+                "createdAt": "Created"
+            }
+        },
+        "detail": {
+            "tabs": {
+                "overview": "Overview",
+                "floorsAndRooms": "Floors & Rooms",
+                "links": "Links",
+                "documents": "Documents"
+            }
+        },
+        "fields": {
+            "name": {
+                "label": "Name",
+                "placeholder": "Enter location name"
+            },
+            "locationType": {
+                "label": "Location Type"
+            },
+            "description": {
+                "label": "Description",
+                "placeholder": "Enter location description..."
+            },
+            "internalNotes": {
+                "label": "Internal Notes",
+                "placeholder": "Enter internal notes (admin only)..."
+            }
+        },
+        "floors": {
+            "title": "Dungeon Floors",
+            "add": "Add Floor",
+            "empty": "No floors defined yet.",
+            "fields": {
+                "name": {
+                    "label": "Floor Name",
+                    "placeholder": "Enter floor name"
+                },
+                "description": {
+                    "label": "Description",
+                    "placeholder": "Enter floor description..."
+                },
+                "internalNotes": {
+                    "label": "Internal Notes",
+                    "placeholder": "Internal notes for this floor..."
+                }
+            },
+            "rooms": "rooms",
+            "roomCount": "{count} rooms",
+            "documents": "Floor Documents",
+            "addDialog": {
+                "title": "Add Dungeon Floor",
+                "description": "Add a new floor to this dungeon.",
+                "submit": "Add Floor"
+            },
+            "notifications": {
+                "created": "Floor added",
+                "updated": "Floor updated",
+                "deleted": "Floor removed",
+                "reordered": "Floors reordered"
+            }
+        },
+        "rooms": {
+            "title": "Rooms",
+            "add": "Add Room",
+            "empty": "No rooms on this floor.",
+            "fields": {
+                "name": {
+                    "label": "Room Name",
+                    "placeholder": "Enter room name"
+                },
+                "description": {
+                    "label": "Description",
+                    "placeholder": "Enter room description..."
+                },
+                "internalNotes": {
+                    "label": "Internal Notes",
+                    "placeholder": "Internal notes for this room..."
+                }
+            },
+            "documents": "Room Documents",
+            "addDialog": {
+                "title": "Add Room",
+                "description": "Add a new room to this floor.",
+                "submit": "Add Room"
+            },
+            "notifications": {
+                "created": "Room added",
+                "updated": "Room updated",
+                "deleted": "Room removed",
+                "reordered": "Rooms reordered"
+            }
+        },
+        "links": {
+            "quests": "Linked Quests",
+            "plotlines": "Linked Plotlines",
+            "plots": "Linked Plots",
+            "locations": "Linked Locations",
+            "addQuest": "Add Quest Link",
+            "addPlotline": "Add Plotline Link",
+            "addPlot": "Add Plot Link",
+            "addLocation": "Add Location Link",
+            "granularity": {
+                "label": "Link Level",
+                "entireLocation": "Entire Location",
+                "specificFloor": "Specific Floor",
+                "specificRoom": "Specific Room",
+                "floor": "Floor",
+                "room": "Room"
+            }
+        },
+        "dialogs": {
+            "create": {
+                "title": "Create Location",
+                "description": "Add a new location to this event."
+            },
+            "delete": {
+                "title": "Delete Location",
+                "description": "Are you sure you want to delete this location?"
+            },
+            "restore": {
+                "title": "Restore Location",
+                "description": "Are you sure you want to restore this location?"
+            },
+            "edit": {
+                "title": "Edit Location Name",
+                "description": "Change the name of this location.",
+                "lockedWarning": "Location is locked. Only internal notes can be edited.",
+                "inlineNote": "Description and Internal Notes are edited on the Overview tab inline."
+            }
+        },
+        "notifications": {
+            "created": "Location created",
+            "updated": "Location updated",
+            "deleted": "Location deleted",
+            "restored": "Location restored",
+            "linkAdded": "Link added",
+            "linkRemoved": "Link removed"
         }
     },
     "relationships": {
