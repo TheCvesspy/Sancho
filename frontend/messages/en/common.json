@@ -46,6 +46,13 @@
       "noEvents": "No events available."
     }
   },
+  "imageCrop": {
+    "title": "Crop Image",
+    "description": "Adjust the crop area and zoom level.",
+    "zoom": "Zoom",
+    "apply": "Apply",
+    "cancel": "Cancel"
+  },
   "errors": {
     "unauthorized": "You must be logged in to access this page.",
     "forbidden": "You do not have permission to view this content.",

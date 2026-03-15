@@ -140,7 +140,13 @@
         "upload": "Upload Photo",
         "replace": "Replace Photo",
         "remove": "Remove",
-        "constraints": "Max 5 MB. JPG, PNG, WEBP."
+        "constraints": "Max 5 MB. JPG, PNG, WEBP.",
+        "removeConfirm": "Are you sure you want to remove this photo?",
+        "invalidType": "Image must be JPG, PNG, or WEBP.",
+        "uploadSuccess": "Photo uploaded successfully.",
+        "uploadFailed": "Failed to upload photo.",
+        "removeSuccess": "Photo removed.",
+        "removeFailed": "Failed to remove photo."
     },
     "narrative": {
         "notice": "Factions and quests are managed in the Narrative module.",

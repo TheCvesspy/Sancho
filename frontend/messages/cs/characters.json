@@ -140,7 +140,13 @@
         "upload": "Nahrát fotku",
         "replace": "Nahradit fotku",
         "remove": "Odstranit",
-        "constraints": "Max 5 MB. JPG, PNG, WEBP."
+        "constraints": "Max 5 MB. JPG, PNG, WEBP.",
+        "removeConfirm": "Opravdu chcete odstranit tuto fotku?",
+        "invalidType": "Obrázek musí být JPG, PNG nebo WEBP.",
+        "uploadSuccess": "Fotka byla úspěšně nahrána.",
+        "uploadFailed": "Nahrání fotky se nezdařilo.",
+        "removeSuccess": "Fotka byla odstraněna.",
+        "removeFailed": "Odstranění fotky se nezdařilo."
     },
     "narrative": {
         "notice": "Frakce a úkoly jsou spravovány v modulu Příběh (Narrative).",
