@@ -34,7 +34,7 @@ import { MoreHorizontal, Search, Plus, Eye, Copy, Lock, Trash2, RotateCcw } from
 import { CharacterListItemDto } from "@/utils/characters-api";
 import { EventDetailDto } from "@/utils/events-api";
 import { CharacterStatusBadge } from "./character-status-badge";
-import { EventSelectorHeader } from "./event-selector-header";
+import { EventContextBanner } from "./event-selector-header";
 import { CreateCharacterDialog } from "./create-character-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import dynamic from "next/dynamic";
@@ -89,7 +89,7 @@ export function CharactersList({ event, initialCharacters, canWrite, token }: Ch
 
     return (
         <div className="space-y-6 lg:max-w-6xl lg:mx-auto">
-            <EventSelectorHeader currentEvent={event} token={token} />
+            <EventContextBanner eventName={event.name} />
 
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
