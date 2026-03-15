@@ -18,12 +18,14 @@ import type {
     NarrativeRelationshipDto,
     NarrativeFactionDto,
     NarrativeQuestDto,
+    CharacterAssignedItemDto,
 } from "@/utils/characters-api";
 
 import { CentralNode } from "./nodes/central-node";
 import { CharacterNode } from "./nodes/character-node";
 import { FactionNode } from "./nodes/faction-node";
 import { QuestNode } from "./nodes/quest-node";
+import { ItemNode as ItemNodeComponent } from "./nodes/item-node";
 import { GraphLegend } from "./graph-legend";
 import { GraphFilters, type GraphFilterState } from "./graph-filters";
 import { useForceLayout } from "./use-force-layout";
@@ -46,6 +48,7 @@ const nodeTypes = {
     character: CharacterNode,
     faction: FactionNode,
     quest: QuestNode,
+    item: ItemNodeComponent,
 };
 
 // --- Props ---
@@ -57,6 +60,7 @@ interface NarrativeGraphProps {
     factions: NarrativeFactionDto[];
     questNodes: SampleQuestNode[];
     sampleCharacters: SampleCharacterNode[];
+    items?: CharacterAssignedItemDto[];
     hasRealData: boolean;
 }
 
@@ -66,7 +70,8 @@ function buildInitialNodes(
     characterName: string,
     relationships: NarrativeRelationshipDto[],
     factions: NarrativeFactionDto[],
-    questNodes: SampleQuestNode[]
+    questNodes: SampleQuestNode[],
+    items: CharacterAssignedItemDto[]
 ): Node[] {
     const nodes: Node[] = [
         {
@@ -136,6 +141,24 @@ function buildInitialNodes(
         });
     });
 
+    // Items assigned to the central character
+    items.forEach((item, i) => {
+        const angle = (2 * Math.PI * i) / Math.max(items.length, 1) + Math.PI / 2;
+        nodes.push({
+            id: `item-${item.itemId}`,
+            type: "item",
+            position: {
+                x: Math.cos(angle) * 300,
+                y: Math.sin(angle) * 300,
+            },
+            data: {
+                label: item.itemName,
+                status: item.itemStatus,
+            },
+            draggable: true,
+        });
+    });
+
     return nodes;
 }
 
@@ -143,7 +166,8 @@ function buildInitialEdges(
     relationships: NarrativeRelationshipDto[],
     factions: NarrativeFactionDto[],
     questNodes: SampleQuestNode[],
-    sampleCharacters: SampleCharacterNode[]
+    sampleCharacters: SampleCharacterNode[],
+    items: CharacterAssignedItemDto[]
 ): Edge[] {
     const edges: Edge[] = [];
 
@@ -227,6 +251,18 @@ function buildInitialEdges(
         });
     });
 
+    // Central → items (assigned items)
+    items.forEach((item) => {
+        edges.push({
+            id: `central-item-${item.itemId}`,
+            source: "central",
+            target: `item-${item.itemId}`,
+            style: { stroke: "#ea580c", strokeWidth: 1.5, strokeDasharray: "6 3" },
+            type: "default",
+            data: { edgeKind: "item" },
+        });
+    });
+
     return edges;
 }
 
@@ -238,16 +274,17 @@ export function NarrativeGraph({
     factions,
     questNodes,
     sampleCharacters,
+    items = [],
 }: NarrativeGraphProps) {
     // Build initial graph data
     const initialNodes = useMemo(
-        () => buildInitialNodes(characterName, relationships, factions, questNodes),
-        [characterName, relationships, factions, questNodes]
+        () => buildInitialNodes(characterName, relationships, factions, questNodes, items),
+        [characterName, relationships, factions, questNodes, items]
     );
 
     const initialEdges = useMemo(
-        () => buildInitialEdges(relationships, factions, questNodes, sampleCharacters),
-        [relationships, factions, questNodes, sampleCharacters]
+        () => buildInitialEdges(relationships, factions, questNodes, sampleCharacters, items),
+        [relationships, factions, questNodes, sampleCharacters, items]
     );
 
     // ReactFlow state
@@ -262,9 +299,11 @@ export function NarrativeGraph({
         showCharacters: true,
         showFactions: true,
         showQuests: true,
+        showItems: true,
         showDirectRelationships: true,
         showFactionMemberships: true,
         showQuestParticipations: true,
+        showItemLinks: true,
     });
 
     // Force layout
@@ -277,9 +316,10 @@ export function NarrativeGraph({
             if (node.type === "character" && !filters.showCharacters) hidden = true;
             if (node.type === "faction" && !filters.showFactions) hidden = true;
             if (node.type === "quest" && !filters.showQuests) hidden = true;
+            if (node.type === "item" && !filters.showItems) hidden = true;
             return { ...node, hidden };
         });
-    }, [nodes, filters.showCharacters, filters.showFactions, filters.showQuests]);
+    }, [nodes, filters.showCharacters, filters.showFactions, filters.showQuests, filters.showItems]);
 
     const filteredEdges = useMemo(() => {
         const visibleNodeIds = new Set(filteredNodes.filter((n) => !n.hidden).map((n) => n.id));
@@ -297,6 +337,7 @@ export function NarrativeGraph({
             if (edgeKind === "relationship" && !filters.showDirectRelationships) hidden = true;
             if (edgeKind === "faction" && !filters.showFactionMemberships) hidden = true;
             if (edgeKind === "quest" && !filters.showQuestParticipations) hidden = true;
+            if (edgeKind === "item" && !filters.showItemLinks) hidden = true;
 
             return { ...edge, hidden };
         });
@@ -306,6 +347,7 @@ export function NarrativeGraph({
         filters.showDirectRelationships,
         filters.showFactionMemberships,
         filters.showQuestParticipations,
+        filters.showItemLinks,
     ]);
 
     const handleFilterChange = useCallback((key: keyof GraphFilterState, value: boolean) => {
@@ -533,6 +575,7 @@ export function NarrativeGraph({
                         if (node.type === "central") return "fill-indigo-300";
                         if (node.type === "faction") return "fill-teal-300";
                         if (node.type === "quest") return "fill-amber-300";
+                        if (node.type === "item") return "fill-orange-300";
                         return "fill-slate-300";
                     }}
                     className="!bg-white/80 dark:!bg-slate-900/80"

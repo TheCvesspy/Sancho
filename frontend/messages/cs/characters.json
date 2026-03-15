@@ -50,7 +50,7 @@
             "profile": "Profil",
             "abilities": "Schopnosti",
             "attachments": "Přílohy",
-            "narrative": "Příběh"
+            "narrative": "Vztahy a souvislosti"
         },
         "biography": {
             "title": "Životopis a veřejný příběh",
@@ -143,17 +143,11 @@
         "constraints": "Max 5 MB. JPG, PNG, WEBP."
     },
     "narrative": {
-        "notice": "Příběhová data jsou spravována v modulu Příběh (Narrative).",
+        "notice": "Frakce a úkoly jsou spravovány v modulu Příběh (Narrative).",
         "factions": {
             "title": "Frakce",
             "role": "Role",
             "emptyState": "Žádné členství ve frakcích."
-        },
-        "relationships": {
-            "title": "Vztahy",
-            "type": "Typ",
-            "description": "Popis",
-            "emptyState": "Žádné vztahy."
         },
         "quests": {
             "title": "Úkoly",
@@ -162,6 +156,32 @@
             "emptyState": "Žádné aktivní úkoly."
         },
         "graphLink": "Zobrazit celý graf vztahů"
+    },
+    "relationships": {
+        "title": "Vztahy mezi postavami",
+        "target": "Cílová postava",
+        "searchCharacter": "Hledat postavu...",
+        "selectCharacter": "Vybrat postavu...",
+        "type": "Typ",
+        "typePlaceholder": "např. Spojenec, Nepřítel, Mentor...",
+        "mode": "Režim",
+        "directional": "Jednosměrný",
+        "mirrored": "Zrcadlený",
+        "description": "Popis",
+        "descriptionPlaceholder": "Volitelný popis...",
+        "add": "Přidat",
+        "noRelationships": "Žádné vztahy mezi postavami.",
+        "confirmDelete": "Opravdu chcete smazat tento vztah?"
+    },
+    "items": {
+        "title": "Přiřazené předměty",
+        "searchItem": "Hledat předmět...",
+        "selectItem": "Vybrat předmět...",
+        "notes": "Poznámky",
+        "notesPlaceholder": "Volitelné poznámky k přiřazení...",
+        "assign": "Přiřadit",
+        "emptyState": "Žádné předměty nejsou přiřazeny této postavě.",
+        "confirmRemove": "Opravdu chcete odebrat toto přiřazení předmětu?"
     },
     "graph": {
         "title": "Graf vztahů",

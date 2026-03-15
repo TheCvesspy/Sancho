@@ -10,7 +10,7 @@ import {
 } from "@/utils/characters-api";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Swords, Scroll, Shield, Sparkles } from "lucide-react";
+import { Swords, Scroll, Shield, Sparkles } from "lucide-react";
 import type { SampleCharacterNode, SampleQuestNode } from "./narrative-graph/types";
 
 const NarrativeGraph = dynamic(
@@ -158,8 +158,8 @@ export function NarrativePanel({ eventName, characterName, links }: NarrativePan
                 <div>
                     <h3 className="font-semibold">Managed in Narrative Module</h3>
                     <p className="text-sm text-muted-foreground">
-                        Factions, relationships, and quests are managed in the Narrative module.
-                        This tab provides a read-only consolidated view of how this character connects to the world story.
+                        Factions and quests are managed in the Narrative module.
+                        This section provides a read-only consolidated view of how this character connects to the world story.
                     </p>
                 </div>
             </div>
@@ -174,13 +174,7 @@ export function NarrativePanel({ eventName, characterName, links }: NarrativePan
                 </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardDescription>Relationships</CardDescription>
-                        <CardTitle className="text-2xl">{relationships.length}</CardTitle>
-                    </CardHeader>
-                </Card>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Card>
                     <CardHeader className="pb-2">
                         <CardDescription>Factions</CardDescription>
@@ -196,36 +190,6 @@ export function NarrativePanel({ eventName, characterName, links }: NarrativePan
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Relationships */}
-                <Card>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                            <Users className="h-5 w-5 text-indigo-500" />
-                            Relationships
-                        </CardTitle>
-                        <CardDescription>Direct connections to other characters</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ul className="space-y-4">
-                            {relationships.map((rel, index) => {
-                                return (
-                                    <li key={index} className="flex flex-col border-b last:border-0 pb-3 last:pb-0">
-                                        <div className="flex items-center justify-between mb-1">
-                                            <span className="font-medium">{rel.otherCharacterName}</span>
-                                            <Badge variant={RELATION_BADGE_VARIANT[rel.type]}>
-                                                {rel.type}
-                                            </Badge>
-                                        </div>
-                                        {rel.description && (
-                                            <p className="text-sm text-muted-foreground">{rel.description}</p>
-                                        )}
-                                    </li>
-                                );
-                            })}
-                        </ul>
-                    </CardContent>
-                </Card>
-
                 {/* Factions */}
                 <Card>
                     <CardHeader className="pb-3">
@@ -248,7 +212,7 @@ export function NarrativePanel({ eventName, characterName, links }: NarrativePan
                 </Card>
 
                 {/* Quests */}
-                <Card className="md:col-span-2">
+                <Card>
                     <CardHeader className="pb-3">
                         <CardTitle className="flex items-center gap-2 text-lg">
                             <Swords className="h-5 w-5 text-amber-500" />
@@ -257,7 +221,7 @@ export function NarrativePanel({ eventName, characterName, links }: NarrativePan
                         <CardDescription>Involvement in active and historical story elements</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="grid gap-4">
                             {quests.map((q, index) => (
                                 <div key={q.questId || index} className="border rounded-md p-3 hover:border-border/80 transition-colors">
                                     <div className="flex justify-between items-start mb-2 gap-2">
@@ -296,6 +260,7 @@ export function NarrativePanel({ eventName, characterName, links }: NarrativePan
                     factions={factions}
                     questNodes={questNodes}
                     sampleCharacters={SAMPLE_CHARACTERS}
+                    items={links.items}
                     hasRealData={hasRealData}
                 />
             </div>

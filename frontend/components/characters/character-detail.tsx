@@ -9,6 +9,8 @@ import {
     CharacterAbilityDto,
     CharacterAttachmentDto,
     CharacterNarrativeLinksDto,
+    CharacterRelationshipDto,
+    CharacterAssignedItemDto,
     charactersApi
 } from "@/utils/characters-api";
 import { EventDetailDto } from "@/utils/events-api";
@@ -28,6 +30,8 @@ import { AbilitiesPanel } from "./abilities-panel";
 import { AttachmentsPanel } from "./attachments-panel";
 import { PhotoUpload } from "./photo-upload";
 import { NarrativePanel } from "./narrative-panel";
+import { CharacterRelationshipsPanel } from "./character-relationships-panel";
+import { CharacterItemsPanel } from "./character-items-panel";
 import { RichTextView } from "@/components/ui/rich-text-view";
 // Lazy-load the rich-text editor: Tiptap adds ~150-200 KB to the bundle and is
 // only needed when the user actively edits biography or notes.
@@ -42,6 +46,8 @@ interface CharacterDetailProps {
     initialAbilities: CharacterAbilityDto[];
     initialAttachments: CharacterAttachmentDto[];
     initialNarrativeLinks: CharacterNarrativeLinksDto;
+    initialRelationships: CharacterRelationshipDto[];
+    initialItems: CharacterAssignedItemDto[];
     canWrite: boolean;
     token: string;
 }
@@ -52,6 +58,8 @@ export function CharacterDetail({
     initialAbilities,
     initialAttachments,
     initialNarrativeLinks,
+    initialRelationships,
+    initialItems,
     canWrite,
     token
 }: CharacterDetailProps) {
@@ -209,16 +217,16 @@ export function CharacterDetail({
             <Tabs defaultValue="profile" className="w-full">
                 <TabsList className="w-full justify-start border-b rounded-none h-auto bg-transparent p-0">
                     <TabsTrigger value="profile" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3">
-                        Profile
+                        {t("detail.tabs.profile")}
                     </TabsTrigger>
                     <TabsTrigger value="abilities" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3">
-                        Abilities <span className="ml-2 bg-muted text-foreground px-2 py-0.5 rounded-full text-xs">{character.abilitiesCount}</span>
+                        {t("detail.tabs.abilities")} <span className="ml-2 bg-muted text-foreground px-2 py-0.5 rounded-full text-xs">{character.abilitiesCount}</span>
                     </TabsTrigger>
                     <TabsTrigger value="attachments" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3">
-                        Attachments <span className="ml-2 bg-muted text-foreground px-2 py-0.5 rounded-full text-xs">{character.attachmentsCount}</span>
+                        {t("detail.tabs.attachments")} <span className="ml-2 bg-muted text-foreground px-2 py-0.5 rounded-full text-xs">{character.attachmentsCount}</span>
                     </TabsTrigger>
                     <TabsTrigger value="narrative" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3">
-                        Narrative
+                        {t("detail.tabs.narrative")}
                     </TabsTrigger>
                 </TabsList>
 
@@ -302,7 +310,23 @@ export function CharacterDetail({
                     />
                 </TabsContent>
 
-                <TabsContent value="narrative" className="mt-6">
+                <TabsContent value="narrative" className="mt-6 space-y-8">
+                    <CharacterRelationshipsPanel
+                        characterId={character.id}
+                        eventId={event.id}
+                        initialRelationships={initialRelationships}
+                        canWrite={canWrite && !isDeleted}
+                        token={token}
+                    />
+
+                    <CharacterItemsPanel
+                        characterId={character.id}
+                        eventId={event.id}
+                        initialItems={initialItems}
+                        canWrite={canWrite && !isDeleted}
+                        token={token}
+                    />
+
                     <NarrativePanel
                         eventName={event.name}
                         characterName={character.name}

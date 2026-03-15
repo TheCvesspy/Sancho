@@ -45,12 +45,14 @@ export default async function CharacterDetailPage({
     try {
         // Fetch all data in parallel — event, character, abilities, attachments, and narrative links
         // are all independent and can be resolved simultaneously.
-        const [event, character, abilities, attachments, narrativeLinks] = await Promise.all([
+        const [event, character, abilities, attachments, narrativeLinks, relationships, items] = await Promise.all([
             eventsApi.getEvent(token, eventId),
             charactersApi.getCharacter(token, eventId, characterId),
             charactersApi.listAbilities(token, eventId, characterId),
             charactersApi.listAttachments(token, eventId, characterId),
-            charactersApi.getNarrativeLinks(token, eventId, characterId)
+            charactersApi.getNarrativeLinks(token, eventId, characterId),
+            charactersApi.listRelationships(token, eventId, characterId),
+            charactersApi.listCharacterItems(token, eventId, characterId)
         ]);
 
         return (
@@ -61,6 +63,8 @@ export default async function CharacterDetailPage({
                     initialAbilities={abilities}
                     initialAttachments={attachments}
                     initialNarrativeLinks={narrativeLinks}
+                    initialRelationships={relationships}
+                    initialItems={items}
                     canWrite={canWrite}
                     token={token}
                 />

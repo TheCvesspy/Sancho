@@ -1,4 +1,4 @@
-import type { NarrativeRelationshipDto, NarrativeQuestDto } from "@/utils/characters-api";
+import type { NarrativeRelationshipDto, NarrativeQuestDto, CharacterAssignedItemDto } from "@/utils/characters-api";
 
 export type SampleCharacterNode = {
     id: string;
@@ -13,3 +13,5 @@ export type SampleQuestNode = NarrativeQuestDto & {
     kind: "Quest" | "Plotline";
     participantIds: string[];
 };
+
+export type ItemNode = CharacterAssignedItemDto;

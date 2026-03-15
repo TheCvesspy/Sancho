@@ -98,10 +98,35 @@ export interface NarrativeQuestDto {
     status: string;
 }
 
+export interface CharacterRelationshipDto {
+    id: string;
+    eventId: string;
+    sourceCharacterId: string;
+    targetCharacterId: string;
+    targetCharacterName: string;
+    relationType: string;
+    relationMode: string;
+    mirrorGroupId: string | null;
+    isAutoMirror: boolean;
+    description: string | null;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface CharacterAssignedItemDto {
+    itemId: string;
+    itemName: string;
+    itemDescription: string | null;
+    itemStatus: string | null;
+    assignmentNotes: string | null;
+    assignedAt: string;
+}
+
 export interface CharacterNarrativeLinksDto {
     factions: NarrativeFactionDto[];
     relationships: NarrativeRelationshipDto[];
     quests: NarrativeQuestDto[];
+    items: CharacterAssignedItemDto[];
 }
 
 // --- Requests ---
@@ -170,6 +195,22 @@ export interface AddGoogleDriveLinkRequest {
     url: string;
     displayName: string;
     documentStatus: string;
+}
+
+export interface CreateCharacterRelationshipRequest {
+    targetCharacterId: string;
+    relationType: string;
+    relationMode: string;
+    description?: string | null;
+}
+
+export interface UpdateCharacterRelationshipRequest {
+    relationType?: string;
+    description?: string | null;
+}
+
+export interface AssignItemToCharacterRequest {
+    notes?: string | null;
 }
 
 export interface UpdateCharacterAttachmentRequest {
@@ -364,6 +405,60 @@ export const charactersApi = {
     // Narrative
     getNarrativeLinks: (token: string, eventId: string, characterId: string) =>
         fetcher<CharacterNarrativeLinksDto>(`/api/events/${eventId}/characters/${characterId}/narrative-links`, {
+            headers: { Authorization: `Bearer ${token}` },
+        }),
+
+    // Character Relationships
+    listRelationships: (token: string, eventId: string, characterId: string) =>
+        fetcher<CharacterRelationshipDto[]>(`/api/events/${eventId}/characters/${characterId}/relationships`, {
+            headers: { Authorization: `Bearer ${token}` },
+        }),
+
+    createRelationship: (token: string, eventId: string, characterId: string, data: CreateCharacterRelationshipRequest) =>
+        fetcher<CharacterRelationshipDto>(`/api/events/${eventId}/characters/${characterId}/relationships`, {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(data),
+        }),
+
+    updateRelationship: (token: string, eventId: string, characterId: string, relationshipId: string, data: UpdateCharacterRelationshipRequest) =>
+        fetcher<CharacterRelationshipDto>(`/api/events/${eventId}/characters/${characterId}/relationships/${relationshipId}`, {
+            method: "PATCH",
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(data),
+        }),
+
+    deleteRelationship: (token: string, eventId: string, characterId: string, relationshipId: string) =>
+        fetcher<void>(`/api/events/${eventId}/characters/${characterId}/relationships/${relationshipId}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+        }),
+
+    // Item Assignments
+    listCharacterItems: (token: string, eventId: string, characterId: string) =>
+        fetcher<CharacterAssignedItemDto[]>(`/api/events/${eventId}/characters/${characterId}/items`, {
+            headers: { Authorization: `Bearer ${token}` },
+        }),
+
+    assignItem: (token: string, eventId: string, characterId: string, itemId: string, data: AssignItemToCharacterRequest) =>
+        fetcher<void>(`/api/events/${eventId}/characters/${characterId}/items/${itemId}`, {
+            method: "PUT",
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(data),
+        }),
+
+    removeItem: (token: string, eventId: string, characterId: string, itemId: string) =>
+        fetcher<void>(`/api/events/${eventId}/characters/${characterId}/items/${itemId}`, {
+            method: "DELETE",
             headers: { Authorization: `Bearer ${token}` },
         }),
 };
