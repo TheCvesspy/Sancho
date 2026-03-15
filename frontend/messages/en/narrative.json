@@ -318,7 +318,16 @@
             "empty": "No members added yet.",
             "character": "Character",
             "role": "Role (Optional)",
-            "rolePlaceholder": "e.g. Leader, Scout..."
+            "rolePlaceholder": "e.g. Leader, Scout...",
+            "dialogs": {
+                "add": {
+                    "title": "Add Faction Member",
+                    "description": "Add a character to this faction.",
+                    "submit": "Add Member",
+                    "selectCharacter": "Select character...",
+                    "searchCharacter": "Search characters..."
+                }
+            }
         },
         "sigil": {
             "noSigil": "No Sigil",
@@ -348,6 +357,16 @@
                 "type": "Relation Type",
                 "mode": "Mode",
                 "notes": "Notes"
+            },
+            "dialogs": {
+                "add": {
+                    "title": "Add Relationship",
+                    "description": "Define a relationship between this faction and another entity.",
+                    "submit": "Add Relationship",
+                    "typePlaceholder": "e.g. Ally, Enemy...",
+                    "selectTarget": "Select target...",
+                    "searchTarget": "Search..."
+                }
             }
         },
         "links": {
@@ -442,7 +461,16 @@
             "assignedBy": "Assigned By: {name}",
             "assignedAt": "At: {date}",
             "character": "Character",
-            "notesPlaceholder": "Optional assignment notes..."
+            "notesPlaceholder": "Optional assignment notes...",
+            "dialogs": {
+                "assign": {
+                    "title": "Assign Item",
+                    "description": "Assign this item to a character.",
+                    "submit": "Assign",
+                    "selectCharacter": "Select character...",
+                    "searchCharacter": "Search characters..."
+                }
+            }
         },
         "copyInfo": {
             "multiCopy": "Multi-copy",
@@ -519,11 +547,26 @@
                     "placeholder": "Enter phase title"
                 },
                 "summary": {
-                    "label": "Summary"
+                    "label": "Summary",
+                    "placeholder": "Enter phase summary (optional)"
                 }
             },
             "addQuest": "Add Quest to Phase",
-            "unphasedQuests": "Unphased Quests"
+            "unphasedQuests": "Unphased Quests",
+            "dialogs": {
+                "addPhase": {
+                    "title": "Add Phase",
+                    "description": "Add a new phase to this plotline.",
+                    "submit": "Add Phase"
+                },
+                "addQuest": {
+                    "title": "Add Quest to {phase}",
+                    "description": "Link a quest to this phase.",
+                    "submit": "Link Quest",
+                    "selectQuest": "Select quest...",
+                    "searchQuest": "Search quests..."
+                }
+            }
         },
         "links": {
             "inherited": "Inherited Links (from Quests)",
@@ -803,5 +846,11 @@
             "required": "Required",
             "loot": "Loot"
         }
+    },
+    "validation": {
+        "characterRequired": "Please select a character.",
+        "targetRequired": "Please select a target.",
+        "questRequired": "Please select a quest.",
+        "titleRequired": "Title is required."
     }
 }

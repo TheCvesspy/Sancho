@@ -10,10 +10,10 @@ import {
 } from "@/utils/narrative-api";
 import { CharacterListItemDto, charactersApi } from "@/utils/characters-api";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Plus, Loader2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { AssignItemToCharacterDialog } from "./assign-item-to-character-dialog";
 
 interface ItemAssignmentsPanelProps {
     eventId: string;
@@ -27,9 +27,6 @@ export function ItemAssignmentsPanel({ eventId, item, initialAssignments, canWri
     const t = useTranslations("narrative");
     const [assignments, setAssignments] = useState<NarrativeItemAssignmentDto[]>(initialAssignments);
     const [allChars, setAllChars] = useState<CharacterListItemDto[]>([]);
-    const [selChar, setSelChar] = useState("");
-    const [notes, setNotes] = useState("");
-    const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
         charactersApi.listCharacters(token, eventId).then(setAllChars).catch(console.error);
@@ -42,21 +39,12 @@ export function ItemAssignmentsPanel({ eventId, item, initialAssignments, canWri
         ? item.maxCopies !== null && assignments.length >= (item.maxCopies ?? Infinity)
         : assignments.length >= 1;
 
-    const handleAssign = async () => {
-        if (!selChar || atMaxCopies) return;
-        setIsSaving(true);
+    const refreshAssignments = async () => {
         try {
-            const created = await narrativeApi.assignItemToCharacter(token, eventId, item.id, selChar, {
-                notes: notes.trim() || null,
-            });
-            setAssignments(prev => [...prev, created]);
-            setSelChar("");
-            setNotes("");
-            toast.success(t("items.assignments.add"));
-        } catch (e: any) {
-            toast.error(e.message || t("documentsPanel.notifications.error"));
-        } finally {
-            setIsSaving(false);
+            const latest = await narrativeApi.listItemAssignments(token, eventId, item.id);
+            setAssignments(latest);
+        } catch (e) {
+            console.error(e);
         }
     };
 
@@ -65,9 +53,9 @@ export function ItemAssignmentsPanel({ eventId, item, initialAssignments, canWri
         try {
             await narrativeApi.removeItemAssignment(token, eventId, item.id, characterId);
             setAssignments(prev => prev.filter(a => a.characterId !== characterId));
-            toast.success(t("items.assignments.empty"));
+            toast.success(t("items.notifications.unassigned"));
         } catch (e: any) {
-            toast.error(e.message || t("documentsPanel.notifications.error"));
+            toast.error(e.message || t("common.error"));
         }
     };
 
@@ -77,7 +65,7 @@ export function ItemAssignmentsPanel({ eventId, item, initialAssignments, canWri
         <div className="space-y-5">
             <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold tracking-tight">{t("items.assignments.title")}</h2>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
                     {item.isMultiCopy ? (
                         <Badge variant="outline">
                             {t("items.copyInfo.multiCopy")} — {assignments.length}/{item.maxCopies ?? "∞"}
@@ -85,8 +73,21 @@ export function ItemAssignmentsPanel({ eventId, item, initialAssignments, canWri
                     ) : (
                         <Badge variant="outline">{t("items.copyInfo.singleItem")}</Badge>
                     )}
+                    {canWrite && !atMaxCopies && (
+                        <AssignItemToCharacterDialog
+                            itemId={item.id}
+                            eventId={eventId}
+                            token={token}
+                            availableCharacters={availableChars}
+                            onAssigned={refreshAssignments}
+                        />
+                    )}
                 </div>
             </div>
+
+            {atMaxCopies && canWrite && (
+                <p className="text-sm text-amber-600 font-medium">{t("items.assignments.limitReached")}</p>
+            )}
 
             {assignments.length === 0 ? (
                 <div className="border border-dashed rounded-lg p-8 text-center text-muted-foreground">
@@ -110,38 +111,6 @@ export function ItemAssignmentsPanel({ eventId, item, initialAssignments, canWri
                             )}
                         </div>
                     ))}
-                </div>
-            )}
-
-            {canWrite && (
-                <div className="space-y-2 p-4 rounded-lg border bg-muted/30">
-                    {atMaxCopies ? (
-                        <p className="text-sm text-amber-600 font-medium">{t("items.assignments.limitReached")}</p>
-                    ) : (
-                        <>
-                            <p className="text-sm font-medium">{t("items.assignments.add")}</p>
-                            <div className="flex gap-2 flex-wrap">
-                                <select
-                                    className="flex h-9 flex-1 min-w-[160px] rounded-md border border-input bg-background px-3 py-1 text-sm"
-                                    value={selChar}
-                                    onChange={e => setSelChar(e.target.value)}
-                                >
-                                    <option value="">{t("common.select")}</option>
-                                    {availableChars.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                </select>
-                                <Input
-                                    className="h-9 flex-1 min-w-[160px]"
-                                    value={notes}
-                                    onChange={e => setNotes(e.target.value)}
-                                    placeholder={t("items.assignments.notesPlaceholder")}
-                                />
-                                <Button size="sm" onClick={handleAssign} disabled={!selChar || isSaving}>
-                                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
-                                    {t("items.assignments.add")}
-                                </Button>
-                            </div>
-                        </>
-                    )}
                 </div>
             )}
         </div>

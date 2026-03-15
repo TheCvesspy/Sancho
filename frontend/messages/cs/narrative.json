@@ -313,7 +313,16 @@
             "empty": "Zatím žádní členové.",
             "character": "Postava",
             "role": "Role (Volitelné)",
-            "rolePlaceholder": "např. Vůdce, Průzkumník..."
+            "rolePlaceholder": "např. Vůdce, Průzkumník...",
+            "dialogs": {
+                "add": {
+                    "title": "Přidat člena frakce",
+                    "description": "Přidejte postavu do této frakce.",
+                    "submit": "Přidat člena",
+                    "selectCharacter": "Vyberte postavu...",
+                    "searchCharacter": "Hledat postavy..."
+                }
+            }
         },
         "sigil": {
             "noSigil": "Bez znaku",
@@ -343,6 +352,16 @@
                 "type": "Typ vztahu",
                 "mode": "Režim",
                 "notes": "Poznámky"
+            },
+            "dialogs": {
+                "add": {
+                    "title": "Přidat vztah",
+                    "description": "Definujte vztah mezi touto frakcí a jiným subjektem.",
+                    "submit": "Přidat vztah",
+                    "typePlaceholder": "např. Spojenec, Nepřítel...",
+                    "selectTarget": "Vyberte cíl...",
+                    "searchTarget": "Hledat..."
+                }
             }
         },
         "links": {
@@ -437,7 +456,16 @@
             "assignedBy": "Přiřadil(a): {name}",
             "assignedAt": "Kdy: {date}",
             "character": "Postava",
-            "notesPlaceholder": "Volitelné poznámky k přiřazení..."
+            "notesPlaceholder": "Volitelné poznámky k přiřazení...",
+            "dialogs": {
+                "assign": {
+                    "title": "Přiřadit předmět",
+                    "description": "Přiřaďte tento předmět postavě.",
+                    "submit": "Přiřadit",
+                    "selectCharacter": "Vyberte postavu...",
+                    "searchCharacter": "Hledat postavy..."
+                }
+            }
         },
         "copyInfo": {
             "multiCopy": "Více kopií",
@@ -514,11 +542,26 @@
                     "placeholder": "Zadejte název fáze"
                 },
                 "summary": {
-                    "label": "Shrnutí"
+                    "label": "Shrnutí",
+                    "placeholder": "Zadejte shrnutí fáze (volitelné)"
                 }
             },
             "addQuest": "Přidat úkol do fáze",
-            "unphasedQuests": "Nezařazené úkoly"
+            "unphasedQuests": "Nezařazené úkoly",
+            "dialogs": {
+                "addPhase": {
+                    "title": "Přidat fázi",
+                    "description": "Přidejte novou fázi k této dějové lince.",
+                    "submit": "Přidat fázi"
+                },
+                "addQuest": {
+                    "title": "Přidat úkol do {phase}",
+                    "description": "Propojte úkol s touto fází.",
+                    "submit": "Propojit úkol",
+                    "selectQuest": "Vyberte úkol...",
+                    "searchQuest": "Hledat úkoly..."
+                }
+            }
         },
         "links": {
             "inherited": "Zděděné vazby (z úkolů)",
@@ -798,5 +841,11 @@
             "required": "Požadováno",
             "loot": "Odměna (Loot)"
         }
+    },
+    "validation": {
+        "characterRequired": "Vyberte prosím postavu.",
+        "targetRequired": "Vyberte prosím cíl.",
+        "questRequired": "Vyberte prosím úkol.",
+        "titleRequired": "Název je povinný."
     }
 }

@@ -11,10 +11,11 @@ import {
 } from "@/utils/narrative-api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Pencil, Check, X, Loader2, ChevronDown, ChevronRight } from "lucide-react";
+import { Trash2, Pencil, Check, X, Loader2, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { AddPlotlinePhaseDialog } from "./add-plotline-phase-dialog";
+import { AddQuestToPhaseDialog } from "./add-quest-to-phase-dialog";
 
 interface PlotlinePhasesProps {
     eventId: string;
@@ -38,38 +39,25 @@ export function PlotlinePhasesPanel({ eventId, plotline, initialPhases, initialQ
         narrativeApi.listQuests(token, eventId).then(setAllQuests).catch(console.error);
     }, [eventId, token]);
 
-    // Add phase form
-    const [phaseTitle, setPhaseTitle] = useState("");
-    const [phaseSummary, setPhaseSummary] = useState("");
-    const [addingPhase, setAddingPhase] = useState(false);
-
-    // Edit phase
+    // Edit phase (inline — kept per user decision)
     const [editPhaseId, setEditPhaseId] = useState<string | null>(null);
     const [editPhaseTitle, setEditPhaseTitle] = useState("");
     const [editPhaseSummary, setEditPhaseSummary] = useState("");
     const [savingPhase, setSavingPhase] = useState(false);
 
-    // Add quest to phase
-    const [addQuestPhaseId, setAddQuestPhaseId] = useState<string | null>(null);
-    const [selectedQuestId, setSelectedQuestId] = useState("");
-    const [savingQuest, setSavingQuest] = useState(false);
-
     // ── Phase CRUD ────────────────────────────────────────────────────────────
 
-    const addPhase = async () => {
-        if (!phaseTitle.trim()) return;
-        setAddingPhase(true);
+    const refreshPhases = async () => {
         try {
-            const created = await narrativeApi.createPlotlinePhase(token, eventId, plotline.id, {
-                title: phaseTitle.trim(),
-                summary: phaseSummary.trim() || null,
-                sortOrder: phases.length + 1,
-            });
-            setPhases((p) => [...p, created]);
-            setPhaseTitle("");
-            setPhaseSummary("");
-            toast.success(t("plotlines.notifications.phaseCreated"));
-        } catch (e: any) { toast.error(e.message); } finally { setAddingPhase(false); }
+            const [latestPhases, latestLinks] = await Promise.all([
+                narrativeApi.listPlotlinePhases(token, eventId, plotline.id),
+                narrativeApi.listPlotlineQuests(token, eventId, plotline.id),
+            ]);
+            setPhases([...latestPhases].sort((a, b) => a.sortOrder - b.sortOrder));
+            setQuestLinks(latestLinks);
+        } catch (e) {
+            console.error(e);
+        }
     };
 
     const savePhase = async (phaseId: string) => {
@@ -98,19 +86,13 @@ export function PlotlinePhasesPanel({ eventId, plotline, initialPhases, initialQ
 
     // ── Quest links ───────────────────────────────────────────────────────────
 
-    const addQuest = async (phaseId: string | null) => {
-        if (!selectedQuestId) return;
-        setSavingQuest(true);
+    const refreshQuestLinks = async () => {
         try {
-            const link = await narrativeApi.upsertPlotlineQuest(token, eventId, plotline.id, selectedQuestId, {
-                phaseId: phaseId,
-                sortOrder: questLinks.filter((q) => q.phaseId === phaseId).length + 1,
-            });
-            setQuestLinks((prev) => [...prev.filter(q => q.questId !== selectedQuestId || q.phaseId !== phaseId), link]);
-            setSelectedQuestId("");
-            setAddQuestPhaseId(null);
-            toast.success(t("plotlines.notifications.questLinked"));
-        } catch (e: any) { toast.error(e.message); } finally { setSavingQuest(false); }
+            const latest = await narrativeApi.listPlotlineQuests(token, eventId, plotline.id);
+            setQuestLinks(latest);
+        } catch (e) {
+            console.error(e);
+        }
     };
 
     const removeQuest = async (questId: string) => {
@@ -131,16 +113,34 @@ export function PlotlinePhasesPanel({ eventId, plotline, initialPhases, initialQ
 
     return (
         <div className="space-y-6">
-            <h2 className="text-xl font-semibold tracking-tight">{t("plotlines.phases.title")}</h2>
+            <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold tracking-tight">{t("plotlines.phases.title")}</h2>
+                {canWrite && (
+                    <AddPlotlinePhaseDialog
+                        plotlineId={plotline.id}
+                        eventId={eventId}
+                        token={token}
+                        currentPhaseCount={phases.length}
+                        onPhaseAdded={refreshPhases}
+                    />
+                )}
+            </div>
 
             {/* ── Unphased quests ────────────────────────────────────── */}
             <section className="space-y-2">
                 <div className="flex items-center justify-between">
                     <h3 className="font-medium text-muted-foreground">{t("plotlines.phases.unphasedQuests")}</h3>
                     {canWrite && (
-                        <Button variant="ghost" size="sm" onClick={() => setAddQuestPhaseId("__unphased__")}>
-                            <Plus className="h-4 w-4 mr-1" />{t("plotlines.phases.addQuest")}
-                        </Button>
+                        <AddQuestToPhaseDialog
+                            plotlineId={plotline.id}
+                            eventId={eventId}
+                            token={token}
+                            phaseId={null}
+                            phaseName={null}
+                            unlinkedQuests={unlinkedQuests}
+                            currentQuestCount={questsForPhase(null).length}
+                            onQuestLinked={refreshQuestLinks}
+                        />
                     )}
                 </div>
 
@@ -163,29 +163,6 @@ export function PlotlinePhasesPanel({ eventId, plotline, initialPhases, initialQ
                                 )}
                             </div>
                         ))}
-                    </div>
-                )}
-
-                {addQuestPhaseId === "__unphased__" && (
-                    <div className="flex gap-2 mt-2">
-                        <select
-                            className="flex h-9 flex-1 rounded-md border border-input bg-background px-3 py-1 text-sm"
-                            value={selectedQuestId}
-                            onChange={(e) => setSelectedQuestId(e.target.value)}
-                        >
-                            <option value="">{t("common.select")}</option>
-                            {unlinkedQuests.map((q) => (
-                                <option key={q.id} value={q.id}>
-                                    {q.title}{q.shortDescription ? ` (${q.shortDescription})` : ""}
-                                </option>
-                            ))}
-                        </select>
-                        <Button size="sm" onClick={() => addQuest(null)} disabled={!selectedQuestId || savingQuest}>
-                            {savingQuest ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => { setAddQuestPhaseId(null); setSelectedQuestId(""); }}>
-                            <X className="h-4 w-4" />
-                        </Button>
                     </div>
                 )}
             </section>
@@ -213,7 +190,7 @@ export function PlotlinePhasesPanel({ eventId, plotline, initialPhases, initialQ
                                         <Input
                                             value={editPhaseSummary}
                                             onChange={(e) => setEditPhaseSummary(e.target.value)}
-                                            placeholder="Summary..."
+                                            placeholder={t("plotlines.phases.fields.summary.placeholder")}
                                             className="flex-1"
                                         />
                                         <Button size="icon" className="h-9 w-9" onClick={() => savePhase(phase.id)} disabled={savingPhase}>
@@ -267,32 +244,18 @@ export function PlotlinePhasesPanel({ eventId, plotline, initialPhases, initialQ
                                         </div>
                                     )}
                                     {canWrite && (
-                                        addQuestPhaseId === phase.id ? (
-                                            <div className="flex gap-2 mt-2">
-                                                <select
-                                                    className="flex h-9 flex-1 rounded-md border border-input bg-background px-3 py-1 text-sm"
-                                                    value={selectedQuestId}
-                                                    onChange={(e) => setSelectedQuestId(e.target.value)}
-                                                >
-                                                    <option value="">{t("common.select")}</option>
-                                                    {unlinkedQuests.map((q) => (
-                                                        <option key={q.id} value={q.id}>
-                                                            {q.title}{q.shortDescription ? ` (${q.shortDescription})` : ""}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                                <Button size="sm" onClick={() => addQuest(phase.id)} disabled={!selectedQuestId || savingQuest}>
-                                                    {savingQuest ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                                                </Button>
-                                                <Button size="sm" variant="outline" onClick={() => { setAddQuestPhaseId(null); setSelectedQuestId(""); }}>
-                                                    <X className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        ) : (
-                                            <Button variant="ghost" size="sm" onClick={() => setAddQuestPhaseId(phase.id)}>
-                                                <Plus className="h-4 w-4 mr-1" />{t("plotlines.phases.addQuest")}
-                                            </Button>
-                                        )
+                                        <div className="flex justify-start pt-1">
+                                            <AddQuestToPhaseDialog
+                                                plotlineId={plotline.id}
+                                                eventId={eventId}
+                                                token={token}
+                                                phaseId={phase.id}
+                                                phaseName={phase.title}
+                                                unlinkedQuests={unlinkedQuests}
+                                                currentQuestCount={questsForPhase(phase.id).length}
+                                                onQuestLinked={refreshQuestLinks}
+                                            />
+                                        </div>
                                     )}
                                 </div>
                             </CollapsibleContent>
@@ -300,28 +263,6 @@ export function PlotlinePhasesPanel({ eventId, plotline, initialPhases, initialQ
                     </Collapsible>
                 ))}
             </div>
-
-            {/* ── Add phase form ─────────────────────────────────────── */}
-            {canWrite && (
-                <div className="space-y-2 p-4 rounded-lg border bg-muted/30">
-                    <p className="text-sm font-medium">{t("plotlines.phases.add")}</p>
-                    <Input
-                        value={phaseTitle}
-                        onChange={(e) => setPhaseTitle(e.target.value)}
-                        placeholder={t("plotlines.phases.fields.title.placeholder")}
-                    />
-                    <Textarea
-                        value={phaseSummary}
-                        onChange={(e) => setPhaseSummary(e.target.value)}
-                        placeholder={t("plotlines.phases.fields.summary.label")}
-                        rows={2}
-                    />
-                    <Button size="sm" onClick={addPhase} disabled={!phaseTitle.trim() || addingPhase}>
-                        {addingPhase ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
-                        {t("plotlines.phases.add")}
-                    </Button>
-                </div>
-            )}
         </div>
     );
 }
