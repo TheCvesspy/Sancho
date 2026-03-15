@@ -5,23 +5,9 @@ import { useTranslations } from "next-intl";
 import { CharacterAssignedItemDto, charactersApi } from "@/utils/characters-api";
 import { NarrativeItemDto, narrativeApi } from "@/utils/narrative-api";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Trash2, Plus, Loader2, Check, ChevronsUpDown, Package } from "lucide-react";
+import { Trash2, Package } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import {
-    Command,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-    CommandList,
-} from "@/components/ui/command";
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+import { AssignItemDialog } from "./assign-item-dialog";
 
 interface CharacterItemsPanelProps {
     characterId: string;
@@ -36,10 +22,6 @@ export function CharacterItemsPanel({ characterId, eventId, initialItems, canWri
     const [items, setItems] = useState<CharacterAssignedItemDto[]>(initialItems);
 
     const [availableItems, setAvailableItems] = useState<NarrativeItemDto[]>([]);
-    const [selectedItemId, setSelectedItemId] = useState("");
-    const [notes, setNotes] = useState("");
-    const [isSaving, setIsSaving] = useState(false);
-    const [pickerOpen, setPickerOpen] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -53,24 +35,12 @@ export function CharacterItemsPanel({ characterId, eventId, initialItems, canWri
         fetchData();
     }, [eventId, token]);
 
-    const handleAssign = async () => {
-        if (!selectedItemId) return;
-        setIsSaving(true);
+    const refreshItems = async () => {
         try {
-            await charactersApi.assignItem(token, eventId, characterId, selectedItemId, {
-                notes: notes.trim() || null
-            });
-
-            // Re-fetch to get updated list
             const latest = await charactersApi.listCharacterItems(token, eventId, characterId);
             setItems(latest);
-
-            setSelectedItemId("");
-            setNotes("");
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setIsSaving(false);
+        } catch (e) {
+            console.error(e);
         }
     };
 
@@ -98,75 +68,21 @@ export function CharacterItemsPanel({ characterId, eventId, initialItems, canWri
 
     return (
         <div className="space-y-4">
-            <h2 className="text-lg font-semibold tracking-tight flex items-center gap-2">
-                <Package className="h-5 w-5 text-orange-500" />
-                {t("items.title")}
-            </h2>
-
-            {canWrite && (
-                <div className="flex flex-col sm:flex-row items-end gap-4 p-4 rounded-lg border bg-card flex-wrap">
-                    <div className="space-y-1 flex-1 min-w-[200px]">
-                        <label className="text-sm font-medium">{t("items.selectItem")}</label>
-                        <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    role="combobox"
-                                    aria-expanded={pickerOpen}
-                                    className="w-full justify-between h-10 px-3 bg-background font-normal"
-                                >
-                                    {selectedItemId
-                                        ? availableItems.find(i => i.id === selectedItemId)?.name
-                                        : t("items.selectItem")}
-                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[300px] p-0" align="start">
-                                <Command>
-                                    <CommandInput placeholder={t("items.searchItem")} />
-                                    <CommandList>
-                                        <CommandEmpty>No results.</CommandEmpty>
-                                        <CommandGroup>
-                                            {unassignedItems.map((item) => (
-                                                <CommandItem
-                                                    key={item.id}
-                                                    value={item.name}
-                                                    onSelect={() => {
-                                                        setSelectedItemId(selectedItemId === item.id ? "" : item.id);
-                                                        setPickerOpen(false);
-                                                    }}
-                                                >
-                                                    <Check
-                                                        className={cn(
-                                                            "mr-2 h-4 w-4",
-                                                            selectedItemId === item.id ? "opacity-100" : "opacity-0"
-                                                        )}
-                                                    />
-                                                    {item.name}
-                                                </CommandItem>
-                                            ))}
-                                        </CommandGroup>
-                                    </CommandList>
-                                </Command>
-                            </PopoverContent>
-                        </Popover>
-                    </div>
-
-                    <div className="space-y-1 w-full sm:w-auto flex-1 min-w-[200px]">
-                        <label className="text-sm font-medium">{t("items.notes")}</label>
-                        <Input
-                            value={notes}
-                            placeholder={t("items.notesPlaceholder")}
-                            onChange={(e) => setNotes(e.target.value)}
-                        />
-                    </div>
-
-                    <Button onClick={handleAssign} disabled={!selectedItemId || isSaving}>
-                        {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
-                        {t("items.assign")}
-                    </Button>
-                </div>
-            )}
+            <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold tracking-tight flex items-center gap-2">
+                    <Package className="h-5 w-5 text-orange-500" />
+                    {t("items.title")}
+                </h2>
+                {canWrite && (
+                    <AssignItemDialog
+                        characterId={characterId}
+                        eventId={eventId}
+                        token={token}
+                        availableItems={unassignedItems}
+                        onItemAssigned={refreshItems}
+                    />
+                )}
+            </div>
 
             <div className="rounded-md border bg-card">
                 <div className="grid grid-cols-[2fr_2fr_1fr_2fr_auto] gap-4 p-4 font-semibold border-b bg-muted/50">

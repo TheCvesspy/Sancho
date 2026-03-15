@@ -224,6 +224,16 @@
             "description": "Vytvořit kopii této postavy. Schopnosti budou zkopírovány, ale fotka a přílohy ne.",
             "submit": "Duplikovat postavu"
         },
+        "addRelationship": {
+            "title": "Přidat vztah",
+            "description": "Vytvořte vztah mezi touto postavou a jinou.",
+            "submit": "Přidat vztah"
+        },
+        "assignItem": {
+            "title": "Přiřadit předmět",
+            "description": "Přiřaďte předmět z modulu Příběh této postavě.",
+            "submit": "Přiřadit předmět"
+        },
         "status": {
             "title": "Změnit stav postavy",
             "description": "Vyberte nový stav pro tuto postavu. Některé přechody mohou být omezeny.",
@@ -273,7 +283,9 @@
         "documentNameRequired": "Název dokumentu je povinný.",
         "documentUrlInvalid": "Zadejte platnou URL adresu Google Drive (docs.google.com, drive.google.com atd.).",
         "fileTooLarge": "Soubor musí být menší než 20 MB.",
-        "fileTypeNotAllowed": "Tento typ souboru není podporován."
+        "fileTypeNotAllowed": "Tento typ souboru není podporován.",
+        "targetRequired": "Vyberte cílovou postavu.",
+        "itemRequired": "Vyberte předmět."
     },
     "notifications": {
         "created": "Postava byla úspěšně vytvořena.",
@@ -287,11 +299,15 @@
         "abilityDeleted": "Schopnost smazána.",
         "attachmentAdded": "Dokument přidán.",
         "attachmentUpdated": "Dokument aktualizován.",
-        "attachmentDeleted": "Dokument odstraněn."
+        "attachmentDeleted": "Dokument odstraněn.",
+        "relationshipAdded": "Vztah byl úspěšně přidán.",
+        "itemAssigned": "Předmět byl úspěšně přiřazen."
     },
     "errors": {
         "loadFailed": "K načtení postav nedošlo.",
         "notFound": "Postava nebyla nalezena.",
-        "duplicateName": "Postava s tímto jménem v této události již existuje."
+        "duplicateName": "Postava s tímto jménem v této události již existuje.",
+        "relationshipFailed": "Nepodařilo se přidat vztah.",
+        "itemAssignFailed": "Nepodařilo se přiřadit předmět."
     }
 }

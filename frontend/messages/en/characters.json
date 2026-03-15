@@ -224,6 +224,16 @@
             "description": "Create a copy of this character. Abilities will be copied, but photo and attachments will not.",
             "submit": "Duplicate Character"
         },
+        "addRelationship": {
+            "title": "Add Relationship",
+            "description": "Create a relationship between this character and another.",
+            "submit": "Add Relationship"
+        },
+        "assignItem": {
+            "title": "Assign Item",
+            "description": "Assign an item from the narrative module to this character.",
+            "submit": "Assign Item"
+        },
         "status": {
             "title": "Change Character Status",
             "description": "Select a new status for this character. Some transitions may be restricted.",
@@ -273,7 +283,9 @@
         "documentNameRequired": "Document name is required.",
         "documentUrlInvalid": "Please enter a valid Google Drive URL (docs.google.com, drive.google.com, etc.).",
         "fileTooLarge": "File must be 20 MB or smaller.",
-        "fileTypeNotAllowed": "This file type is not supported."
+        "fileTypeNotAllowed": "This file type is not supported.",
+        "targetRequired": "Please select a target character.",
+        "itemRequired": "Please select an item."
     },
     "notifications": {
         "created": "Character created successfully.",
@@ -287,11 +299,15 @@
         "abilityDeleted": "Ability deleted.",
         "attachmentAdded": "Document added.",
         "attachmentUpdated": "Document updated.",
-        "attachmentDeleted": "Document removed."
+        "attachmentDeleted": "Document removed.",
+        "relationshipAdded": "Relationship added successfully.",
+        "itemAssigned": "Item assigned successfully."
     },
     "errors": {
         "loadFailed": "Failed to load characters.",
         "notFound": "Character not found.",
-        "duplicateName": "A character with this name already exists in this event."
+        "duplicateName": "A character with this name already exists in this event.",
+        "relationshipFailed": "Failed to add relationship.",
+        "itemAssignFailed": "Failed to assign item."
     }
 }
