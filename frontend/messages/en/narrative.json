@@ -321,7 +321,16 @@
             "rolePlaceholder": "e.g. Leader, Scout..."
         },
         "sigil": {
-            "noSigil": "No Sigil"
+            "noSigil": "No Sigil",
+            "uploadSuccess": "Sigil uploaded successfully",
+            "uploadFailed": "Failed to upload sigil",
+            "removeConfirm": "Are you sure you want to remove this sigil?",
+            "removeSuccess": "Sigil removed",
+            "removeFailed": "Failed to remove sigil",
+            "uploadTitle": "Upload new sigil",
+            "removeTitle": "Remove sigil",
+            "resizing": "Resizing image to fit 10 MB limit...",
+            "invalidType": "Image must be JPG, PNG, or WebP"
         },
         "relationships": {
             "title": "Relationships",

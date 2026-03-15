@@ -75,6 +75,10 @@ public static class NarrativeEndpoints
         group.MapPost("/factions/{factionId:guid}/documents/google-drive", AddFactionGoogleDriveDocument);
         group.MapDelete("/factions/{factionId:guid}/documents/{documentId:guid}", DeleteFactionDocument);
 
+        group.MapPost("/factions/{factionId:guid}/sigil/upload-url", CreateSigilUploadUrl);
+        group.MapPost("/factions/{factionId:guid}/sigil/confirm", ConfirmSigil);
+        group.MapDelete("/factions/{factionId:guid}/sigil", RemoveSigil);
+
         group.MapGet("/items", ListItems);
         group.MapPost("/items", CreateItem);
         group.MapGet("/items/{itemId:guid}", GetItemById);
@@ -1094,6 +1098,59 @@ public static class NarrativeEndpoints
         req.Content = JsonContent.Create(new { deleted_at = (DateTimeOffset?)null, deleted_by = (Guid?)null, deletion_reason = (string?)null });
         var resp = await httpClient.SendAsync(req);
         return resp.IsSuccessStatusCode ? Results.NoContent() : Results.Problem($"Failed to undelete faction: {resp.StatusCode}");
+    }
+
+    private static async Task<IResult> CreateSigilUploadUrl(Guid eventId, Guid factionId, ClaimsPrincipal user, [FromBody] NarrativeUploadUrlRequest request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz, NarrativeStorageService storage)
+    {
+        if (!TryConfig(config, out var url, out var key, out var error)) return error!;
+        var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
+        if (!access.CanWrite) return Results.Forbid();
+
+        var faction = await GetFaction(eventId, factionId, url!, key!, httpClient, includeDeleted: false);
+        if (faction is null) return Results.NotFound();
+        if (faction.status == NarrativeStatuses.Locked) return Results.BadRequest("Locked faction sigil is read-only.");
+
+        try { return Results.Ok(await storage.CreateSigilUploadUrlAsync(url!, key!, eventId, factionId, request)); }
+        catch (InvalidOperationException ex) { return Results.BadRequest(ex.Message); }
+    }
+
+    private static async Task<IResult> ConfirmSigil(Guid eventId, Guid factionId, ClaimsPrincipal user, [FromBody] ConfirmSigilRequest request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
+    {
+        if (!TryConfig(config, out var url, out var key, out var error)) return error!;
+        var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
+        if (!access.CanWrite) return Results.Forbid();
+
+        var faction = await GetFaction(eventId, factionId, url!, key!, httpClient, includeDeleted: false);
+        if (faction is null) return Results.NotFound();
+        if (faction.status == NarrativeStatuses.Locked) return Results.BadRequest("Locked faction sigil is read-only.");
+
+        var req = new HttpRequestMessage(HttpMethod.Patch, $"{url}/rest/v1/narrative_factions?id=eq.{factionId}&event_id=eq.{eventId}");
+        req.Headers.Add("Prefer", "return=representation");
+        AddHeaders(req, key!);
+        req.Content = JsonContent.Create(new { sigil_url = request.FilePath, updated_at = DateTimeOffset.UtcNow });
+        var resp = await httpClient.SendAsync(req);
+        if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to confirm sigil: {resp.StatusCode}");
+        var updated = (await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativeFactionRow>>())?.FirstOrDefault();
+        return updated is null ? Results.Problem("Sigil confirmed but payload missing.") : Results.Ok(ToFactionDto(updated, access.CanWrite));
+    }
+
+    private static async Task<IResult> RemoveSigil(Guid eventId, Guid factionId, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz, NarrativeStorageService storage)
+    {
+        if (!TryConfig(config, out var url, out var key, out var error)) return error!;
+        var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
+        if (!access.CanWrite) return Results.Forbid();
+
+        var faction = await GetFaction(eventId, factionId, url!, key!, httpClient, includeDeleted: false);
+        if (faction is null) return Results.NotFound();
+        if (faction.status == NarrativeStatuses.Locked) return Results.BadRequest("Locked faction sigil is read-only.");
+
+        if (!string.IsNullOrWhiteSpace(faction.sigil_url)) await storage.DeleteObjectAsync(url!, key!, faction.sigil_url);
+
+        var req = new HttpRequestMessage(HttpMethod.Patch, $"{url}/rest/v1/narrative_factions?id=eq.{factionId}&event_id=eq.{eventId}");
+        AddHeaders(req, key!);
+        req.Content = JsonContent.Create(new { sigil_url = (string?)null });
+        var resp = await httpClient.SendAsync(req);
+        return resp.IsSuccessStatusCode ? Results.NoContent() : Results.Problem($"Failed to remove sigil: {resp.StatusCode}");
     }
 
     private static async Task<IResult> ListFactionMembers(Guid eventId, Guid factionId, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)

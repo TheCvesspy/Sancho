@@ -35,6 +35,7 @@ import { FactionRelationshipsPanel } from "./faction-relationships-panel";
 import { FactionLinksPanel } from "./faction-links-panel";
 import { FactionDocumentsPanel } from "./faction-documents-panel";
 import { EditFactionNameDialog } from "./edit-faction-name-dialog";
+import { SigilUpload } from "./sigil-upload";
 
 interface FactionDetailProps {
     event: EventDetailDto;
@@ -126,17 +127,15 @@ export function FactionDetail({
                     </div>
                 )}
 
-                {/* Avatar section (Avatar exists for factions, not for quests) */}
-                <div className="flex-shrink-0 mt-2 md:mt-0 relative group">
-                    {faction.sigilUrl ? (
-                        <div className="h-24 w-24 rounded-lg bg-muted border overflow-hidden">
-                            <img src={faction.sigilUrl} alt="sigil" className="h-full w-full object-cover" />
-                        </div>
-                    ) : (
-                        <div className="h-24 w-24 rounded-lg bg-muted flex items-center justify-center text-xs text-muted-foreground border border-dashed text-center p-2">
-                            {t("factions.sigil.noSigil")}
-                        </div>
-                    )}
+                {/* Faction sigil (round avatar with upload support) */}
+                <div className="flex-shrink-0 mt-2 md:mt-0">
+                    <SigilUpload
+                        eventId={event.id}
+                        faction={faction}
+                        token={token}
+                        canWrite={canWrite}
+                        onSigilChanged={(url) => setFaction(f => ({ ...f, sigilUrl: url }))}
+                    />
                 </div>
 
                 <div className="flex-1 min-w-0 flex flex-col justify-between">
