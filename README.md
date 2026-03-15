@@ -1,6 +1,6 @@
 # Sancho — LARP Event Management Platform
 
-**Version: 0.15.32**
+**Version: 0.15.33**
 
 Sancho is a single-organization web application for managing LARP (Live Action Role-Playing) groups, covering the full event lifecycle from planning through execution. One deployment serves one organization and supports multiple events.
 
@@ -55,6 +55,7 @@ Sancho is a single-organization web application for managing LARP (Live Action R
 - **Quest Step Characters**: Support for linking multiple characters/NPCs to specific quest steps (replacing legacy `has_fixed_players` flag).
 - **Faction Relationships v2**: Removed legacy notes field, changed relation type to 100-char free-text, and implemented Searchable Link Picker pattern for targets.
 - **Narrative Locations backend**: Added event-scoped locations and dungeon hierarchy endpoints with lifecycle, soft-delete, Google Drive documents, and quest/plotline/plot location links.
+- **Narrative Modal Dialogs**: Migrated inline forms to modal dialogs for faction members, faction relationships, item assignments, plotline phases, and quest-to-phase linking. Uses Section Title with Modal Action pattern with searchable combobox pickers.
 
 #### Shared UI Components
 - **Rich Text Editor (TipTap)**: Enhanced with full headings (H1-H4), text alignment (left, center, right, justify), text color, and highlight controls.
@@ -259,6 +260,7 @@ sancho/
 
 | Version | Date | Summary |
 |---|---|---|
+| 0.15.33 | 2026-03-15 | Narrative UI: migrate inline forms to modal dialogs for faction members, relationships, item assignments, and plotline phases/quests. |
 | 0.15.32 | 2026-03-14 | Add Narrative Locations backend API, database migration, dungeon hierarchy, and location linking support. |
 | 0.15.31 | 2026-03-14 | Fix: Missing translation key for item max copies and UI improvements in item creation dialog. |
 | 0.15.30 | 2026-03-14 | Fix: Missing narrative_item_character_assignments table created via migration resolving NotFound errors during item assignments fetch. |
