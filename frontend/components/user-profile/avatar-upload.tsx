@@ -8,9 +8,70 @@ import { Camera, Loader2 } from "lucide-react"
 import { requestAvatarUploadUrl, confirmAvatarUpload } from "./actions"
 import { useTranslations } from "next-intl"
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
+const TARGET_SIZE = 4.5 * 1024 * 1024 // Target size after downscale (leave margin)
+const MAX_DIMENSION = 1024 // Max width/height for downscaled images
+
 interface AvatarUploadProps {
     currentAvatarUrl?: string
     displayName?: string
+}
+
+/**
+ * Downscale an image file to fit within MAX_FILE_SIZE.
+ * Returns the original file if already small enough or if it's a GIF.
+ */
+async function downscaleImage(file: File): Promise<File> {
+    // Don't downscale GIFs (would lose animation)
+    if (file.type === "image/gif") return file
+    if (file.size <= MAX_FILE_SIZE) return file
+
+    return new Promise((resolve, reject) => {
+        const img = new Image()
+        const url = URL.createObjectURL(file)
+        img.onload = () => {
+            URL.revokeObjectURL(url)
+
+            let { width, height } = img
+
+            // Scale down dimensions
+            const scale = Math.min(MAX_DIMENSION / width, MAX_DIMENSION / height, 1)
+            width = Math.round(width * scale)
+            height = Math.round(height * scale)
+
+            const canvas = document.createElement("canvas")
+            canvas.width = width
+            canvas.height = height
+            const ctx = canvas.getContext("2d")!
+            ctx.drawImage(img, 0, 0, width, height)
+
+            // Use JPEG for best compression, start at quality 0.85 and reduce if needed
+            const outputType = "image/jpeg"
+            let quality = 0.85
+
+            const tryCompress = () => {
+                canvas.toBlob(
+                    (blob) => {
+                        if (!blob) return reject(new Error("Failed to compress image"))
+                        if (blob.size <= TARGET_SIZE || quality <= 0.3) {
+                            resolve(new File([blob], file.name.replace(/\.\w+$/, ".jpg"), { type: outputType }))
+                        } else {
+                            quality -= 0.1
+                            tryCompress()
+                        }
+                    },
+                    outputType,
+                    quality
+                )
+            }
+            tryCompress()
+        }
+        img.onerror = () => {
+            URL.revokeObjectURL(url)
+            reject(new Error("Failed to load image for downscaling"))
+        }
+        img.src = url
+    })
 }
 
 export function AvatarUpload({ currentAvatarUrl, displayName }: AvatarUploadProps) {
@@ -22,28 +83,36 @@ export function AvatarUpload({ currentAvatarUrl, displayName }: AvatarUploadProp
         const file = e.target.files?.[0]
         if (!file) return
 
-        // 1. Client-side validation: Max 2MB
-        const MAX_FILE_SIZE = 2 * 1024 * 1024 // 2MB
-        if (file.size > MAX_FILE_SIZE) {
-            alert("File is too large. Maximum size is 2MB.")
-            return
-        }
-
-        // 2. Client-side validation: MIME type
+        // Client-side validation: MIME type
         const allowedMimes = ["image/jpeg", "image/png", "image/gif", "image/webp"]
         if (!allowedMimes.includes(file.type)) {
             alert("Invalid file type. Only JPG, PNG, GIF, and WEBP are allowed.")
             return
         }
 
+        // Downscale if larger than 5MB (except GIFs)
+        let uploadFile = file
+        if (file.size > MAX_FILE_SIZE) {
+            if (file.type === "image/gif") {
+                alert("GIF files must be 5MB or smaller.")
+                return
+            }
+            try {
+                uploadFile = await downscaleImage(file)
+            } catch {
+                alert("Failed to resize image. Please try a smaller file.")
+                return
+            }
+        }
+
         // Preview
-        const objectUrl = URL.createObjectURL(file)
+        const objectUrl = URL.createObjectURL(uploadFile)
         setPreviewUrl(objectUrl)
 
         setIsUploading(true)
         try {
             // 1. Get signed URL
-            const result = await requestAvatarUploadUrl(file.type)
+            const result = await requestAvatarUploadUrl(uploadFile.type)
             if (!result.success) throw new Error(result.error)
 
             const { uploadUrl, filePath } = result.data
@@ -51,9 +120,9 @@ export function AvatarUpload({ currentAvatarUrl, displayName }: AvatarUploadProp
             // 2. Upload directly to Supabase Storage
             const uploadResponse = await fetch(uploadUrl, {
                 method: "PUT",
-                body: file,
+                body: uploadFile,
                 headers: {
-                    "Content-Type": file.type,
+                    "Content-Type": uploadFile.type,
                     "x-upsert": "true",
                 },
             })
@@ -68,8 +137,9 @@ export function AvatarUpload({ currentAvatarUrl, displayName }: AvatarUploadProp
             if (!confirmResult.success) throw new Error(confirmResult.error)
 
         } catch (error) {
-            console.error("Avatar upload failed:", error)
-            alert("Failed to upload avatar. Please try again.")
+            const message = error instanceof Error ? error.message : "Unknown error"
+            console.error("Avatar upload failed:", message)
+            alert(`Failed to upload avatar: ${message}`)
             setPreviewUrl(null)
         } finally {
             setIsUploading(false)
@@ -110,7 +180,7 @@ export function AvatarUpload({ currentAvatarUrl, displayName }: AvatarUploadProp
             </div>
             <div className="text-center">
                 <p className="text-sm font-medium">{t("avatarAlt")}</p>
-                <p className="text-xs text-muted-foreground">JPG, PNG, GIF (max 2MB)</p>
+                <p className="text-xs text-muted-foreground">JPG, PNG, GIF (max 5MB, auto-resized)</p>
             </div>
         </div>
     )

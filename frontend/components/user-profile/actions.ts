@@ -54,13 +54,17 @@ export async function requestAvatarUploadUrl(contentType: string) {
         })
 
         if (!response.ok) {
-            throw new Error("Failed to get upload URL")
+            const errorText = await response.text()
+            throw new Error(`Failed to get upload URL (${response.status}): ${errorText}`)
         }
 
         return { success: true, data: await response.json() }
     } catch (error) {
         console.error("Upload URL error:", error)
-        return { success: false, error: "Failed to initiate upload" }
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : "Failed to initiate upload"
+        }
     }
 }
 

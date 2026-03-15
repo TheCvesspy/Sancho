@@ -279,8 +279,9 @@ public static class UserEndpoints
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key);
     }
 
-    private static async Task<IResult> GetAvatarUploadUrl(ClaimsPrincipal user, AvatarUploadUrlRequest request, IConfiguration config, HttpClient httpClient)
+    private static async Task<IResult> GetAvatarUploadUrl(ClaimsPrincipal user, AvatarUploadUrlRequest request, IConfiguration config, HttpClient httpClient, ILoggerFactory loggerFactory)
     {
+        var logger = loggerFactory.CreateLogger("UserEndpoints");
         var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
 
@@ -294,22 +295,24 @@ public static class UserEndpoints
         var supabaseUrl = config["Supabase:Url"];
         var supabaseKey = config["Supabase:ServiceRoleKey"];
 
-        // In a real implementation with Supabase Storage, we'd call the storage API to get a signed URL.
-        // For this implementation, we return the path the frontend should use.
-        // The bucket RLS will handle the permission if the frontend uses its own token, 
-        // OR the backend generates a signed URL.
-        
         // Generate a signed upload URL via Supabase Storage API
         var extension = request.ContentType.Split('/').Last();
         if (extension == "jpeg") extension = "jpg";
         var filePath = $"{userId}/avatar.{extension}";
-        var storageRequest = new HttpRequestMessage(HttpMethod.Post, $"{supabaseUrl}/storage/v1/object/upload/sign/avatars/{filePath}");
+        var encodedPath = string.Join('/', filePath.Split('/').Select(Uri.EscapeDataString));
+        var storageRequest = new HttpRequestMessage(HttpMethod.Post, $"{supabaseUrl}/storage/v1/object/upload/sign/avatars/{encodedPath}");
         storageRequest.Headers.Add("apikey", supabaseKey);
+        storageRequest.Headers.Add("x-upsert", "true"); // Allow replacing existing avatar
         storageRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", supabaseKey);
-        storageRequest.Content = JsonContent.Create(new { expiresIn = 600, upsert = true }); // 10 mins, allow replacing existing avatar
+        storageRequest.Content = JsonContent.Create(new { expiresIn = 600 }); // 10 mins
 
         var response = await httpClient.SendAsync(storageRequest);
-        if (!response.IsSuccessStatusCode) return Results.Problem("Failed to generate signed URL");
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync();
+            logger.LogError("Supabase Storage signed URL failed. Status: {Status}, Body: {Body}", response.StatusCode, errorBody);
+            return Results.Problem($"Failed to generate signed URL: {errorBody}");
+        }
 
         var signResult = await response.Content.ReadFromJsonAsync<SupabaseSignUploadResponse>();
         string? token = signResult?.token;
