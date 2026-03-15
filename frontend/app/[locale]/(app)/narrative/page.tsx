@@ -1,7 +1,9 @@
-import { getTranslations, setRequestLocale } from "next-intl/server";
+import { setRequestLocale } from "next-intl/server";
+import { cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { eventsApi } from "@/utils/events-api";
+import { ACTIVE_EVENT_COOKIE_NAME } from "@/utils/active-event-cookie";
 import { NarrativeLanding } from "@/components/narrative/narrative-landing";
 
 export default async function NarrativeLandingPage({
@@ -17,6 +19,13 @@ export default async function NarrativeLandingPage({
 
     if (!session) {
         redirect(`/${locale}/login`);
+    }
+
+    // Redirect to event-scoped page if an active event is set
+    const cookieStore = await cookies();
+    const activeEventId = cookieStore.get(ACTIVE_EVENT_COOKIE_NAME)?.value;
+    if (activeEventId) {
+        redirect(`/${locale}/narrative/${activeEventId}`);
     }
 
     const token = session.access_token;

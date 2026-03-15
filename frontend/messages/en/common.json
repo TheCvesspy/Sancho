@@ -28,6 +28,24 @@
     "authProvider": "Authentication Provider",
     "lastSignIn": "Last Sign In"
   },
+  "sidebar": {
+    "modules": "Modules",
+    "identity": "Identity & Access",
+    "events": "Event Management",
+    "characters": "Characters",
+    "narrative": "Narrative",
+    "logistics": "Logistics",
+    "npcOrg": "NPC & Org Team",
+    "finance": "Finance",
+    "communications": "Communications",
+    "eventPicker": {
+      "label": "Active Event",
+      "placeholder": "Select an event...",
+      "searchPlaceholder": "Search events...",
+      "noResults": "No event found.",
+      "noEvents": "No events available."
+    }
+  },
   "errors": {
     "unauthorized": "You must be logged in to access this page.",
     "forbidden": "You do not have permission to view this content.",

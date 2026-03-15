@@ -1,7 +1,9 @@
-import { getTranslations, setRequestLocale } from "next-intl/server";
+import { setRequestLocale } from "next-intl/server";
+import { cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { eventsApi } from "@/utils/events-api";
+import { ACTIVE_EVENT_COOKIE_NAME } from "@/utils/active-event-cookie";
 import { CharacterLanding } from "@/components/characters/character-landing";
 
 export default async function CharactersLandingPage({
@@ -19,10 +21,16 @@ export default async function CharactersLandingPage({
         redirect(`/${locale}/login`);
     }
 
+    // Redirect to event-scoped page if an active event is set
+    const cookieStore = await cookies();
+    const activeEventId = cookieStore.get(ACTIVE_EVENT_COOKIE_NAME)?.value;
+    if (activeEventId) {
+        redirect(`/${locale}/characters/${activeEventId}`);
+    }
+
     // Fetch available events for the selector
     const token = session.access_token;
 
-    // Default to active events for the landing page selector
     let events: any[] = [];
     try {
         events = await eventsApi.listEvents(token, { includeArchived: false });

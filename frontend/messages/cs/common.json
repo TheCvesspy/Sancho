@@ -28,6 +28,24 @@
     "authProvider": "Poskytovatel ověření",
     "lastSignIn": "Poslední přihlášení"
   },
+  "sidebar": {
+    "modules": "Moduly",
+    "identity": "Identita a přístup",
+    "events": "Správa událostí",
+    "characters": "Postavy",
+    "narrative": "Příběh",
+    "logistics": "Logistika",
+    "npcOrg": "NPC a organizační tým",
+    "finance": "Finance",
+    "communications": "Komunikace",
+    "eventPicker": {
+      "label": "Aktivní událost",
+      "placeholder": "Vyberte událost...",
+      "searchPlaceholder": "Hledat události...",
+      "noResults": "Událost nenalezena.",
+      "noEvents": "Žádné dostupné události."
+    }
+  },
   "errors": {
     "unauthorized": "Pro přístup k této stránce musíte být přihlášeni.",
     "forbidden": "Nemáte oprávnění k prohlížení tohoto obsahu.",
