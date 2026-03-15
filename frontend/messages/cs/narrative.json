@@ -84,7 +84,8 @@
             "status": "Stav",
             "source": "Zdroj",
             "date": "Přidáno",
-            "actions": "Akce"
+            "actions": "Akce",
+            "tag": "Patro / Místnost"
         },
         "statuses": {
             "draft": "Návrh",
@@ -149,6 +150,38 @@
             "internalNotes": {
                 "label": "Interní poznámky",
                 "placeholder": "Zadejte interní poznámky (pouze pro adminy)..."
+            },
+            "questType": {
+                "label": "Typ questu",
+                "placeholder": "Přidat štítky..."
+            },
+            "function": {
+                "label": "Funkce",
+                "placeholder": "Funkce questu..."
+            },
+            "questAssignment": {
+                "label": "Zadání questu",
+                "placeholder": "Jak je quest přidělen..."
+            },
+            "playerGoal": {
+                "label": "Cíl hráče",
+                "placeholder": "Čeho chce hráč dosáhnout..."
+            },
+            "playerMotivation": {
+                "label": "Motivace hráče",
+                "placeholder": "Proč by hráč tento quest plnil..."
+            },
+            "expectedResults": {
+                "label": "Očekávané výsledky",
+                "placeholder": "Očekávané výstupy..."
+            },
+            "escalation": {
+                "label": "Eskalace",
+                "placeholder": "Cesta eskalace..."
+            },
+            "props": {
+                "label": "Rekvizity",
+                "empty": "K tomuto questu nejsou přiřazeny žádné předměty."
             }
         },
         "steps": {
@@ -173,6 +206,12 @@
                 "title": "Zúčastněné postavy / NPCs",
                 "add": "Přidat postavu",
                 "empty": "K tomuto kroku nejsou přiřazeny žádné postavy.",
+                "remove": "Odebrat"
+            },
+            "locations": {
+                "title": "Propojené lokace",
+                "add": "Přidat lokaci",
+                "empty": "K tomuto kroku nejsou přiřazeny žádné lokace.",
                 "remove": "Odebrat"
             },
             "addDialog": {
@@ -576,6 +615,16 @@
             "dungeon": "Dungeon"
         },
         "allTypes": "Všechny typy",
+        "dungeon": {
+            "selectFloor": "Vyberte patro (volitelné)",
+            "selectRoom": "Vyberte místnost (volitelné)",
+            "modal": {
+                "title": "Propojit dungeon lokaci",
+                "description": "Vyberte, co chcete propojit z {name}. Můžete propojit celý dungeon, konkrétní patro nebo konkrétní místnost.",
+                "linkingAs": "Propojení jako",
+                "addLink": "Přidat vazbu"
+            }
+        },
         "list": {
             "empty": "Nenalezeny žádné lokace.",
             "searchPlaceholder": "Hledat lokace...",

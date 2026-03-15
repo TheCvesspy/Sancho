@@ -471,30 +471,31 @@ export function DungeonFloorsPanel({
                                     {/* Floor expanded content */}
                                     <CollapsibleContent>
                                         <div className="border-t px-4 py-4 space-y-4">
-                                            {/* Floor description */}
-                                            <div className="rounded-lg border bg-background p-4">
-                                                <EditableRichText
-                                                    title={t("locations.floors.fields.description.label")}
-                                                    initialHtml={floor.description || ""}
-                                                    placeholder={t("locations.floors.fields.description.placeholder")}
-                                                    isReadOnly={!canWrite}
-                                                    onSave={(html) => handleSaveFloorField(floor.id, "description", html)}
-                                                />
-                                            </div>
-
-                                            {/* Floor internal notes */}
-                                            {canWrite && (
-                                                <div className="rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 p-4">
+                                            {/* Floor description + notes row */}
+                                            <div className={`grid gap-4 ${canWrite ? "grid-cols-3" : "grid-cols-1"}`}>
+                                                <div className={`${canWrite ? "col-span-2" : "col-span-1"} rounded-lg border bg-background p-4`}>
                                                     <EditableRichText
-                                                        title={t("locations.floors.fields.internalNotes.label")}
-                                                        variant="amber"
-                                                        initialHtml={floor.internalNotes || ""}
-                                                        placeholder={t("locations.floors.fields.internalNotes.placeholder")}
-                                                        isReadOnly={false}
-                                                        onSave={(html) => handleSaveFloorField(floor.id, "internalNotes", html)}
+                                                        title={t("locations.floors.fields.description.label")}
+                                                        initialHtml={floor.description || ""}
+                                                        placeholder={t("locations.floors.fields.description.placeholder")}
+                                                        isReadOnly={!canWrite}
+                                                        onSave={(html) => handleSaveFloorField(floor.id, "description", html)}
                                                     />
                                                 </div>
-                                            )}
+
+                                                {canWrite && (
+                                                    <div className="col-span-1 rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 p-4">
+                                                        <EditableRichText
+                                                            title={t("locations.floors.fields.internalNotes.label")}
+                                                            variant="amber"
+                                                            initialHtml={floor.internalNotes || ""}
+                                                            placeholder={t("locations.floors.fields.internalNotes.placeholder")}
+                                                            isReadOnly={false}
+                                                            onSave={(html) => handleSaveFloorField(floor.id, "internalNotes", html)}
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
 
                                             {/* Floor documents */}
                                             <div className="rounded-lg border bg-background p-4">
@@ -784,28 +785,31 @@ function RoomItem({
 
                 <CollapsibleContent>
                     <div className="border-t px-3 py-3 space-y-3">
-                        <div className="rounded-md border bg-muted/30 p-3">
-                            <EditableRichText
-                                title={t("locations.rooms.fields.description.label")}
-                                initialHtml={room.description || ""}
-                                placeholder={t("locations.rooms.fields.description.placeholder")}
-                                isReadOnly={!canWrite}
-                                onSave={(html) => onSaveField("description", html)}
-                            />
-                        </div>
-
-                        {canWrite && (
-                            <div className="rounded-md border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 p-3">
+                        {/* Room description + notes row */}
+                        <div className={`grid gap-3 ${canWrite ? "grid-cols-3" : "grid-cols-1"}`}>
+                            <div className={`${canWrite ? "col-span-2" : "col-span-1"} rounded-md border bg-muted/30 p-3`}>
                                 <EditableRichText
-                                    title={t("locations.rooms.fields.internalNotes.label")}
-                                    variant="amber"
-                                    initialHtml={room.internalNotes || ""}
-                                    placeholder={t("locations.rooms.fields.internalNotes.placeholder")}
-                                    isReadOnly={false}
-                                    onSave={(html) => onSaveField("internalNotes", html)}
+                                    title={t("locations.rooms.fields.description.label")}
+                                    initialHtml={room.description || ""}
+                                    placeholder={t("locations.rooms.fields.description.placeholder")}
+                                    isReadOnly={!canWrite}
+                                    onSave={(html) => onSaveField("description", html)}
                                 />
                             </div>
-                        )}
+
+                            {canWrite && (
+                                <div className="col-span-1 rounded-md border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 p-3">
+                                    <EditableRichText
+                                        title={t("locations.rooms.fields.internalNotes.label")}
+                                        variant="amber"
+                                        initialHtml={room.internalNotes || ""}
+                                        placeholder={t("locations.rooms.fields.internalNotes.placeholder")}
+                                        isReadOnly={false}
+                                        onSave={(html) => onSaveField("internalNotes", html)}
+                                    />
+                                </div>
+                            )}
+                        </div>
 
                         <div className="rounded-md border bg-muted/30 p-3">
                             <DungeonRoomDocumentsPanel

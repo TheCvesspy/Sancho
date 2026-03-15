@@ -40,6 +40,13 @@ export interface NarrativeQuestDto {
     shortDescription: string | null;
     description: string | null;
     internalNotes: string | null;
+    questType: string[] | null;
+    function: string | null;
+    questAssignment: string | null;
+    playerGoal: string | null;
+    playerMotivation: string | null;
+    expectedResults: string | null;
+    escalation: string | null;
     status: "Draft" | "Ready" | "Locked";
     createdAt: string;
     updatedAt: string;
@@ -212,6 +219,18 @@ export interface NarrativeQuestStepCharacterDto {
     createdAt: string;
 }
 
+export interface NarrativeQuestStepLocationDto {
+    eventId: string;
+    stepId: string;
+    locationId: string;
+    floorId: string | null;
+    roomId: string | null;
+    locationName: string | null;
+    floorName: string | null;
+    roomName: string | null;
+    createdAt: string;
+}
+
 export interface NarrativeInheritedLinksDto {
     characterIds: string[];
     factionIds: string[];
@@ -309,6 +328,13 @@ export interface UpdateQuestRequest {
     shortDescription?: string | null;
     description?: string | null;
     internalNotes?: string | null;
+    questType?: string[] | null;
+    function?: string | null;
+    questAssignment?: string | null;
+    playerGoal?: string | null;
+    playerMotivation?: string | null;
+    expectedResults?: string | null;
+    escalation?: string | null;
 }
 
 export interface CreateQuestStepRequest {
@@ -616,6 +642,26 @@ export const narrativeApi = {
         fetcher<void>(`/api/events/${eventId}/narrative/quests/${questId}/steps/${stepId}/characters/${characterId}`, {
             method: "DELETE",
             headers: { Authorization: `Bearer ${token}` },
+        }),
+
+    // Quest Step Locations
+    listQuestStepLocations: (token: string, eventId: string, questId: string, stepId: string) =>
+        fetcher<NarrativeQuestStepLocationDto[]>(`/api/events/${eventId}/narrative/quests/${questId}/steps/${stepId}/locations`, {
+            headers: { Authorization: `Bearer ${token}` },
+        }),
+
+    upsertQuestStepLocation: (token: string, eventId: string, questId: string, stepId: string, locationId: string, data?: { floorId?: string | null; roomId?: string | null }) =>
+        fetcher<NarrativeQuestStepLocationDto>(`/api/events/${eventId}/narrative/quests/${questId}/steps/${stepId}/locations/${locationId}`, {
+            method: "PUT",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify(data ?? {}),
+        }),
+
+    deleteQuestStepLocation: (token: string, eventId: string, questId: string, stepId: string, locationId: string, data?: { floorId?: string | null; roomId?: string | null }) =>
+        fetcher<void>(`/api/events/${eventId}/narrative/quests/${questId}/steps/${stepId}/locations/${locationId}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify(data ?? {}),
         }),
 
     // Quest Links

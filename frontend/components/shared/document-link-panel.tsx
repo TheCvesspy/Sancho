@@ -25,6 +25,8 @@ export interface DocumentItem {
     documentStatus: "Draft" | "Ready to Review" | "Final";
     sourceType: string;
     createdAt: string;
+    tag?: string;
+    isReadOnly?: boolean;
 }
 
 export interface AddDocumentLinkData {
@@ -43,6 +45,7 @@ export interface DocumentLinkTranslations {
         source: string;
         date: string;
         actions: string;
+        tag?: string;
     };
     statuses: {
         draft: string;
@@ -176,6 +179,8 @@ export function DocumentLinkPanel({
 
     // ── Render ────────────────────────────────────────────────────────────────
 
+    const hasTags = documents.some((d) => d.tag !== undefined);
+
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -198,6 +203,7 @@ export function DocumentLinkPanel({
                         <TableHeader>
                             <TableRow>
                                 <TableHead>{tl.columns.name}</TableHead>
+                                {hasTags && <TableHead>{tl.columns.tag ?? "Source"}</TableHead>}
                                 <TableHead>{tl.columns.status}</TableHead>
                                 <TableHead>{tl.columns.source}</TableHead>
                                 <TableHead>{tl.columns.date}</TableHead>
@@ -220,6 +226,17 @@ export function DocumentLinkPanel({
                                             </a>
                                         </div>
                                     </TableCell>
+                                    {hasTags && (
+                                        <TableCell>
+                                            {doc.tag ? (
+                                                <Badge variant="outline" className="text-xs border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-400">
+                                                    {doc.tag}
+                                                </Badge>
+                                            ) : (
+                                                <span className="text-xs text-muted-foreground">—</span>
+                                            )}
+                                        </TableCell>
+                                    )}
                                     <TableCell>
                                         <DocumentStatusBadge status={doc.documentStatus} />
                                     </TableCell>
@@ -234,14 +251,16 @@ export function DocumentLinkPanel({
                                     </TableCell>
                                     {!isReadOnly && (
                                         <TableCell>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                                                onClick={() => setDeleteTarget(doc)}
-                                            >
-                                                <Trash2 className="h-3.5 w-3.5" />
-                                            </Button>
+                                            {!doc.isReadOnly && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                                                    onClick={() => setDeleteTarget(doc)}
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                </Button>
+                                            )}
                                         </TableCell>
                                     )}
                                 </TableRow>

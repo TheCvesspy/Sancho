@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -12,11 +12,16 @@ import {
     NarrativeQuestCharacterLinkDto,
     NarrativeEntityFactionLinkDto,
     NarrativeEntityItemLinkDto,
+    NarrativeQuestStepItemLinkDto,
+    NarrativeItemDto,
+    NarrativeLocationDto,
     narrativeApi,
     UpdateQuestRequest
 } from "@/utils/narrative-api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     ArrowLeft,
@@ -28,7 +33,8 @@ import {
     Pencil,
     X,
     Trash2,
-    RotateCcw
+    RotateCcw,
+    Package
 } from "lucide-react";
 import { EditableRichText } from "@/components/ui/editable-rich-text";
 import { NarrativeStatusBadge } from "./narrative-status-badge";
@@ -48,6 +54,9 @@ interface QuestDetailProps {
     initialCharacterLinks: NarrativeQuestCharacterLinkDto[];
     initialFactionLinks: NarrativeEntityFactionLinkDto[];
     initialItemLinks: NarrativeEntityItemLinkDto[];
+    initialStepItemLinks: NarrativeQuestStepItemLinkDto[];
+    allItems: NarrativeItemDto[];
+    allLocations: NarrativeLocationDto[];
     canWrite: boolean;
     token: string;
 }
@@ -60,6 +69,9 @@ export function QuestDetail({
     initialCharacterLinks,
     initialFactionLinks,
     initialItemLinks,
+    initialStepItemLinks,
+    allItems,
+    allLocations,
     canWrite,
     token
 }: QuestDetailProps) {
@@ -74,13 +86,71 @@ export function QuestDetail({
     const [shortDescriptionDraft, setShortDescriptionDraft] = useState(initialQuest.shortDescription ?? "");
     const [isSavingShortDescription, setIsSavingShortDescription] = useState(false);
 
+    // Tag input state
+    const [tagDraft, setTagDraft] = useState("");
+
+    // Track step-level item links for props aggregation (updated via callback)
+    const [stepItemLinks, setStepItemLinks] = useState<NarrativeQuestStepItemLinkDto[]>(initialStepItemLinks);
+
     const handleBack = () => router.push(`/${locale}/narrative/${event.id}`);
 
-    // --- Description / Notes via EditableRichText ---
-    const handleSaveField = async (field: "description" | "internalNotes", value: string) => {
+    const isLocked = quest.status === "Locked";
+    const isReadOnly = !canWrite || !!quest.deletedAt || isLocked;
+
+    // --- Save field (extended for new fields) ---
+    const handleSaveField = async (field: string, value: string) => {
         const req: UpdateQuestRequest = { [field]: value };
         const updated = await narrativeApi.updateQuest(token, event.id, quest.id, req);
         setQuest(q => ({ ...q, [field]: updated[field as keyof NarrativeQuestDto], updatedAt: updated.updatedAt }));
+    };
+
+    // --- Quest Type tags ---
+    const handleAddTag = async (tag: string) => {
+        const trimmed = tag.trim();
+        if (!trimmed) return;
+        const current = quest.questType ?? [];
+        if (current.includes(trimmed)) return;
+        const newTags = [...current, trimmed];
+        try {
+            const updated = await narrativeApi.updateQuest(token, event.id, quest.id, { questType: newTags });
+            setQuest(q => ({ ...q, questType: updated.questType, updatedAt: updated.updatedAt }));
+        } catch (err) {
+            console.error(err);
+            toast.error(t("common.error"));
+        }
+    };
+
+    const handleRemoveTag = async (tag: string) => {
+        const current = quest.questType ?? [];
+        const newTags = current.filter(t => t !== tag);
+        try {
+            const updated = await narrativeApi.updateQuest(token, event.id, quest.id, { questType: newTags.length > 0 ? newTags : [] });
+            setQuest(q => ({ ...q, questType: updated.questType, updatedAt: updated.updatedAt }));
+        } catch (err) {
+            console.error(err);
+            toast.error(t("common.error"));
+        }
+    };
+
+    const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter" || e.key === ",") {
+            e.preventDefault();
+            handleAddTag(tagDraft);
+            setTagDraft("");
+        }
+    };
+
+    // --- Textarea blur save ---
+    const handleTextareaBlur = async (field: string, value: string) => {
+        const currentValue = quest[field as keyof NarrativeQuestDto] as string | null;
+        if (value === (currentValue ?? "")) return;
+        try {
+            await handleSaveField(field, value);
+            toast.success(t("quests.notifications.updated"));
+        } catch (err) {
+            console.error(err);
+            toast.error(t("common.error"));
+        }
     };
 
     const handleSaveShortDescription = async () => {
@@ -130,6 +200,49 @@ export function QuestDetail({
         } finally {
             setIsActionPending(false);
         }
+    };
+
+    // --- Props aggregation ---
+    const propsItems = useMemo(() => {
+        const itemIdSet = new Set<string>();
+        // Quest-level items
+        initialItemLinks.forEach(link => itemIdSet.add(link.itemId));
+        // Step-level items
+        stepItemLinks.forEach(link => itemIdSet.add(link.itemId));
+
+        return Array.from(itemIdSet).map(itemId => {
+            const item = allItems.find(i => i.id === itemId);
+            return { id: itemId, name: item?.name ?? itemId };
+        });
+    }, [initialItemLinks, stepItemLinks, allItems]);
+
+    // Step items changed callback
+    const handleStepItemsChanged = (stepId: string, items: NarrativeQuestStepItemLinkDto[]) => {
+        setStepItemLinks(prev => {
+            const filtered = prev.filter(l => l.stepId !== stepId);
+            return [...filtered, ...items];
+        });
+    };
+
+    // --- Textarea field component ---
+    const MetadataTextarea = ({ field, rows = 2 }: { field: string; rows?: number }) => {
+        const fieldKey = field as keyof NarrativeQuestDto;
+        const [localValue, setLocalValue] = useState((quest[fieldKey] as string | null) ?? "");
+
+        return (
+            <div className="space-y-1.5">
+                <label className="text-sm font-medium">{t(`quests.fields.${field}.label`)}</label>
+                <Textarea
+                    value={localValue}
+                    onChange={(e) => setLocalValue(e.target.value)}
+                    onBlur={() => handleTextareaBlur(field, localValue)}
+                    placeholder={t(`quests.fields.${field}.placeholder`)}
+                    rows={rows}
+                    disabled={isReadOnly}
+                    className="resize-none"
+                />
+            </div>
+        );
     };
 
     return (
@@ -273,16 +386,75 @@ export function QuestDetail({
                     </TabsTrigger>
                 </TabsList>
 
-                {/* Details tab: Steps first, then Description, then Internal Notes */}
+                {/* Details tab: Metadata → Description → Internal Notes → Steps */}
                 <TabsContent value="details" className="space-y-8 mt-4">
-                    <QuestStepsPanel
-                        questId={quest.id}
-                        eventId={event.id}
-                        initialSteps={initialSteps}
-                        canWrite={canWrite}
-                        token={token}
-                    />
+                    {/* Quest metadata form section */}
+                    <div className="rounded-lg border bg-card p-6 space-y-5">
+                        {/* Quest Type (tags) */}
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-medium">{t("quests.fields.questType.label")}</label>
+                            <div className="flex flex-wrap gap-1.5 mb-2">
+                                {(quest.questType ?? []).map((tag) => (
+                                    <Badge key={tag} variant="secondary" className="flex items-center gap-1 pr-1">
+                                        <span>{tag}</span>
+                                        {!isReadOnly && (
+                                            <button
+                                                onClick={() => handleRemoveTag(tag)}
+                                                className="ml-0.5 hover:text-destructive transition-colors"
+                                            >
+                                                <X className="h-3 w-3" />
+                                            </button>
+                                        )}
+                                    </Badge>
+                                ))}
+                            </div>
+                            {!isReadOnly && (
+                                <Input
+                                    value={tagDraft}
+                                    onChange={(e) => setTagDraft(e.target.value)}
+                                    onKeyDown={handleTagKeyDown}
+                                    placeholder={t("quests.fields.questType.placeholder")}
+                                    className="max-w-sm"
+                                />
+                            )}
+                        </div>
 
+                        {/* Text fields in a grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <MetadataTextarea field="function" />
+                            <MetadataTextarea field="questAssignment" />
+                            <MetadataTextarea field="playerGoal" />
+                            <MetadataTextarea field="playerMotivation" />
+                            <MetadataTextarea field="expectedResults" />
+                            <MetadataTextarea field="escalation" />
+                        </div>
+
+                        {/* Props (read-only aggregated items) */}
+                        <div className="space-y-1.5">
+                            <div className="flex items-center gap-1.5 text-sm font-medium">
+                                <Package className="h-4 w-4" />
+                                {t("quests.fields.props.label")}
+                            </div>
+                            {propsItems.length === 0 ? (
+                                <p className="text-sm text-muted-foreground italic">{t("quests.fields.props.empty")}</p>
+                            ) : (
+                                <div className="flex flex-wrap gap-1.5">
+                                    {propsItems.map((item) => (
+                                        <Badge
+                                            key={item.id}
+                                            variant="outline"
+                                            className="cursor-pointer hover:bg-accent"
+                                            onClick={() => router.push(`/${locale}/narrative/${event.id}/items/${item.id}`)}
+                                        >
+                                            {item.name}
+                                        </Badge>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Description + Internal Notes */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         {/* Description */}
                         <div className={`rounded-lg border bg-card p-6 ${canWrite ? "md:col-span-2" : "md:col-span-3"}`}>
@@ -310,6 +482,18 @@ export function QuestDetail({
                             </div>
                         )}
                     </div>
+
+                    {/* Quest Steps (moved below description) */}
+                    <QuestStepsPanel
+                        questId={quest.id}
+                        eventId={event.id}
+                        initialSteps={initialSteps}
+                        canWrite={canWrite}
+                        token={token}
+                        allItems={allItems}
+                        allLocations={allLocations}
+                        onStepItemsChanged={handleStepItemsChanged}
+                    />
                 </TabsContent>
 
                 <TabsContent value="links">

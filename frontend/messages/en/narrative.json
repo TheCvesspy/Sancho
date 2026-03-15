@@ -84,7 +84,8 @@
             "status": "Status",
             "source": "Source",
             "date": "Added",
-            "actions": "Actions"
+            "actions": "Actions",
+            "tag": "Floor / Room"
         },
         "statuses": {
             "draft": "Draft",
@@ -153,6 +154,38 @@
             "internalNotes": {
                 "label": "Internal Notes",
                 "placeholder": "Enter internal notes (admin only)..."
+            },
+            "questType": {
+                "label": "Quest Type",
+                "placeholder": "Add tags..."
+            },
+            "function": {
+                "label": "Function",
+                "placeholder": "Quest function..."
+            },
+            "questAssignment": {
+                "label": "Quest Assignment",
+                "placeholder": "How the quest is assigned..."
+            },
+            "playerGoal": {
+                "label": "Player Goal",
+                "placeholder": "What the player aims to achieve..."
+            },
+            "playerMotivation": {
+                "label": "Player Motivation",
+                "placeholder": "Why the player would pursue this..."
+            },
+            "expectedResults": {
+                "label": "Expected Results",
+                "placeholder": "Expected outcomes..."
+            },
+            "escalation": {
+                "label": "Escalation",
+                "placeholder": "Escalation path..."
+            },
+            "props": {
+                "label": "Props",
+                "empty": "No items linked to this quest."
             }
         },
         "steps": {
@@ -177,6 +210,12 @@
                 "title": "Involved Characters / NPCs",
                 "add": "Add Character",
                 "empty": "No characters assigned to this step.",
+                "remove": "Remove"
+            },
+            "locations": {
+                "title": "Linked Locations",
+                "add": "Add Location",
+                "empty": "No locations linked to this step.",
                 "remove": "Remove"
             },
             "addDialog": {
@@ -581,6 +620,16 @@
             "dungeon": "Dungeon"
         },
         "allTypes": "All Types",
+        "dungeon": {
+            "selectFloor": "Select floor (optional)",
+            "selectRoom": "Select room (optional)",
+            "modal": {
+                "title": "Link Dungeon Location",
+                "description": "Choose what to link from {name}. You can link the entire dungeon, a specific floor, or a specific room.",
+                "linkingAs": "Linking as",
+                "addLink": "Add Link"
+            }
+        },
         "list": {
             "empty": "No locations found.",
             "searchPlaceholder": "Search locations...",

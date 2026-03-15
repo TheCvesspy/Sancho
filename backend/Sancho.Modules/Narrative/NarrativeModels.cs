@@ -37,6 +37,13 @@ public record NarrativeQuestDto(
     string? ShortDescription,
     string? Description,
     string? InternalNotes,
+    string[]? QuestType,
+    string? Function,
+    string? QuestAssignment,
+    string? PlayerGoal,
+    string? PlayerMotivation,
+    string? ExpectedResults,
+    string? Escalation,
     string Status,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
@@ -243,6 +250,18 @@ public record NarrativeQuestStepCharacterDto(
     DateTimeOffset CreatedAt
 );
 
+public record NarrativeQuestStepLocationDto(
+    Guid EventId,
+    Guid StepId,
+    Guid LocationId,
+    Guid? FloorId,
+    Guid? RoomId,
+    string? LocationName,
+    string? FloorName,
+    string? RoomName,
+    DateTimeOffset CreatedAt
+);
+
 public record NarrativeInheritedLinksDto(
     IReadOnlyList<Guid> CharacterIds,
     IReadOnlyList<Guid> FactionIds,
@@ -278,7 +297,14 @@ public record UpdateQuestRequest(
     string? Title,
     string? ShortDescription,
     string? Description,
-    string? InternalNotes
+    string? InternalNotes,
+    string[]? QuestType,
+    string? Function,
+    string? QuestAssignment,
+    string? PlayerGoal,
+    string? PlayerMotivation,
+    string? ExpectedResults,
+    string? Escalation
 );
 
 public record ChangeNarrativeStatusRequest(
@@ -419,6 +445,13 @@ internal record SupabaseNarrativeQuestRow(
     [property: JsonPropertyName("short_description")] string? short_description,
     string? description,
     [property: JsonPropertyName("internal_notes")] string? internal_notes,
+    [property: JsonPropertyName("quest_type")] string[]? quest_type,
+    string? function,
+    [property: JsonPropertyName("quest_assignment")] string? quest_assignment,
+    [property: JsonPropertyName("player_goal")] string? player_goal,
+    [property: JsonPropertyName("player_motivation")] string? player_motivation,
+    [property: JsonPropertyName("expected_results")] string? expected_results,
+    string? escalation,
     string status,
     [property: JsonPropertyName("created_at")] DateTimeOffset created_at,
     [property: JsonPropertyName("updated_at")] DateTimeOffset updated_at,
@@ -430,6 +463,18 @@ internal record SupabaseNarrativeQuestStepCharacterRow(
     [property: JsonPropertyName("step_id")] Guid step_id,
     [property: JsonPropertyName("character_id")] Guid character_id,
     [property: JsonPropertyName("created_at")] DateTimeOffset created_at
+);
+
+internal record SupabaseNarrativeQuestStepLocationRow(
+    [property: JsonPropertyName("event_id")] Guid event_id,
+    [property: JsonPropertyName("step_id")] Guid step_id,
+    [property: JsonPropertyName("location_id")] Guid location_id,
+    [property: JsonPropertyName("floor_id")] Guid? floor_id,
+    [property: JsonPropertyName("room_id")] Guid? room_id,
+    [property: JsonPropertyName("created_at")] DateTimeOffset created_at,
+    SupabaseNamedLocationLinkRow? location = null,
+    SupabaseNamedLocationLinkRow? floor = null,
+    SupabaseNamedLocationLinkRow? room = null
 );
 
 internal record SupabaseNarrativeQuestStepRow(

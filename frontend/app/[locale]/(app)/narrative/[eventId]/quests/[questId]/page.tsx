@@ -44,7 +44,7 @@ export default async function QuestDetailPage({
     const { canWrite, isOrgOrSysAdmin } = resolveModuleAccess(profile, permissions, "narrative");
 
     try {
-        const [event, quest, steps, documents, charLinks, factionLinks, itemLinks] = await Promise.all([
+        const [event, quest, steps, documents, charLinks, factionLinks, itemLinks, allItems, allLocations] = await Promise.all([
             eventsApi.getEvent(token, eventId),
             narrativeApi.getQuest(token, eventId, questId),
             narrativeApi.listQuestSteps(token, eventId, questId),
@@ -52,7 +52,21 @@ export default async function QuestDetailPage({
             narrativeApi.listQuestCharacters(token, eventId, questId),
             narrativeApi.listQuestFactions(token, eventId, questId),
             narrativeApi.listQuestItems(token, eventId, questId),
+            narrativeApi.listItems(token, eventId),
+            narrativeApi.listLocations(token, eventId),
         ]);
+
+        // Fetch step-level item links for props aggregation (catch per-step to avoid 404 crashing all)
+        const stepItemArrays = await Promise.all(
+            steps.map(async (s) => {
+                try {
+                    return await narrativeApi.listQuestStepItems(token, eventId, questId, s.id);
+                } catch {
+                    return [];
+                }
+            })
+        );
+        const allStepItemLinks = stepItemArrays.flat();
 
         return (
             <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -64,6 +78,9 @@ export default async function QuestDetailPage({
                     initialCharacterLinks={charLinks}
                     initialFactionLinks={factionLinks}
                     initialItemLinks={itemLinks}
+                    initialStepItemLinks={allStepItemLinks}
+                    allItems={allItems}
+                    allLocations={allLocations}
                     canWrite={canWrite}
                     token={token}
                 />

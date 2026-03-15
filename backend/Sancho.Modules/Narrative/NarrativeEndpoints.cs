@@ -39,6 +39,10 @@ public static class NarrativeEndpoints
         group.MapPut("/quests/{questId:guid}/steps/{stepId:guid}/characters/{characterId:guid}", UpsertQuestStepCharacter);
         group.MapDelete("/quests/{questId:guid}/steps/{stepId:guid}/characters/{characterId:guid}", DeleteQuestStepCharacter);
 
+        group.MapGet("/quests/{questId:guid}/steps/{stepId:guid}/locations", ListQuestStepLocations);
+        group.MapPut("/quests/{questId:guid}/steps/{stepId:guid}/locations/{locationId:guid}", UpsertQuestStepLocation);
+        group.MapDelete("/quests/{questId:guid}/steps/{stepId:guid}/locations/{locationId:guid}", DeleteQuestStepLocation);
+
         group.MapGet("/quests/{questId:guid}/links/characters", ListQuestCharacters);
         group.MapPut("/quests/{questId:guid}/links/characters/{characterId:guid}", UpsertQuestCharacter);
         group.MapDelete("/quests/{questId:guid}/links/characters/{characterId:guid}", DeleteQuestCharacter);
@@ -209,7 +213,7 @@ public static class NarrativeEndpoints
         var row = await GetQuest(eventId, questId, url!, key!, httpClient, includeDeleted: true);
         if (row is null) return Results.NotFound();
         if (row.deleted_at.HasValue) return Results.BadRequest("Deleted quest cannot be edited.");
-        if (row.status == NarrativeStatuses.Locked && (request.Title is not null || request.ShortDescription is not null || request.Description is not null))
+        if (row.status == NarrativeStatuses.Locked && (request.Title is not null || request.ShortDescription is not null || request.Description is not null || request.QuestType is not null || request.Function is not null || request.QuestAssignment is not null || request.PlayerGoal is not null || request.PlayerMotivation is not null || request.ExpectedResults is not null || request.Escalation is not null))
             return Results.BadRequest("Locked quest allows editing internal notes only.");
 
         var nextShortDescription = request.ShortDescription is null
@@ -232,7 +236,14 @@ public static class NarrativeEndpoints
             title = nextTitle,
             short_description = nextShortDescription,
             description = request.Description ?? row.description,
-            internal_notes = request.InternalNotes ?? row.internal_notes
+            internal_notes = request.InternalNotes ?? row.internal_notes,
+            quest_type = request.QuestType ?? row.quest_type,
+            function = request.Function ?? row.function,
+            quest_assignment = request.QuestAssignment ?? row.quest_assignment,
+            player_goal = request.PlayerGoal ?? row.player_goal,
+            player_motivation = request.PlayerMotivation ?? row.player_motivation,
+            expected_results = request.ExpectedResults ?? row.expected_results,
+            escalation = request.Escalation ?? row.escalation
         });
         var resp = await httpClient.SendAsync(req);
         if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to update quest: {resp.StatusCode}");
@@ -303,6 +314,13 @@ public static class NarrativeEndpoints
             short_description = source.short_description,
             description = source.description,
             internal_notes = source.internal_notes,
+            quest_type = source.quest_type,
+            function = source.function,
+            quest_assignment = source.quest_assignment,
+            player_goal = source.player_goal,
+            player_motivation = source.player_motivation,
+            expected_results = source.expected_results,
+            escalation = source.escalation,
             status = NarrativeStatuses.Draft
         });
         var createResp = await httpClient.SendAsync(createReq);
@@ -397,7 +415,7 @@ public static class NarrativeEndpoints
             AddHeaders(stepCharsReq, key!);
             var stepCharsResp = await httpClient.SendAsync(stepCharsReq);
             var sourceStepChars = stepCharsResp.IsSuccessStatusCode ? await stepCharsResp.Content.ReadFromJsonAsync<List<SupabaseNarrativeQuestStepCharacterRow>>() ?? [] : [];
-            
+
             if (sourceStepChars.Count > 0)
             {
                 var stepCharRows = sourceStepChars.Select(sc => new { event_id = eventId, step_id = stepIdMapping[sc.step_id], character_id = sc.character_id }).ToList();
@@ -405,6 +423,22 @@ public static class NarrativeEndpoints
                 batchReq.Headers.Add("Prefer", "return=minimal");
                 AddHeaders(batchReq, key!);
                 batchReq.Content = JsonContent.Create(stepCharRows);
+                await httpClient.SendAsync(batchReq);
+            }
+
+            // Step Locations
+            var stepLocsReq = new HttpRequestMessage(HttpMethod.Get, $"{url}/rest/v1/narrative_quest_step_locations?event_id=eq.{eventId}&step_id=in.({stepIdsFilter})&select=step_id,location_id,floor_id,room_id");
+            AddHeaders(stepLocsReq, key!);
+            var stepLocsResp = await httpClient.SendAsync(stepLocsReq);
+            var sourceStepLocs = stepLocsResp.IsSuccessStatusCode ? await stepLocsResp.Content.ReadFromJsonAsync<List<SupabaseNarrativeQuestStepLocationRow>>() ?? [] : [];
+
+            if (sourceStepLocs.Count > 0)
+            {
+                var stepLocRows = sourceStepLocs.Select(sl => new { event_id = eventId, step_id = stepIdMapping[sl.step_id], location_id = sl.location_id, floor_id = sl.floor_id, room_id = sl.room_id }).ToList();
+                var batchReq = new HttpRequestMessage(HttpMethod.Post, $"{url}/rest/v1/narrative_quest_step_locations");
+                batchReq.Headers.Add("Prefer", "return=minimal");
+                AddHeaders(batchReq, key!);
+                batchReq.Content = JsonContent.Create(stepLocRows);
                 await httpClient.SendAsync(batchReq);
             }
         }
@@ -620,6 +654,87 @@ public static class NarrativeEndpoints
         AddHeaders(req, key!);
         var resp = await httpClient.SendAsync(req);
         return resp.IsSuccessStatusCode ? Results.NoContent() : Results.Problem($"Failed to delete quest step character: {resp.StatusCode}");
+    }
+
+    // --- Quest Step Locations ---
+
+    private static async Task<IResult> ListQuestStepLocations(Guid eventId, Guid questId, Guid stepId, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
+    {
+        if (!TryConfig(config, out var url, out var key, out var error)) return error!;
+        var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
+        if (!access.CanRead) return Results.Forbid();
+        if (!await QuestExists(eventId, questId, url!, key!, httpClient, includeDeleted: true)) return Results.NotFound();
+        if (await GetQuestStep(eventId, questId, stepId, url!, key!, httpClient) is null) return Results.NotFound();
+
+        var req = new HttpRequestMessage(HttpMethod.Get, $"{url}/rest/v1/narrative_quest_step_locations?event_id=eq.{eventId}&step_id=eq.{stepId}&select=event_id,step_id,location_id,floor_id,room_id,created_at,location:narrative_locations!location_id(name),floor:narrative_dungeon_floors!floor_id(name),room:narrative_dungeon_rooms!room_id(name)&order=created_at.asc");
+        AddHeaders(req, key!);
+        var resp = await httpClient.SendAsync(req);
+        if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to list quest step locations: {resp.StatusCode}");
+        var rows = await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativeQuestStepLocationRow>>() ?? [];
+        return Results.Ok(rows.Select(ToQuestStepLocationDto));
+    }
+
+    private static async Task<IResult> UpsertQuestStepLocation(Guid eventId, Guid questId, Guid stepId, Guid locationId, ClaimsPrincipal user, [FromBody] UpsertNarrativeLocationLinkRequest? request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
+    {
+        if (!TryConfig(config, out var url, out var key, out var error)) return error!;
+        var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
+        if (!access.CanWrite) return Results.Forbid();
+        if (!await QuestExists(eventId, questId, url!, key!, httpClient, includeDeleted: false)) return Results.NotFound();
+        if (await GetQuestStep(eventId, questId, stepId, url!, key!, httpClient) is null) return Results.NotFound();
+        if (!await LocationExistsInEvent(eventId, locationId, url!, key!, httpClient)) return Results.BadRequest("Location not found in event.");
+
+        var floorId = request?.FloorId;
+        var roomId = request?.RoomId;
+        if (roomId.HasValue && !floorId.HasValue) return Results.BadRequest("roomId requires floorId.");
+
+        // Plain INSERT; on conflict (link already exists) fetch the existing row
+        var req = new HttpRequestMessage(HttpMethod.Post, $"{url}/rest/v1/narrative_quest_step_locations");
+        req.Headers.Add("Prefer", "return=representation");
+        AddHeaders(req, key!);
+        req.Content = JsonContent.Create(new { event_id = eventId, step_id = stepId, location_id = locationId, floor_id = floorId, room_id = roomId });
+        var resp = await httpClient.SendAsync(req);
+
+        if (resp.StatusCode == System.Net.HttpStatusCode.Conflict)
+        {
+            // Link already exists — fetch and return it
+            var floorFilter = floorId.HasValue ? $"&floor_id=eq.{floorId}" : "&floor_id=is.null";
+            var roomFilter = roomId.HasValue ? $"&room_id=eq.{roomId}" : "&room_id=is.null";
+            var getReq = new HttpRequestMessage(HttpMethod.Get, $"{url}/rest/v1/narrative_quest_step_locations?step_id=eq.{stepId}&location_id=eq.{locationId}{floorFilter}{roomFilter}&select=event_id,step_id,location_id,floor_id,room_id,created_at,location:narrative_locations!location_id(name),floor:narrative_dungeon_floors!floor_id(name),room:narrative_dungeon_rooms!room_id(name)");
+            AddHeaders(getReq, key!);
+            var getResp = await httpClient.SendAsync(getReq);
+            if (!getResp.IsSuccessStatusCode) return Results.Problem($"Failed to fetch existing quest step location: {getResp.StatusCode}");
+            var existing = (await getResp.Content.ReadFromJsonAsync<List<SupabaseNarrativeQuestStepLocationRow>>())?.FirstOrDefault();
+            return existing is null ? Results.NoContent() : Results.Ok(ToQuestStepLocationDto(existing));
+        }
+
+        if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to insert quest step location: {resp.StatusCode}");
+        var row = (await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativeQuestStepLocationRow>>())?.FirstOrDefault();
+        return row is null ? Results.NoContent() : Results.Ok(ToQuestStepLocationDto(row));
+    }
+
+    private static async Task<IResult> DeleteQuestStepLocation(Guid eventId, Guid questId, Guid stepId, Guid locationId, ClaimsPrincipal user, [FromBody] DeleteNarrativeLocationLinkRequest? request, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
+    {
+        if (!TryConfig(config, out var url, out var key, out var error)) return error!;
+        var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
+        if (!access.CanWrite) return Results.Forbid();
+
+        var floorFilter = request?.FloorId.HasValue == true ? $"&floor_id=eq.{request.FloorId}" : "&floor_id=is.null";
+        var roomFilter = request?.RoomId.HasValue == true ? $"&room_id=eq.{request.RoomId}" : "&room_id=is.null";
+        var req = new HttpRequestMessage(HttpMethod.Delete, $"{url}/rest/v1/narrative_quest_step_locations?event_id=eq.{eventId}&step_id=eq.{stepId}&location_id=eq.{locationId}{floorFilter}{roomFilter}");
+        AddHeaders(req, key!);
+        var resp = await httpClient.SendAsync(req);
+        return resp.IsSuccessStatusCode ? Results.NoContent() : Results.Problem($"Failed to delete quest step location: {resp.StatusCode}");
+    }
+
+    private static async Task<bool> LocationExistsInEvent(Guid eventId, Guid locationId, string url, string key, HttpClient httpClient)
+    {
+        var req = new HttpRequestMessage(HttpMethod.Get, $"{url}/rest/v1/narrative_locations?id=eq.{locationId}&event_id=eq.{eventId}&deleted_at=is.null&select=id&limit=1");
+        AddHeaders(req, key);
+        req.Headers.Add("Prefer", "count=exact");
+        var resp = await httpClient.SendAsync(req);
+        if (!resp.IsSuccessStatusCode) return false;
+        var rows = await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativeIdRow>>() ?? [];
+        return rows.Count > 0;
     }
 
     private static async Task<IResult> ListQuestCharacters(Guid eventId, Guid questId, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient, NarrativeAuthorizationService authz)
@@ -2367,10 +2482,13 @@ public static class NarrativeEndpoints
     }
 
     private static NarrativeQuestDto ToQuestDto(SupabaseNarrativeQuestRow row, bool canReadInternal) =>
-        new(row.id, row.event_id, row.title, row.short_description, row.description, canReadInternal ? row.internal_notes : null, row.status, row.created_at, row.updated_at, row.deleted_at);
+        new(row.id, row.event_id, row.title, row.short_description, row.description, canReadInternal ? row.internal_notes : null, row.quest_type, row.function, row.quest_assignment, row.player_goal, row.player_motivation, row.expected_results, row.escalation, row.status, row.created_at, row.updated_at, row.deleted_at);
 
     private static NarrativeQuestStepCharacterDto ToQuestStepCharacterDto(SupabaseNarrativeQuestStepCharacterRow row) =>
         new(row.event_id, row.step_id, row.character_id, row.created_at);
+
+    private static NarrativeQuestStepLocationDto ToQuestStepLocationDto(SupabaseNarrativeQuestStepLocationRow row) =>
+        new(row.event_id, row.step_id, row.location_id, row.floor_id, row.room_id, row.location?.name, row.floor?.name, row.room?.name, row.created_at);
 
     private static NarrativeQuestStepDto ToQuestStepDto(SupabaseNarrativeQuestStepRow row, bool canReadInternal) =>
         new(row.id, row.quest_id, row.event_id, row.sort_order, row.summary, canReadInternal ? row.notes : null, row.created_at, row.updated_at);

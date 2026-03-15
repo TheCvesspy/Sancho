@@ -30,6 +30,7 @@ import { NarrativeStatusBadge } from "./narrative-status-badge";
 import { LocationTypeBadge } from "./location-type-badge";
 import { ChangeNarrativeStatusDialog } from "./change-narrative-status-dialog";
 import { LocationDocumentsPanel } from "./location-documents-panel";
+import { DungeonDocumentsMasterPanel } from "./dungeon-documents-master-panel";
 import { LocationLinksPanel } from "./location-links-panel";
 import { DungeonFloorsPanel } from "./dungeon-floors-panel";
 import { EditLocationNameDialog } from "./edit-location-name-dialog";
@@ -277,13 +278,24 @@ export function LocationDetail({
                 </TabsContent>
 
                 <TabsContent value="documents">
-                    <LocationDocumentsPanel
-                        eventId={event.id}
-                        locationId={location.id}
-                        initialDocuments={initialDocuments}
-                        canWrite={canWrite && !isLocked}
-                        token={token}
-                    />
+                    {isDungeon ? (
+                        <DungeonDocumentsMasterPanel
+                            eventId={event.id}
+                            locationId={location.id}
+                            initialDocuments={initialDocuments}
+                            floors={location.floors}
+                            canWrite={canWrite && !isLocked}
+                            token={token}
+                        />
+                    ) : (
+                        <LocationDocumentsPanel
+                            eventId={event.id}
+                            locationId={location.id}
+                            initialDocuments={initialDocuments}
+                            canWrite={canWrite && !isLocked}
+                            token={token}
+                        />
+                    )}
                 </TabsContent>
             </Tabs>
         </div>
