@@ -7,9 +7,11 @@ export interface GraphFilterState {
     showCharacters: boolean;
     showFactions: boolean;
     showQuests: boolean;
+    showItems: boolean;
     showDirectRelationships: boolean;
     showFactionMemberships: boolean;
     showQuestParticipations: boolean;
+    showItemLinks: boolean;
 }
 
 interface GraphFiltersProps {
@@ -58,6 +60,11 @@ export function GraphFilters({ filters, onChange }: GraphFiltersProps) {
                                 checked={filters.showQuests}
                                 onChange={(v) => onChange("showQuests", v)}
                             />
+                            <FilterCheckbox
+                                label="Items"
+                                checked={filters.showItems}
+                                onChange={(v) => onChange("showItems", v)}
+                            />
                         </div>
                         <div className="space-y-1.5 pt-1 border-t border-slate-200 dark:border-slate-700">
                             <p className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500 font-semibold">
@@ -77,6 +84,11 @@ export function GraphFilters({ filters, onChange }: GraphFiltersProps) {
                                 label="Quest links"
                                 checked={filters.showQuestParticipations}
                                 onChange={(v) => onChange("showQuestParticipations", v)}
+                            />
+                            <FilterCheckbox
+                                label="Item links"
+                                checked={filters.showItemLinks}
+                                onChange={(v) => onChange("showItemLinks", v)}
                             />
                         </div>
                     </div>

@@ -43,6 +43,15 @@ public static class CharacterEndpoints
         group.MapDelete("/{characterId:guid}/photo", RemovePhoto);
 
         group.MapGet("/{characterId:guid}/narrative-links", GetNarrativeLinks);
+
+        group.MapGet("/{characterId:guid}/relationships", ListCharacterRelationships);
+        group.MapPost("/{characterId:guid}/relationships", CreateCharacterRelationship);
+        group.MapPatch("/{characterId:guid}/relationships/{relationshipId:guid}", UpdateCharacterRelationship);
+        group.MapDelete("/{characterId:guid}/relationships/{relationshipId:guid}", DeleteCharacterRelationship);
+
+        group.MapGet("/{characterId:guid}/items", ListCharacterItems);
+        group.MapPut("/{characterId:guid}/items/{itemId:guid}", AssignItemToCharacter);
+        group.MapDelete("/{characterId:guid}/items/{itemId:guid}", RemoveItemFromCharacter);
     }
 
     private static async Task<IResult> ListCharacters(Guid eventId, ClaimsPrincipal user, [FromQuery] bool includeDeleted, IConfiguration config, HttpClient httpClient, CharacterAuthorizationService authz)
@@ -552,8 +561,9 @@ public static class CharacterEndpoints
         var factionsTask = narrativeService.GetFactionsAsync(eventId, characterId);
         var relationshipsTask = narrativeService.GetRelationshipsAsync(eventId, characterId);
         var questsTask = narrativeService.GetQuestsAsync(eventId, characterId);
-        await Task.WhenAll(factionsTask, relationshipsTask, questsTask);
-        return Results.Ok(new CharacterNarrativeLinksDto(factionsTask.Result, relationshipsTask.Result, questsTask.Result));
+        var itemsTask = GetAssignedItemsAsync(eventId, characterId, url!, key!, httpClient);
+        await Task.WhenAll(factionsTask, relationshipsTask, questsTask, itemsTask);
+        return Results.Ok(new CharacterNarrativeLinksDto(factionsTask.Result, relationshipsTask.Result, questsTask.Result, itemsTask.Result));
     }
 
     private static CharacterDetailDto ToDetail(SupabaseCharacterRow row, bool canReadInternal) =>
@@ -647,5 +657,264 @@ public static class CharacterEndpoints
 
         error = null;
         return true;
+    }
+
+    // ─── Character Relationships ────────────────────────────────────────
+
+    private static async Task<IResult> ListCharacterRelationships(Guid eventId, Guid characterId, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient, CharacterAuthorizationService authz)
+    {
+        if (!TryConfig(config, out var url, out var key, out var error)) return error!;
+        var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
+        if (!access.CanRead) return Results.Forbid();
+        if (!await CharacterExists(eventId, characterId, url!, key!, httpClient, includeDeleted: false)) return Results.NotFound();
+
+        var query = $"{url}/rest/v1/character_relationships" +
+                    $"?event_id=eq.{eventId}" +
+                    $"&or=(source_character_id.eq.{characterId},target_character_id.eq.{characterId})" +
+                    "&select=id,event_id,source_character_id,target_character_id,relation_type,relation_mode,mirror_group_id,is_auto_mirror,is_active,description,created_at,updated_at" +
+                    "&order=created_at.desc";
+        var req = new HttpRequestMessage(HttpMethod.Get, query);
+        AddHeaders(req, key!);
+        var resp = await httpClient.SendAsync(req);
+        if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to list character relationships: {resp.StatusCode}");
+        var rows = await resp.Content.ReadFromJsonAsync<List<SupabaseCharacterRelationshipRow>>() ?? [];
+
+        // Resolve target character names
+        var characterIds = rows.SelectMany(r => new[] { r.source_character_id, r.target_character_id }).Distinct().ToList();
+        var nameMap = await GetCharacterNames(characterIds, url!, key!, httpClient);
+
+        var dtos = rows.Select(r =>
+        {
+            var targetId = r.source_character_id == characterId ? r.target_character_id : r.source_character_id;
+            var targetName = nameMap.GetValueOrDefault(targetId, "Unknown");
+            return new CharacterRelationshipDto(r.id, r.event_id, r.source_character_id, r.target_character_id, targetName, r.relation_type, r.relation_mode, r.mirror_group_id, r.is_auto_mirror, r.description, r.created_at, r.updated_at);
+        });
+        return Results.Ok(dtos);
+    }
+
+    private static async Task<IResult> CreateCharacterRelationship(Guid eventId, Guid characterId, ClaimsPrincipal user, [FromBody] CreateCharacterRelationshipRequest request, IConfiguration config, HttpClient httpClient, CharacterAuthorizationService authz)
+    {
+        if (!TryConfig(config, out var url, out var key, out var error)) return error!;
+        var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
+        if (!access.CanWrite) return Results.Forbid();
+        if (!await CharacterExists(eventId, characterId, url!, key!, httpClient, includeDeleted: false)) return Results.NotFound();
+
+        if (string.IsNullOrWhiteSpace(request.RelationType)) return Results.BadRequest("Relation type is required.");
+        if (request.RelationType.Length > 100) return Results.BadRequest("Relation type cannot be longer than 100 characters.");
+        if (!IsValidRelationshipMode(request.RelationMode)) return Results.BadRequest("Relation mode must be 'directional' or 'auto_mirrored'.");
+        if (request.TargetCharacterId == characterId) return Results.BadRequest("Character cannot reference itself.");
+        if (!await CharacterExists(eventId, request.TargetCharacterId, url!, key!, httpClient, includeDeleted: false))
+            return Results.BadRequest("Target character not found in event.");
+
+        var mirrorGroupId = IsAutoMirrored(request.RelationMode) ? Guid.NewGuid() : (Guid?)null;
+
+        var req = new HttpRequestMessage(HttpMethod.Post, $"{url}/rest/v1/character_relationships");
+        req.Headers.Add("Prefer", "return=representation");
+        AddHeaders(req, key!);
+        req.Content = JsonContent.Create(new
+        {
+            event_id = eventId,
+            source_character_id = characterId,
+            target_character_id = request.TargetCharacterId,
+            relation_type = request.RelationType.Trim(),
+            relation_mode = request.RelationMode,
+            mirror_group_id = mirrorGroupId,
+            is_auto_mirror = false,
+            description = request.Description
+        });
+        var resp = await httpClient.SendAsync(req);
+        if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to create character relationship: {resp.StatusCode}");
+        var created = (await resp.Content.ReadFromJsonAsync<List<SupabaseCharacterRelationshipRow>>())?.FirstOrDefault();
+        if (created is null) return Results.Problem("Relationship created but payload missing.");
+
+        if (IsAutoMirrored(request.RelationMode))
+        {
+            var mirrorReq = new HttpRequestMessage(HttpMethod.Post, $"{url}/rest/v1/character_relationships");
+            mirrorReq.Headers.Add("Prefer", "return=minimal");
+            AddHeaders(mirrorReq, key!);
+            mirrorReq.Content = JsonContent.Create(new
+            {
+                event_id = eventId,
+                source_character_id = request.TargetCharacterId,
+                target_character_id = characterId,
+                relation_type = request.RelationType.Trim(),
+                relation_mode = request.RelationMode,
+                mirror_group_id = mirrorGroupId,
+                is_auto_mirror = true,
+                description = request.Description
+            });
+            await httpClient.SendAsync(mirrorReq);
+        }
+
+        var nameMap = await GetCharacterNames([characterId, request.TargetCharacterId], url!, key!, httpClient);
+        var targetName = nameMap.GetValueOrDefault(request.TargetCharacterId, "Unknown");
+        return Results.Created(
+            $"/api/events/{eventId}/characters/{characterId}/relationships/{created.id}",
+            new CharacterRelationshipDto(created.id, created.event_id, created.source_character_id, created.target_character_id, targetName, created.relation_type, created.relation_mode, created.mirror_group_id, created.is_auto_mirror, created.description, created.created_at, created.updated_at));
+    }
+
+    private static async Task<IResult> UpdateCharacterRelationship(Guid eventId, Guid characterId, Guid relationshipId, ClaimsPrincipal user, [FromBody] UpdateCharacterRelationshipRequest request, IConfiguration config, HttpClient httpClient, CharacterAuthorizationService authz)
+    {
+        if (!TryConfig(config, out var url, out var key, out var error)) return error!;
+        var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
+        if (!access.CanWrite) return Results.Forbid();
+        var current = await GetCharacterRelationship(eventId, characterId, relationshipId, url!, key!, httpClient);
+        if (current is null) return Results.NotFound();
+
+        var nextType = request.RelationType?.Trim() ?? current.relation_type;
+        if (nextType.Length > 100) return Results.BadRequest("Relation type cannot be longer than 100 characters.");
+        var nextDescription = request.Description ?? current.description;
+
+        var req = new HttpRequestMessage(HttpMethod.Patch, $"{url}/rest/v1/character_relationships?id=eq.{relationshipId}&event_id=eq.{eventId}");
+        req.Headers.Add("Prefer", "return=representation");
+        AddHeaders(req, key!);
+        req.Content = JsonContent.Create(new
+        {
+            relation_type = nextType,
+            description = nextDescription
+        });
+        var resp = await httpClient.SendAsync(req);
+        if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to update character relationship: {resp.StatusCode}");
+        var updated = (await resp.Content.ReadFromJsonAsync<List<SupabaseCharacterRelationshipRow>>())?.FirstOrDefault();
+        if (updated is null) return Results.Problem("Relationship update payload missing.");
+
+        if (updated.mirror_group_id.HasValue && !updated.is_auto_mirror)
+        {
+            var mirrorPatch = new HttpRequestMessage(HttpMethod.Patch, $"{url}/rest/v1/character_relationships?mirror_group_id=eq.{updated.mirror_group_id.Value}&is_auto_mirror=eq.true&event_id=eq.{eventId}");
+            AddHeaders(mirrorPatch, key!);
+            mirrorPatch.Content = JsonContent.Create(new
+            {
+                relation_type = nextType,
+                description = nextDescription
+            });
+            await httpClient.SendAsync(mirrorPatch);
+        }
+
+        var nameMap = await GetCharacterNames([updated.source_character_id, updated.target_character_id], url!, key!, httpClient);
+        var targetId = updated.source_character_id == characterId ? updated.target_character_id : updated.source_character_id;
+        return Results.Ok(new CharacterRelationshipDto(updated.id, updated.event_id, updated.source_character_id, updated.target_character_id, nameMap.GetValueOrDefault(targetId, "Unknown"), updated.relation_type, updated.relation_mode, updated.mirror_group_id, updated.is_auto_mirror, updated.description, updated.created_at, updated.updated_at));
+    }
+
+    private static async Task<IResult> DeleteCharacterRelationship(Guid eventId, Guid characterId, Guid relationshipId, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient, CharacterAuthorizationService authz)
+    {
+        if (!TryConfig(config, out var url, out var key, out var error)) return error!;
+        var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
+        if (!access.CanWrite) return Results.Forbid();
+        var current = await GetCharacterRelationship(eventId, characterId, relationshipId, url!, key!, httpClient);
+        if (current is null) return Results.NotFound();
+
+        HttpRequestMessage req;
+        if (current.mirror_group_id.HasValue)
+        {
+            req = new HttpRequestMessage(HttpMethod.Delete, $"{url}/rest/v1/character_relationships?event_id=eq.{eventId}&mirror_group_id=eq.{current.mirror_group_id.Value}");
+        }
+        else
+        {
+            req = new HttpRequestMessage(HttpMethod.Delete, $"{url}/rest/v1/character_relationships?id=eq.{relationshipId}&event_id=eq.{eventId}");
+        }
+
+        AddHeaders(req, key!);
+        var resp = await httpClient.SendAsync(req);
+        return resp.IsSuccessStatusCode ? Results.NoContent() : Results.Problem($"Failed to delete character relationship: {resp.StatusCode}");
+    }
+
+    private static async Task<SupabaseCharacterRelationshipRow?> GetCharacterRelationship(Guid eventId, Guid characterId, Guid relationshipId, string url, string key, HttpClient httpClient)
+    {
+        var query = $"{url}/rest/v1/character_relationships" +
+                    $"?id=eq.{relationshipId}" +
+                    $"&event_id=eq.{eventId}" +
+                    $"&or=(source_character_id.eq.{characterId},target_character_id.eq.{characterId})" +
+                    "&select=id,event_id,source_character_id,target_character_id,relation_type,relation_mode,mirror_group_id,is_auto_mirror,is_active,description,created_at,updated_at" +
+                    "&limit=1";
+        var req = new HttpRequestMessage(HttpMethod.Get, query);
+        AddHeaders(req, key);
+        var resp = await httpClient.SendAsync(req);
+        if (!resp.IsSuccessStatusCode) return null;
+        var rows = await resp.Content.ReadFromJsonAsync<List<SupabaseCharacterRelationshipRow>>();
+        return rows?.FirstOrDefault();
+    }
+
+    private static async Task<Dictionary<Guid, string>> GetCharacterNames(List<Guid> characterIds, string url, string key, HttpClient httpClient)
+    {
+        if (characterIds.Count == 0) return new Dictionary<Guid, string>();
+        var idFilter = string.Join(",", characterIds.Select(id => $"\"{id}\""));
+        var req = new HttpRequestMessage(HttpMethod.Get, $"{url}/rest/v1/characters?id=in.({idFilter})&select=id,name");
+        AddHeaders(req, key);
+        var resp = await httpClient.SendAsync(req);
+        if (!resp.IsSuccessStatusCode) return new Dictionary<Guid, string>();
+        var rows = await resp.Content.ReadFromJsonAsync<List<SupabaseCharacterNameRow>>() ?? [];
+        return rows.ToDictionary(r => r.id, r => r.name);
+    }
+
+    private static bool IsValidRelationshipMode(string mode) =>
+        string.Equals(mode, "directional", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(mode, "auto_mirrored", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsAutoMirrored(string mode) =>
+        string.Equals(mode, "auto_mirrored", StringComparison.OrdinalIgnoreCase);
+
+    // ─── Item Assignments ───────────────────────────────────────────────
+
+    private static async Task<IResult> ListCharacterItems(Guid eventId, Guid characterId, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient, CharacterAuthorizationService authz)
+    {
+        if (!TryConfig(config, out var url, out var key, out var error)) return error!;
+        var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
+        if (!access.CanRead) return Results.Forbid();
+        if (!await CharacterExists(eventId, characterId, url!, key!, httpClient, includeDeleted: false)) return Results.NotFound();
+
+        var items = await GetAssignedItemsAsync(eventId, characterId, url!, key!, httpClient);
+        return Results.Ok(items);
+    }
+
+    private static async Task<IResult> AssignItemToCharacter(Guid eventId, Guid characterId, Guid itemId, ClaimsPrincipal user, [FromBody] AssignItemToCharacterRequest request, IConfiguration config, HttpClient httpClient, CharacterAuthorizationService authz)
+    {
+        if (!TryConfig(config, out var url, out var key, out var error)) return error!;
+        var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
+        if (!access.CanWrite) return Results.Forbid();
+        if (!await CharacterExists(eventId, characterId, url!, key!, httpClient, includeDeleted: false)) return Results.NotFound();
+
+        var req = new HttpRequestMessage(HttpMethod.Post, $"{url}/rest/v1/narrative_item_character_assignments?on_conflict=item_id,character_id");
+        req.Headers.Add("Prefer", "return=representation,resolution=merge-duplicates");
+        AddHeaders(req, key!);
+        req.Content = JsonContent.Create(new
+        {
+            event_id = eventId,
+            item_id = itemId,
+            character_id = characterId,
+            assigned_by = UserId(user),
+            notes = request.Notes
+        });
+        var resp = await httpClient.SendAsync(req);
+        if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to assign item: {resp.StatusCode}");
+        return Results.Ok();
+    }
+
+    private static async Task<IResult> RemoveItemFromCharacter(Guid eventId, Guid characterId, Guid itemId, ClaimsPrincipal user, IConfiguration config, HttpClient httpClient, CharacterAuthorizationService authz)
+    {
+        if (!TryConfig(config, out var url, out var key, out var error)) return error!;
+        var access = await authz.ResolveEventAccessAsync(user, eventId, url!, key!);
+        if (!access.CanWrite) return Results.Forbid();
+
+        var req = new HttpRequestMessage(HttpMethod.Delete, $"{url}/rest/v1/narrative_item_character_assignments?event_id=eq.{eventId}&item_id=eq.{itemId}&character_id=eq.{characterId}");
+        AddHeaders(req, key!);
+        var resp = await httpClient.SendAsync(req);
+        return resp.IsSuccessStatusCode ? Results.NoContent() : Results.Problem($"Failed to remove item assignment: {resp.StatusCode}");
+    }
+
+    private static async Task<IReadOnlyList<CharacterAssignedItemDto>> GetAssignedItemsAsync(Guid eventId, Guid characterId, string url, string key, HttpClient httpClient)
+    {
+        var req = new HttpRequestMessage(HttpMethod.Get,
+            $"{url}/rest/v1/narrative_item_character_assignments" +
+            $"?event_id=eq.{eventId}&character_id=eq.{characterId}" +
+            "&select=item_id,character_id,assigned_at,notes,item:narrative_items(id,name,description,status)" +
+            "&order=assigned_at.desc");
+        AddHeaders(req, key);
+        var resp = await httpClient.SendAsync(req);
+        if (!resp.IsSuccessStatusCode) return [];
+        var rows = await resp.Content.ReadFromJsonAsync<List<SupabaseItemAssignmentJoinRow>>() ?? [];
+        return rows
+            .Where(r => r.item is not null)
+            .Select(r => new CharacterAssignedItemDto(r.item_id, r.item!.name, r.item.description, r.item.status, r.notes, r.assigned_at))
+            .ToList();
     }
 }

@@ -10,6 +10,7 @@ const LEGEND_ITEMS = [
     { label: "Neutral", color: "#64748b", dashed: false },
     { label: "Faction", color: "#14b8a6", dashed: true },
     { label: "Quest", color: "#f97316", dashed: true },
+    { label: "Item", color: "#ea580c", dashed: true },
 ];
 
 export function GraphLegend() {

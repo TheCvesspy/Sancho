@@ -124,6 +124,30 @@ public record NarrativeRelationshipDto(
     string? Description
 );
 
+public record CharacterRelationshipDto(
+    Guid Id,
+    Guid EventId,
+    Guid SourceCharacterId,
+    Guid TargetCharacterId,
+    string TargetCharacterName,
+    string RelationType,
+    string RelationMode,
+    Guid? MirrorGroupId,
+    bool IsAutoMirror,
+    string? Description,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt
+);
+
+public record CharacterAssignedItemDto(
+    Guid ItemId,
+    string ItemName,
+    string? ItemDescription,
+    string? ItemStatus,
+    string? AssignmentNotes,
+    DateTimeOffset AssignedAt
+);
+
 public record NarrativeQuestDto(
     Guid QuestId,
     string Name,
@@ -135,7 +159,8 @@ public record NarrativeQuestDto(
 public record CharacterNarrativeLinksDto(
     IReadOnlyList<NarrativeFactionDto> Factions,
     IReadOnlyList<NarrativeRelationshipDto> Relationships,
-    IReadOnlyList<NarrativeQuestDto> Quests
+    IReadOnlyList<NarrativeQuestDto> Quests,
+    IReadOnlyList<CharacterAssignedItemDto> Items
 );
 
 public record CreateCharacterRequest(
@@ -221,6 +246,22 @@ public record UpdateCharacterAttachmentRequest(
     string? NewGoogleDriveUrl
 );
 
+public record CreateCharacterRelationshipRequest(
+    Guid TargetCharacterId,
+    string RelationType,
+    string RelationMode,
+    string? Description
+);
+
+public record UpdateCharacterRelationshipRequest(
+    string? RelationType,
+    string? Description
+);
+
+public record AssignItemToCharacterRequest(
+    string? Notes
+);
+
 public record CharacterDeleteRequest(
     string? Reason
 );
@@ -282,4 +323,39 @@ internal record SupabaseEventStatusRow(
 
 internal record SupabaseIdRow(
     Guid id
+);
+
+internal record SupabaseCharacterRelationshipRow(
+    Guid id,
+    [property: JsonPropertyName("event_id")] Guid event_id,
+    [property: JsonPropertyName("source_character_id")] Guid source_character_id,
+    [property: JsonPropertyName("target_character_id")] Guid target_character_id,
+    [property: JsonPropertyName("relation_type")] string relation_type,
+    [property: JsonPropertyName("relation_mode")] string relation_mode,
+    [property: JsonPropertyName("mirror_group_id")] Guid? mirror_group_id,
+    [property: JsonPropertyName("is_auto_mirror")] bool is_auto_mirror,
+    [property: JsonPropertyName("is_active")] bool is_active,
+    string? description,
+    [property: JsonPropertyName("created_at")] DateTimeOffset created_at,
+    [property: JsonPropertyName("updated_at")] DateTimeOffset updated_at
+);
+
+internal record SupabaseCharacterNameRow(
+    Guid id,
+    string name
+);
+
+internal record SupabaseItemAssignmentJoinRow(
+    [property: JsonPropertyName("item_id")] Guid item_id,
+    [property: JsonPropertyName("character_id")] Guid character_id,
+    [property: JsonPropertyName("assigned_at")] DateTimeOffset assigned_at,
+    string? notes,
+    [property: JsonPropertyName("item")] SupabaseItemInfoRow? item
+);
+
+internal record SupabaseItemInfoRow(
+    Guid id,
+    string name,
+    string? description,
+    string? status
 );

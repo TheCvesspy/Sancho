@@ -50,7 +50,7 @@
             "profile": "Profile",
             "abilities": "Abilities",
             "attachments": "Attachments",
-            "narrative": "Narrative"
+            "narrative": "Relationship map"
         },
         "biography": {
             "title": "Biography & Public Story",
@@ -143,17 +143,11 @@
         "constraints": "Max 5 MB. JPG, PNG, WEBP."
     },
     "narrative": {
-        "notice": "Narrative data is managed in the Narrative module.",
+        "notice": "Factions and quests are managed in the Narrative module.",
         "factions": {
             "title": "Factions",
             "role": "Role",
             "emptyState": "No faction memberships yet."
-        },
-        "relationships": {
-            "title": "Relationships",
-            "type": "Type",
-            "description": "Description",
-            "emptyState": "No relationships yet."
         },
         "quests": {
             "title": "Quests",
@@ -162,6 +156,32 @@
             "emptyState": "No active quests yet."
         },
         "graphLink": "View Full Relationship Graph"
+    },
+    "relationships": {
+        "title": "Character Relationships",
+        "target": "Target Character",
+        "searchCharacter": "Search character...",
+        "selectCharacter": "Select character...",
+        "type": "Type",
+        "typePlaceholder": "e.g. Ally, Enemy, Mentor...",
+        "mode": "Mode",
+        "directional": "One-way",
+        "mirrored": "Mirrored",
+        "description": "Description",
+        "descriptionPlaceholder": "Optional description...",
+        "add": "Add",
+        "noRelationships": "No character relationships yet.",
+        "confirmDelete": "Are you sure you want to delete this relationship?"
+    },
+    "items": {
+        "title": "Assigned Items",
+        "searchItem": "Search item...",
+        "selectItem": "Select item...",
+        "notes": "Notes",
+        "notesPlaceholder": "Optional assignment notes...",
+        "assign": "Assign",
+        "emptyState": "No items assigned to this character.",
+        "confirmRemove": "Are you sure you want to remove this item assignment?"
     },
     "graph": {
         "title": "Relationship Graph",
