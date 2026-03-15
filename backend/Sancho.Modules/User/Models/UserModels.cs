@@ -7,6 +7,7 @@ public record UserProfileDto(
     string? AvatarUrl,
     string? Bio,
     string Locale,
+    string Theme,
     bool IsSystemAdmin = false,
     string? OrgRole = null);
 
@@ -22,9 +23,10 @@ public record EventMembershipDto(
     Dictionary<string, string> Permissions);
 
 public record UpdateProfileRequest(
-    string? DisplayName, 
-    string? Bio, 
-    string? Locale);
+    string? DisplayName,
+    string? Bio,
+    string? Locale,
+    string? Theme);
 
 public record AvatarUploadUrlRequest(
     string ContentType);

@@ -22,6 +22,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
+import { useTheme } from "next-themes"
 import { updateProfile } from "./actions"
 import { useState } from "react"
 
@@ -29,6 +30,7 @@ const profileSchema = z.object({
     displayName: z.string().min(2).max(50),
     bio: z.string().max(500),
     locale: z.string(),
+    theme: z.enum(["light", "dark", "system"]),
 })
 
 type ProfileFormValues = z.infer<typeof profileSchema>
@@ -39,6 +41,7 @@ interface ProfileFormProps {
 
 export function ProfileForm({ initialData }: ProfileFormProps) {
     const t = useTranslations("profile")
+    const { setTheme } = useTheme()
     const [isSaving, setIsSaving] = useState(false)
     const [saveError, setSaveError] = useState<string | null>(null)
 
@@ -56,6 +59,11 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
         if (!result.success) {
             setSaveError(result.error ?? "Failed to save profile")
             return
+        }
+
+        // Apply theme immediately so the user sees the change without refresh
+        if (data.theme !== initialData.theme) {
+            setTheme(data.theme)
         }
 
         if (data.locale !== initialData.locale) {
@@ -114,6 +122,29 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                                 <SelectContent>
                                     <SelectItem value="en">English</SelectItem>
                                     <SelectItem value="cs">Čeština</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
+                <FormField
+                    control={form.control}
+                    name="theme"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>{t("theme")}</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="system">{t("themeSystem")}</SelectItem>
+                                    <SelectItem value="light">{t("themeLight")}</SelectItem>
+                                    <SelectItem value="dark">{t("themeDark")}</SelectItem>
                                 </SelectContent>
                             </Select>
                             <FormMessage />

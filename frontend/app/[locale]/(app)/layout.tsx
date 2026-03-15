@@ -5,6 +5,7 @@ import { ActiveEventProvider } from "@/components/active-event-context"
 import { createClient } from "@/utils/supabase/server"
 import { ACTIVE_EVENT_COOKIE_NAME } from "@/utils/active-event-cookie"
 import { Toaster } from "sonner"
+import { ThemeInitializer } from "@/components/theme-initializer"
 
 import { API_BASE_URL } from "@/lib/api-config"
 
@@ -13,12 +14,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     const { data: { session } } = await supabase.auth.getSession()
 
     let isSystemAdmin = false;
+    let userTheme = "system";
     if (session) {
         const headers = { "Authorization": `Bearer ${session.access_token}` }
         const userResponse = await fetch(`${API_BASE_URL}/api/user/me`, { headers, next: { revalidate: 60 } })
         if (userResponse.ok) {
             const profileData = await userResponse.json()
             isSystemAdmin = profileData?.isSystemAdmin || false;
+            userTheme = profileData?.theme || "system";
         }
     }
 
@@ -27,6 +30,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
     return (
         <SidebarProvider>
+            <ThemeInitializer theme={userTheme} />
             <ActiveEventProvider initialEventId={activeEventId}>
                 <AppSidebar isSystemAdmin={isSystemAdmin} />
                 <SidebarInset>

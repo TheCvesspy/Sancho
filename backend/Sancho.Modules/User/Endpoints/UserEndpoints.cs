@@ -22,7 +22,8 @@ public static class UserEndpoints
         [property: JsonPropertyName("display_name")] string? display_name,
         [property: JsonPropertyName("avatar_url")] string? avatar_url,
         string? bio,
-        string locale);
+        string locale,
+        string theme);
     public static void MapUserEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/user");
@@ -97,6 +98,7 @@ public static class UserEndpoints
             avatarUrl,
             profile.bio,
             profile.locale,
+            profile.theme,
             isSystemAdmin,
             orgRole));
     }
@@ -116,7 +118,8 @@ public static class UserEndpoints
         {
             display_name = request.DisplayName,
             bio = request.Bio,
-            locale = request.Locale
+            locale = request.Locale,
+            theme = request.Theme
         });
 
         var response = await httpClient.SendAsync(patchRequest);

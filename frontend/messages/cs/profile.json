@@ -12,6 +12,10 @@
     "displayName": "Zobrazované jméno",
     "bio": "Bio",
     "language": "Jazyk",
+    "theme": "Vzhled",
+    "themeLight": "Světlý",
+    "themeDark": "Tmavý",
+    "themeSystem": "Systémový (auto)",
     "dangerZone": "Nebezpečná zóna",
     "signOut": "Odhlásit se"
 }

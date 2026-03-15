@@ -19,7 +19,7 @@ async function getAuthHeaders() {
     }
 }
 
-export async function updateProfile(formData: { displayName: string, bio: string, locale: string }) {
+export async function updateProfile(formData: { displayName: string, bio: string, locale: string, theme: string }) {
     try {
         const headers = await getAuthHeaders()
         const response = await fetch(`${API_BASE_URL}/api/user/me`, {

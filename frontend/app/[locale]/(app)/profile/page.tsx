@@ -88,7 +88,8 @@ export default async function ProfilePage({ params }: { params: Promise<{ locale
                             <ProfileForm initialData={{
                                 displayName: profileData.displayName || "",
                                 bio: profileData.bio || "",
-                                locale: profileData.locale || locale
+                                locale: profileData.locale || locale,
+                                theme: profileData.theme || "system"
                             }} />
                         </section>
 

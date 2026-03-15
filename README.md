@@ -1,6 +1,6 @@
 # Sancho — LARP Event Management Platform
 
-**Version: 0.15.33**
+**Version: 0.15.34**
 
 Sancho is a single-organization web application for managing LARP (Live Action Role-Playing) groups, covering the full event lifecycle from planning through execution. One deployment serves one organization and supports multiple events.
 
@@ -67,7 +67,8 @@ Sancho is a single-organization web application for managing LARP (Live Action R
 - Org-level role management
 
 #### User Profile
-- Profile editing (name, bio, locale)
+- Profile editing (name, bio, locale, theme)
+- **Theme Preference**: Users can choose Light, Dark, or System (auto) mode from the profile page. Preference is persisted in the database and applied automatically on login.
 - **App-wide Locale Persistence**: User language preference is now automatically enforced across the app via middleware redirection and cookie caching.
 - Avatar upload and display
 
@@ -137,7 +138,7 @@ sancho/
 
 | Table | Purpose |
 |---|---|
-| `user_profiles` | Application user metadata (name, avatar, bio, locale) |
+| `user_profiles` | Application user metadata (name, avatar, bio, locale, theme) |
 | `org_members` | Single-org membership (OrgOwner role) |
 | `system_admins` | Platform-level admins |
 | `events` | Events with full lifecycle fields |
@@ -171,7 +172,7 @@ sancho/
 | `narrative_plot_locations` | Plot to location/floor/room narrative links |
 | `narrative_*_links` | Character/faction/item relationships across narrative entities |
 
-**Applied Migrations:** 22 (latest: `20260314190000_narrative_locations`)
+**Applied Migrations:** 23 (latest: `20260315170000_add_theme_to_user_profiles`)
 
 ---
 
@@ -260,6 +261,7 @@ sancho/
 
 | Version | Date | Summary |
 |---|---|---|
+| 0.15.34 | 2026-03-15 | Add persistent theme preference (Light/Dark/System) to user profile with DB column, backend API, and frontend selector. |
 | 0.15.33 | 2026-03-15 | Narrative UI: migrate inline forms to modal dialogs for faction members, relationships, item assignments, and plotline phases/quests. |
 | 0.15.32 | 2026-03-14 | Add Narrative Locations backend API, database migration, dungeon hierarchy, and location linking support. |
 | 0.15.31 | 2026-03-14 | Fix: Missing translation key for item max copies and UI improvements in item creation dialog. |

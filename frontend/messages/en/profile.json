@@ -12,6 +12,10 @@
     "displayName": "Display Name",
     "bio": "Bio",
     "language": "Language",
+    "theme": "Theme",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeSystem": "System (auto)",
     "dangerZone": "Danger Zone",
     "signOut": "Sign Out"
 }
