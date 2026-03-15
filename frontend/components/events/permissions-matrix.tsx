@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
+import { API_BASE_URL } from "@/lib/api-config";
 import {
     Table,
     TableBody,
@@ -87,7 +88,6 @@ export function PermissionsMatrix({ eventId, token, isOrgOrSysAdmin }: Permissio
 
     const fetchUsers = async () => {
         try {
-            const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5293";
             const resp = await fetch(`${API_BASE_URL}/api/identity/users`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });

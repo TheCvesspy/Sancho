@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5162";
+import { API_BASE_URL } from "@/lib/api-config";
 
 /**
  * Fetches the user's resolved module permissions for a specific event.

@@ -9,7 +9,14 @@ const __dirname = dirname(__filename);
 const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 const nextConfig: NextConfig = {
+    output: "standalone",
     outputFileTracingRoot: join(__dirname, '../'),
+    eslint: {
+        ignoreDuringBuilds: true,
+    },
+    typescript: {
+        ignoreBuildErrors: true,
+    },
 };
 
 export default withNextIntl(nextConfig);

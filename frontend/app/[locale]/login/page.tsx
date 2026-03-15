@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,14 @@ async function hashToken(token: string) {
 }
 
 export default function LoginPage() {
+    return (
+        <Suspense>
+            <LoginPageContent />
+        </Suspense>
+    );
+}
+
+function LoginPageContent() {
     const supabase = createClient();
     const searchParams = useSearchParams();
     const initialToken = searchParams.get("token") || "";

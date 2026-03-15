@@ -5,7 +5,7 @@ import { UsersTable, UserListItem } from "@/components/identity/users-table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { InviteTokenManager, InviteToken } from "@/components/identity/invite-token-manager"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5293"
+import { API_BASE_URL } from "@/lib/api-config"
 
 export default async function IdentityPage({ params }: { params: Promise<{ locale: string }> }) {
     const { locale } = await params

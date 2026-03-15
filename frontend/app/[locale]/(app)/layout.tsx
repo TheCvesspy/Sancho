@@ -6,7 +6,7 @@ import { createClient } from "@/utils/supabase/server"
 import { ACTIVE_EVENT_COOKIE_NAME } from "@/utils/active-event-cookie"
 import { Toaster } from "sonner"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5293"
+import { API_BASE_URL } from "@/lib/api-config"
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
     const supabase = await createClient()

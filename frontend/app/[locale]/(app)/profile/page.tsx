@@ -8,7 +8,7 @@ import { ContentSummary } from "@/components/user-profile/content-summary"
 import { DangerZone } from "@/components/user-profile/danger-zone"
 import { Separator } from "@/components/ui/separator"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5293"
+import { API_BASE_URL } from "@/lib/api-config"
 
 export default async function ProfilePage({ params }: { params: Promise<{ locale: string }> }) {
     const { locale } = await params
