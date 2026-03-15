@@ -411,9 +411,16 @@ export function QuestStepsPanel({ eventId, questId, initialSteps, canWrite, toke
             if (dungeonSelectedFloor) data.floorId = dungeonSelectedFloor;
             if (dungeonSelectedRoom) data.roomId = dungeonSelectedRoom;
             const link = await narrativeApi.upsertQuestStepLocation(token, eventId, questId, dungeonModalStepId, dungeonModalLocationId, data);
+            // Enrich with names from modal state (POST response lacks joined name data)
+            const enrichedLink: NarrativeQuestStepLocationDto = {
+                ...link,
+                locationName: link.locationName ?? allLocations.find(l => l.id === dungeonModalLocationId)?.name ?? null,
+                floorName: link.floorName ?? (dungeonSelectedFloor ? dungeonModalFloors.find(f => f.id === dungeonSelectedFloor)?.name ?? null : null),
+                roomName: link.roomName ?? (dungeonSelectedRoom ? dungeonModalRooms.find(r => r.id === dungeonSelectedRoom)?.name ?? null : null),
+            };
             setStepLocations((prev) => ({
                 ...prev,
-                [dungeonModalStepId]: [...(prev[dungeonModalStepId] ?? []), link],
+                [dungeonModalStepId]: [...(prev[dungeonModalStepId] ?? []), enrichedLink],
             }));
             setDungeonModalOpen(false);
             setLocSearch("");
