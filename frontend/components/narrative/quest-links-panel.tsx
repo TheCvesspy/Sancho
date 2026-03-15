@@ -247,7 +247,7 @@ export function QuestLinksPanel({
     const handleAddLocationClick = () => {
         if (!selectedLocation) return;
         const loc = allLocations.find(l => l.id === selectedLocation);
-        if (loc?.locationType === "Dungeon") {
+        if (loc?.locationType?.toLowerCase() === "dungeon") {
             openDungeonModal(selectedLocation);
         } else {
             addLocationDirect(selectedLocation);
@@ -418,7 +418,7 @@ export function QuestLinksPanel({
                             >
                                 <option value="">{t("common.select")}</option>
                                 {allLocations.map((l) => (
-                                    <option key={l.id} value={l.id}>{l.name}{l.locationType === "Dungeon" ? " (Dungeon)" : ""}</option>
+                                    <option key={l.id} value={l.id}>{l.name}{l.locationType?.toLowerCase() === "dungeon" ? " (Dungeon)" : ""}</option>
                                 ))}
                             </select>
                             <Button size="sm" onClick={handleAddLocationClick} disabled={!selectedLocation || savingLocation}>

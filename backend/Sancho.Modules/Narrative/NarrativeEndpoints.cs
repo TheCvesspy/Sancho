@@ -669,7 +669,11 @@ public static class NarrativeEndpoints
         var req = new HttpRequestMessage(HttpMethod.Get, $"{url}/rest/v1/narrative_quest_step_locations?event_id=eq.{eventId}&step_id=eq.{stepId}&select=event_id,step_id,location_id,floor_id,room_id,created_at,location:narrative_locations!location_id(name),floor:narrative_dungeon_floors!floor_id(name),room:narrative_dungeon_rooms!room_id(name)&order=created_at.asc");
         AddHeaders(req, key!);
         var resp = await httpClient.SendAsync(req);
-        if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to list quest step locations: {resp.StatusCode}");
+        if (!resp.IsSuccessStatusCode)
+        {
+            var body = await resp.Content.ReadAsStringAsync();
+            return Results.Problem($"Failed to list quest step locations: {resp.StatusCode} — {body}");
+        }
         var rows = await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativeQuestStepLocationRow>>() ?? [];
         return Results.Ok(rows.Select(ToQuestStepLocationDto));
     }
@@ -707,7 +711,11 @@ public static class NarrativeEndpoints
             return existing is null ? Results.NoContent() : Results.Ok(ToQuestStepLocationDto(existing));
         }
 
-        if (!resp.IsSuccessStatusCode) return Results.Problem($"Failed to insert quest step location: {resp.StatusCode}");
+        if (!resp.IsSuccessStatusCode)
+        {
+            var body = await resp.Content.ReadAsStringAsync();
+            return Results.Problem($"Failed to insert quest step location: {resp.StatusCode} — {body}");
+        }
         var row = (await resp.Content.ReadFromJsonAsync<List<SupabaseNarrativeQuestStepLocationRow>>())?.FirstOrDefault();
         return row is null ? Results.NoContent() : Results.Ok(ToQuestStepLocationDto(row));
     }

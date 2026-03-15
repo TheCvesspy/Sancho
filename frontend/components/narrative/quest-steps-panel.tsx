@@ -357,7 +357,7 @@ export function QuestStepsPanel({ eventId, questId, initialSteps, canWrite, toke
     // --- Step locations ---
     const handleAddLocToStep = async (stepId: string, locationId: string) => {
         const loc = allLocations.find(l => l.id === locationId);
-        if (loc?.locationType === "Dungeon") {
+        if (loc?.locationType?.toLowerCase() === "dungeon") {
             // Open modal for dungeon location
             setDungeonModalStepId(stepId);
             setDungeonModalLocationId(locationId);
@@ -531,7 +531,7 @@ export function QuestStepsPanel({ eventId, questId, initialSteps, canWrite, toke
 
                         const stepLocs = stepLocations[step.id] ?? [];
                         const assignedBasicLocIds = new Set(stepLocs.filter(l => !l.floorId && !l.roomId).map((l) => l.locationId));
-                        const availableLocs = allLocations.filter((l) => l.locationType === "Dungeon" || !assignedBasicLocIds.has(l.id));
+                        const availableLocs = allLocations.filter((l) => l.locationType?.toLowerCase() === "dungeon" || !assignedBasicLocIds.has(l.id));
                         const filteredAvailableLocs = getFilteredList(availableLocs, debouncedLocSearch);
 
                         const isEditingThis = editingId === step.id;
@@ -904,7 +904,7 @@ export function QuestStepsPanel({ eventId, questId, initialSteps, canWrite, toke
                                                                                 onSelect={() => handleAddLocToStep(step.id, loc.id)}
                                                                                 disabled={isSavingLoc}
                                                                             >
-                                                                                {loc.name}{loc.locationType === "Dungeon" ? " (Dungeon)" : ""}
+                                                                                {loc.name}{loc.locationType?.toLowerCase() === "dungeon" ? " (Dungeon)" : ""}
                                                                             </CommandItem>
                                                                         ))}
                                                                     </CommandGroup>

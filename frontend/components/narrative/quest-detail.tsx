@@ -75,7 +75,7 @@ export function QuestDetail({
     canWrite,
     token
 }: QuestDetailProps) {
-    const SHORT_DESCRIPTION_MAX_LENGTH = 250;
+    const SHORT_DESCRIPTION_MAX_LENGTH = 500;
     const t = useTranslations("narrative");
     const locale = useLocale();
     const router = useRouter();
@@ -271,12 +271,14 @@ export function QuestDetail({
                                 <div className="mb-2">
                                     {isShortDescriptionEditing ? (
                                         <div className="space-y-2">
-                                            <Input
+                                            <Textarea
                                                 value={shortDescriptionDraft}
                                                 onChange={(e) => setShortDescriptionDraft(e.target.value)}
                                                 placeholder={t("common.shortSummaryPlaceholder")}
                                                 maxLength={SHORT_DESCRIPTION_MAX_LENGTH}
                                                 disabled={isSavingShortDescription}
+                                                rows={3}
+                                                className="resize-none"
                                             />
                                             <div className="flex items-center justify-between gap-3">
                                                 <span className="text-xs text-muted-foreground">
