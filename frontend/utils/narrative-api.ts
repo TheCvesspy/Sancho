@@ -77,6 +77,17 @@ export interface NarrativeDocumentLinkDto {
     createdAt: string;
 }
 
+export interface NarrativeUploadUrlRequest {
+    fileName: string;
+    contentType: string;
+    sizeBytes: number;
+}
+
+export interface NarrativeFileUploadUrlResponse {
+    uploadUrl: string;
+    filePath: string;
+}
+
 export interface NarrativeFactionDto {
     id: string;
     eventId: string;
@@ -846,6 +857,26 @@ export const narrativeApi = {
             headers: { Authorization: `Bearer ${token}` },
         }),
 
+    // Faction Sigil
+    createSigilUploadUrl: (token: string, eventId: string, factionId: string, data: NarrativeUploadUrlRequest) =>
+        fetcher<NarrativeFileUploadUrlResponse>(`/api/events/${eventId}/narrative/factions/${factionId}/sigil/upload-url`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        }),
+
+    confirmSigil: (token: string, eventId: string, factionId: string, data: { filePath: string }) =>
+        fetcher<NarrativeFactionDto>(`/api/events/${eventId}/narrative/factions/${factionId}/sigil/confirm`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        }),
+
+    removeSigil: (token: string, eventId: string, factionId: string) =>
+        fetcher<void>(`/api/events/${eventId}/narrative/factions/${factionId}/sigil`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+        }),
 
     // Items
     listItems: (token: string, eventId: string, includeDeleted: boolean = false) =>

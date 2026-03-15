@@ -95,6 +95,7 @@ builder.Services.AddScoped<CharacterAuthorizationService>();
 builder.Services.AddScoped<CharacterStorageService>();
 builder.Services.AddScoped<NarrativeAuthorizationService>();
 builder.Services.AddScoped<NarrativeDocumentLinkService>();
+builder.Services.AddHttpClient<NarrativeStorageService>();
 builder.Services.AddScoped<ICharacterNarrativeService, NarrativeCharacterNarrativeService>();
 
 builder.Services.AddHttpClient();

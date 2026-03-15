@@ -684,6 +684,25 @@ internal record SupabaseNarrativePlotItemRow(
     [property: JsonPropertyName("created_at")] DateTimeOffset created_at
 );
 
+public record NarrativeUploadUrlRequest(
+    string FileName,
+    string ContentType,
+    long SizeBytes
+);
+
+public record SigilUploadUrlResponse(
+    string UploadUrl,
+    string FilePath
+);
+
+public record ConfirmSigilRequest(
+    string FilePath
+);
+
+internal record SupabaseNarrativeSignUploadResponse(
+    string token
+);
+
 internal record SupabaseNarrativePermissionRow(
     string permission
 );

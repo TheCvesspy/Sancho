@@ -316,7 +316,16 @@
             "rolePlaceholder": "např. Vůdce, Průzkumník..."
         },
         "sigil": {
-            "noSigil": "Bez znaku"
+            "noSigil": "Bez znaku",
+            "uploadSuccess": "Znak byl úspěšně nahrán",
+            "uploadFailed": "Nahrání znaku selhalo",
+            "removeConfirm": "Opravdu chcete odstranit tento znak?",
+            "removeSuccess": "Znak byl odstraněn",
+            "removeFailed": "Odstranění znaku selhalo",
+            "uploadTitle": "Nahrát nový znak",
+            "removeTitle": "Odstranit znak",
+            "resizing": "Zmenšování obrázku na limit 10 MB...",
+            "invalidType": "Obrázek musí být ve formátu JPG, PNG nebo WebP"
         },
         "relationships": {
             "title": "Vztahy",
