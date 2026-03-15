@@ -46,6 +46,13 @@
       "noEvents": "Žádné dostupné události."
     }
   },
+  "imageCrop": {
+    "title": "Oříznout obrázek",
+    "description": "Upravte oblast ořezu a úroveň přiblížení.",
+    "zoom": "Přiblížení",
+    "apply": "Použít",
+    "cancel": "Zrušit"
+  },
   "errors": {
     "unauthorized": "Pro přístup k této stránce musíte být přihlášeni.",
     "forbidden": "Nemáte oprávnění k prohlížení tohoto obsahu.",

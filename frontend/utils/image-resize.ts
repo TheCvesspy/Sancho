@@ -52,6 +52,46 @@ export async function resizeImageIfNeeded(
     return new File([blob], file.name, { type: mimeType });
 }
 
+export interface CropArea {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
+
+/**
+ * Crops an image to the specified pixel area.
+ * Returns a Blob of the cropped region.
+ */
+export async function getCroppedImage(
+    imageSrc: string,
+    cropAreaPixels: CropArea,
+    mimeType: string = "image/jpeg"
+): Promise<Blob> {
+    const img = await loadImageFromUrl(imageSrc);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = cropAreaPixels.width;
+    canvas.height = cropAreaPixels.height;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Failed to get canvas context");
+
+    ctx.drawImage(
+        img,
+        cropAreaPixels.x,
+        cropAreaPixels.y,
+        cropAreaPixels.width,
+        cropAreaPixels.height,
+        0,
+        0,
+        cropAreaPixels.width,
+        cropAreaPixels.height
+    );
+
+    return canvasToBlob(canvas, mimeType, 0.92);
+}
+
 function loadImage(file: File): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {
         const img = new Image();
@@ -65,6 +105,15 @@ function loadImage(file: File): Promise<HTMLImageElement> {
             reject(new Error("Failed to load image"));
         };
         img.src = url;
+    });
+}
+
+function loadImageFromUrl(src: string): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error("Failed to load image"));
+        img.src = src;
     });
 }
 
