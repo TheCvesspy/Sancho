@@ -53,6 +53,11 @@
     "apply": "Apply",
     "cancel": "Cancel"
   },
+  "error": {
+    "title": "Something went wrong",
+    "description": "An unexpected error occurred while loading this page.",
+    "retry": "Try again"
+  },
   "errors": {
     "unauthorized": "You must be logged in to access this page.",
     "forbidden": "You do not have permission to view this content.",

@@ -24,13 +24,13 @@ RUN npm run build
 FROM node:22-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=8080
+ENV HOSTNAME=0.0.0.0
 
-# Copy standalone output (nested under frontend/ due to outputFileTracingRoot)
-COPY --from=build /app/.next/standalone/frontend ./
-COPY --from=build /app/.next/standalone/package.json ./package.json
+# Copy standalone output (nested under app/ due to outputFileTracingRoot)
+COPY --from=build /app/.next/standalone/app ./
 COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/public ./public
 
-EXPOSE 3000
+EXPOSE 8080
 CMD ["node", "server.js"]

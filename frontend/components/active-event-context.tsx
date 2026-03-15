@@ -74,11 +74,16 @@ export function ActiveEventProvider({
     // URL sync: URL is source of truth
     const urlEventId = params?.eventId as string | undefined;
     useEffect(() => {
-        if (urlEventId && urlEventId !== activeEventId) {
-            setActiveEventId(urlEventId);
-            setActiveEventCookie(urlEventId);
+        if (urlEventId) {
+            setActiveEventId((prev) => {
+                if (prev !== urlEventId) {
+                    setActiveEventCookie(urlEventId);
+                    return urlEventId;
+                }
+                return prev;
+            });
         }
-    }, [urlEventId, activeEventId]);
+    }, [urlEventId]);
 
     const setActiveEvent = useCallback(
         (eventId: string | null) => {

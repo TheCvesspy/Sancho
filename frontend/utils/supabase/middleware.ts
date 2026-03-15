@@ -5,6 +5,18 @@ import { routing } from "@/i18n/routing";
 
 const handleI18nRouting = createMiddleware(routing);
 
+function getPublicUrl(request: NextRequest): URL {
+    const url = request.nextUrl.clone();
+    const forwardedHost = request.headers.get("x-forwarded-host");
+    const forwardedProto = request.headers.get("x-forwarded-proto") || "https";
+    if (forwardedHost) {
+        url.host = forwardedHost;
+        url.protocol = forwardedProto;
+        url.port = "";
+    }
+    return url;
+}
+
 export async function updateSession(request: NextRequest) {
     const isApiRoute = request.nextUrl.pathname.startsWith("/api");
     const isAuthCallback = request.nextUrl.pathname.startsWith("/auth/callback");
@@ -50,7 +62,7 @@ export async function updateSession(request: NextRequest) {
     }
 
     if (!user && !isLoginPage && !isApiRoute && !isAuthCallback) {
-        const url = request.nextUrl.clone();
+        const url = getPublicUrl(request);
         const segments = url.pathname.split('/').filter(Boolean);
         const locale = (segments.length > 0 && routing.locales.includes(segments[0] as any)) ? segments[0] : routing.defaultLocale;
 
@@ -59,7 +71,7 @@ export async function updateSession(request: NextRequest) {
     }
 
     if (user && isLoginPage) {
-        const url = request.nextUrl.clone();
+        const url = getPublicUrl(request);
         const segments = url.pathname.split('/').filter(Boolean);
         const locale = (segments.length > 0 && routing.locales.includes(segments[0] as any)) ? segments[0] : routing.defaultLocale;
 
@@ -88,7 +100,7 @@ export async function updateSession(request: NextRequest) {
 
             if (userLocale && routing.locales.includes(userLocale as any)) {
                 if (currentPathLocale !== userLocale) {
-                    const url = request.nextUrl.clone();
+                    const url = getPublicUrl(request);
                     const pathWithoutLocale = (segments.length > 0 && routing.locales.includes(segments[0] as any))
                         ? '/' + segments.slice(1).join('/')
                         : request.nextUrl.pathname;

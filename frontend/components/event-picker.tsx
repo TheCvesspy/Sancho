@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Calendar, Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -30,6 +31,8 @@ export function EventPicker() {
     const { activeEventId, activeEvent, events, setActiveEvent, isLoading } =
         useActiveEvent();
     const { state: sidebarState } = useSidebar();
+    const router = useRouter();
+    const pathname = usePathname();
     const [open, setOpen] = useState(false);
 
     const isCollapsed = sidebarState === "collapsed";
@@ -93,10 +96,36 @@ export function EventPicker() {
                                             key={event.id}
                                             value={`${event.name} ${event.id}`}
                                             onSelect={() => {
-                                                setActiveEvent(
-                                                    event.id === activeEventId ? null : event.id
-                                                );
+                                                const newEventId = event.id === activeEventId ? null : event.id;
+                                                setActiveEvent(newEventId);
                                                 setOpen(false);
+
+                                                // Navigate so the server re-fetches data for the new event.
+                                                // Locale prefix may be absent for the default locale (localePrefix: "as-needed").
+                                                const modules = "characters|narrative|logistics|npcOrg|finance|communications";
+                                                const modulePattern = new RegExp(`^((?:\\/[^/]+)?\\/(${modules}))`);
+                                                const eventScopedMatch = pathname.match(
+                                                    new RegExp(modulePattern.source + "(\\/[^/]+)(.*)")
+                                                );
+
+                                                if (eventScopedMatch) {
+                                                    // On an event-scoped page — swap the eventId in URL
+                                                    const basePath = eventScopedMatch[1];
+                                                    const rest = eventScopedMatch[4];
+                                                    if (newEventId) {
+                                                        router.push(`${basePath}/${newEventId}${rest}`);
+                                                    } else {
+                                                        router.push(basePath);
+                                                    }
+                                                    router.refresh();
+                                                } else if (pathname.match(modulePattern)) {
+                                                    // On a module landing page (no eventId) — navigate to event-scoped URL
+                                                    if (newEventId) {
+                                                        router.push(`${pathname}/${newEventId}`);
+                                                    } else {
+                                                        router.refresh();
+                                                    }
+                                                }
                                             }}
                                         >
                                             <Check

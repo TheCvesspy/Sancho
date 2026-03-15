@@ -51,10 +51,10 @@ gcloud run deploy sancho-api \
   --platform=managed \
   --allow-unauthenticated \
   --port=8080 \
-  --memory=512Mi \
+  --memory=256Mi \
   --cpu=1 \
   --min-instances=0 \
-  --max-instances=3 \
+  --max-instances=1 \
   --set-env-vars="ASPNETCORE_ENVIRONMENT=Production" \
   --set-env-vars="Supabase__Url=${SUPABASE_URL}" \
   --set-env-vars="Supabase__ServiceRoleKey=${SUPABASE_SERVICE_ROLE_KEY}" \
@@ -92,7 +92,8 @@ gcloud run deploy sancho-frontend \
   --memory=256Mi \
   --cpu=1 \
   --min-instances=0 \
-  --max-instances=3 \
+  --max-instances=1 \
+  --set-env-vars="PORT=8080,HOSTNAME=0.0.0.0" \
   --quiet
 
 FRONTEND_URL=$(gcloud run services describe sancho-frontend \
@@ -108,7 +109,7 @@ echo "=== Updating backend CORS for frontend URL ==="
 gcloud run services update sancho-api \
   --project="$PROJECT_ID" \
   --region="$REGION" \
-  --update-env-vars="Cors__AllowedOrigins__0=${FRONTEND_URL}" \
+  --update-env-vars="Cors__AllowedOrigins=${FRONTEND_URL}" \
   --quiet
 
 echo ""

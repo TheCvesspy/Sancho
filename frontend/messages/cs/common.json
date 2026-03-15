@@ -53,6 +53,11 @@
     "apply": "Použít",
     "cancel": "Zrušit"
   },
+  "error": {
+    "title": "Něco se pokazilo",
+    "description": "Při načítání stránky došlo k neočekávané chybě.",
+    "retry": "Zkusit znovu"
+  },
   "errors": {
     "unauthorized": "Pro přístup k této stránce musíte být přihlášeni.",
     "forbidden": "Nemáte oprávnění k prohlížení tohoto obsahu.",

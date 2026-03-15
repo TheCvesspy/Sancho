@@ -52,3 +52,8 @@ database_credentials.md
 supabase/.temp/
 .claude/
 *obj.tests/
+
+# Deploy scripts (contain secrets)
+deploy.cmd
+deploy.ps1
+deploy.sh

@@ -3,10 +3,11 @@
   "configurations": [
     {
       "name": "frontend-dev",
-      "runtimeExecutable": "npm.cmd",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "npm", "run", "dev"],
       "port": 3000,
-      "cwd": "frontend"
+      "cwd": "frontend",
+      "autoPort": true
     }
   ]
 }
