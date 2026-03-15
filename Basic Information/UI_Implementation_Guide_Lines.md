@@ -219,3 +219,72 @@ If the list is small and stable (<50), `Select` is acceptable. Otherwise use thi
   - keep picker open
 - Add/confirm i18n keys for all new labels and states.
 - Verify keyboard flow (type, arrows, Enter, Esc) works.
+
+## 15. Section Title with Modal Action Pattern
+
+Use this pattern when a data table/list section needs an "add" action. Instead of placing inline forms above the table (which crowds the UI), move the form into a modal dialog triggered by a compact `+` button next to the section title.
+
+### 15.1 When to use
+
+- Adding entities to a list/table section (relationships, item assignments, memberships, etc.)
+- Any section where the "add" form has 2+ fields and would otherwise consume vertical space inline
+- When the add action is secondary to browsing the existing data
+
+### 15.2 Title row structure
+
+Wrap the section heading and trigger button in a flex row:
+
+```tsx
+<div className="flex items-center justify-between">
+    <h2 className="text-lg font-semibold tracking-tight">{t("section.title")}</h2>
+    {canWrite && <AddEntityDialog ... />}
+</div>
+```
+
+### 15.3 Dialog component pattern
+
+Create a standalone dialog component file (e.g., `add-entity-dialog.tsx`) following the established create-dialog pattern:
+
+```tsx
+// Props: receive data as props from parent, use callback on success
+interface AddEntityDialogProps {
+    // ... context IDs (eventId, parentId, token)
+    candidates: CandidateDto[];        // parent owns the data
+    onEntityAdded: () => void;         // callback to trigger parent re-fetch
+}
+
+// Structure
+<Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) form.reset(); }}>
+    <DialogTrigger asChild>
+        <Button variant="outline" size="icon">
+            <Plus className="h-4 w-4" />
+        </Button>
+    </DialogTrigger>
+    <DialogContent className="sm:max-w-[425px]">
+        {/* DialogHeader + Form (react-hook-form + zod) + DialogFooter */}
+    </DialogContent>
+</Dialog>
+```
+
+### 15.4 Key rules
+
+1. **Trigger is an icon-only `+` button** — `variant="outline" size="icon"` for compact appearance next to the title.
+2. **Dialog as a separate file** — keeps the parent panel focused on display/list logic.
+3. **Parent owns the data** — pass candidate lists as props; avoid duplicate fetching inside the dialog.
+4. **Callback on success** — dialog calls `onEntityAdded()` so the parent can re-fetch and update state.
+5. **Form resets on close** — handle in `onOpenChange`: `if (!v) form.reset()`.
+6. **Toast notifications** — use `sonner` toast for success/error feedback.
+7. **Conditional rendering** — only render the dialog trigger when `canWrite` is true.
+
+### 15.5 Popover-in-Dialog caveat
+
+When using a `Popover` + `Command` combobox picker inside a `Dialog`, set `modal={false}` on the `Popover` to prevent focus-trap conflicts between the two Radix portals:
+
+```tsx
+<Popover open={pickerOpen} onOpenChange={setPickerOpen} modal={false}>
+```
+
+### 15.6 Reference implementations
+
+- `frontend/components/characters/add-relationship-dialog.tsx` — 4-field form with combobox picker and Select
+- `frontend/components/characters/assign-item-dialog.tsx` — 2-field form with combobox picker
