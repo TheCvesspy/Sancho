@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { useTheme } from "next-themes"
 
 interface ThemeInitializerProps {
@@ -8,13 +8,15 @@ interface ThemeInitializerProps {
 }
 
 export function ThemeInitializer({ theme }: ThemeInitializerProps) {
-    const { theme: currentTheme, setTheme } = useTheme()
+    const { setTheme } = useTheme()
+    const initialized = useRef(false)
 
     useEffect(() => {
-        if (theme && theme !== currentTheme) {
+        if (!initialized.current && theme) {
+            initialized.current = true
             setTheme(theme)
         }
-    }, [theme, currentTheme, setTheme])
+    }, [theme, setTheme])
 
     return null
 }
