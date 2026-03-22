@@ -19,7 +19,7 @@ async function getAuthHeaders() {
     }
 }
 
-export async function updateProfile(formData: { displayName: string, bio: string, locale: string, theme: string }) {
+export async function updateProfile(formData: { displayName: string, bio: string, locale: string }) {
     try {
         const headers = await getAuthHeaders()
         const response = await fetch(`${API_BASE_URL}/api/user/me`, {
@@ -40,6 +40,29 @@ export async function updateProfile(formData: { displayName: string, bio: string
         return {
             success: false,
             error: error instanceof Error ? error.message : "An unexpected error occurred"
+        }
+    }
+}
+
+export async function updateTheme(theme: string) {
+    try {
+        const headers = await getAuthHeaders()
+        const response = await fetch(`${API_BASE_URL}/api/user/me`, {
+            method: "PATCH",
+            headers,
+            body: JSON.stringify({ theme })
+        })
+
+        if (!response.ok) {
+            throw new Error(`Failed to update theme (${response.status})`)
+        }
+
+        return { success: true }
+    } catch (error) {
+        console.error("Theme update error:", error)
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : "Failed to save theme"
         }
     }
 }

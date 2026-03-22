@@ -38,6 +38,7 @@
     "npcOrg": "NPC & Org Team",
     "finance": "Finance",
     "communications": "Communications",
+    "themeToggle": "Toggle theme",
     "eventPicker": {
       "label": "Active Event",
       "placeholder": "Select an event...",

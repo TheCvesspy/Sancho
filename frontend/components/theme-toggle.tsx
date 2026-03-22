@@ -1,34 +1,80 @@
-"use client";
+"use client"
 
-import * as React from "react";
-import { useTheme } from "next-themes";
+import * as React from "react"
+import { useTheme } from "next-themes"
+import { Sun, Moon, Monitor } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { updateTheme } from "@/components/user-profile/actions"
 
-type ThemeToggleProps = {
-  label: string;
-};
+const themeOrder = ["system", "light", "dark"] as const
+type ThemeValue = (typeof themeOrder)[number]
 
-export function ThemeToggle({ label }: ThemeToggleProps) {
-  const { theme, resolvedTheme, setTheme } = useTheme();
-  const [mounted, setMounted] = React.useState(false);
+const themeIcons: Record<ThemeValue, React.ElementType> = {
+    system: Monitor,
+    light: Sun,
+    dark: Moon,
+}
 
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
+interface ThemeToggleProps {
+    tooltip?: string
+}
 
-  if (!mounted) {
-    return null;
-  }
+export function ThemeToggle({ tooltip }: ThemeToggleProps) {
+    const { theme, setTheme } = useTheme()
+    const [mounted, setMounted] = React.useState(false)
 
-  const currentTheme = theme === "system" ? resolvedTheme : theme;
-  const nextTheme = currentTheme === "dark" ? "light" : "dark";
+    React.useEffect(() => {
+        setMounted(true)
+    }, [])
 
-  return (
-    <button
-      type="button"
-      className="rounded-md border px-3 py-2 text-sm"
-      onClick={() => setTheme(nextTheme ?? "light")}
-    >
-      {label}: {currentTheme}
-    </button>
-  );
+    if (!mounted) {
+        return (
+            <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
+                <Monitor className="h-4 w-4" />
+            </Button>
+        )
+    }
+
+    const current = (theme as ThemeValue) || "system"
+    const currentIndex = themeOrder.indexOf(current)
+    const nextTheme = themeOrder[(currentIndex + 1) % themeOrder.length]
+    const Icon = themeIcons[current]
+
+    const handleToggle = () => {
+        setTheme(nextTheme)
+        // Fire-and-forget persist to backend
+        updateTheme(nextTheme).catch(() => {
+            // Silent fail — theme is already applied locally via next-themes
+        })
+    }
+
+    const btn = (
+        <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 transition-colors"
+            onClick={handleToggle}
+            aria-label={tooltip || "Toggle theme"}
+        >
+            <Icon className="h-4 w-4 transition-transform duration-200" />
+        </Button>
+    )
+
+    if (tooltip) {
+        return (
+            <Tooltip>
+                <TooltipTrigger asChild>{btn}</TooltipTrigger>
+                <TooltipContent side="right" sideOffset={8}>
+                    <p>{tooltip}</p>
+                </TooltipContent>
+            </Tooltip>
+        )
+    }
+
+    return btn
 }

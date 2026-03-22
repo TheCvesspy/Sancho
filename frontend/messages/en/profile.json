@@ -13,6 +13,8 @@
     "bio": "Bio",
     "language": "Language",
     "theme": "Theme",
+    "appearance": "Appearance",
+    "appearanceDescription": "Choose how Sancho looks for you.",
     "themeLight": "Light",
     "themeDark": "Dark",
     "themeSystem": "System (auto)",

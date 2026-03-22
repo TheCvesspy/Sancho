@@ -16,6 +16,7 @@ import {
 import { Calendar, Users, Fingerprint, BookOpen, Truck, ShieldAlert, BadgeDollarSign, MessageSquare, type LucideIcon } from "lucide-react"
 import { UserButton } from "@/components/user-button"
 import { EventPicker } from "@/components/event-picker"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { useActiveEvent } from "@/components/active-event-context"
 import { useLocale, useTranslations } from "next-intl"
 
@@ -78,7 +79,12 @@ export function AppSidebar({ isSystemAdmin = false }: { isSystemAdmin?: boolean 
             <SidebarFooter className="p-4 border-t">
                 <EventPicker />
                 <SidebarSeparator className="my-1" />
-                <UserButton />
+                <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                        <UserButton />
+                    </div>
+                    <ThemeToggle tooltip={t("sidebar.themeToggle")} />
+                </div>
             </SidebarFooter>
         </Sidebar>
     )

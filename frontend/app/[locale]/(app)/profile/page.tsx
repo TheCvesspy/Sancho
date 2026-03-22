@@ -6,6 +6,7 @@ import { RolesOverview } from "@/components/user-profile/roles-overview"
 import { AccountInfoCard } from "@/components/user-profile/account-info-card"
 import { ContentSummary } from "@/components/user-profile/content-summary"
 import { DangerZone } from "@/components/user-profile/danger-zone"
+import { ThemeSelectorCard } from "@/components/user-profile/theme-selector-card"
 import { Separator } from "@/components/ui/separator"
 
 import { API_BASE_URL } from "@/lib/api-config"
@@ -89,8 +90,13 @@ export default async function ProfilePage({ params }: { params: Promise<{ locale
                                 displayName: profileData.displayName || "",
                                 bio: profileData.bio || "",
                                 locale: profileData.locale || locale,
-                                theme: profileData.theme || "system"
                             }} />
+                        </section>
+
+                        <section className="space-y-4">
+                            <h2 className="text-xl font-semibold">{t("appearance")}</h2>
+                            <Separator />
+                            <ThemeSelectorCard initialTheme={profileData.theme || "system"} />
                         </section>
 
                         <section className="space-y-4">

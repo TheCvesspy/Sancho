@@ -13,6 +13,8 @@
     "bio": "Bio",
     "language": "Jazyk",
     "theme": "Vzhled",
+    "appearance": "Vzhled",
+    "appearanceDescription": "Vyberte si, jak bude Sancho vypadat.",
     "themeLight": "Světlý",
     "themeDark": "Tmavý",
     "themeSystem": "Systémový (auto)",

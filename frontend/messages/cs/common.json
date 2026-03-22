@@ -38,6 +38,7 @@
     "npcOrg": "NPC a organizační tým",
     "finance": "Finance",
     "communications": "Komunikace",
+    "themeToggle": "Přepnout vzhled",
     "eventPicker": {
       "label": "Aktivní událost",
       "placeholder": "Vyberte událost...",

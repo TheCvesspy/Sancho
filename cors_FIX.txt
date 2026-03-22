@@ -1,0 +1,48 @@
+# ─── Variables ───
+$PROJECT_ID = "sancho-488710"
+$REGION = "us-central1"
+$REGISTRY = "$REGION-docker.pkg.dev/$PROJECT_ID/sancho"
+$SUPABASE_URL = "https://nskvesjqksuotmflalim.supabase.co"
+$SUPABASE_ANON_KEY = "sb_publishable_Y5ktNVAWxe8R_33bKqnn3A_Q8luiWB0"
+$FRONTEND_URL = "https://sancho.weavers.cz"
+
+# ─── 1. Update backend CORS to allow your new domain ───
+gcloud run services update sancho-api `
+    --project=$PROJECT_ID `
+    --region=$REGION `
+    --update-env-vars="Cors__AllowedOrigins=$FRONTEND_URL" `
+    --quiet
+
+# ─── 2. Get backend URL ───
+$BACKEND_URL = gcloud run services describe sancho-api --project=$PROJECT_ID --region=$REGION --format="value(status.url)"
+Write-Host "Backend: $BACKEND_URL"
+
+# ─── 3. Rebuild frontend with correct backend URL baked in ───
+cd D:\Sancho
+docker build `
+    --build-arg NEXT_PUBLIC_SUPABASE_URL="$SUPABASE_URL" `
+    --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY" `
+    --build-arg NEXT_PUBLIC_API_URL="$BACKEND_URL" `
+    -t "$REGISTRY/sancho-frontend:latest" `
+    ./frontend
+
+# ─── 4. Push & redeploy frontend ───
+docker push "$REGISTRY/sancho-frontend:latest"
+
+gcloud run deploy sancho-frontend `
+    --image="$REGISTRY/sancho-frontend:latest" `
+    --project=$PROJECT_ID `
+    --region=$REGION `
+    --platform=managed `
+    --allow-unauthenticated `
+    --port=8080 `
+    --memory=256Mi `
+    --cpu=1 `
+    --min-instances=0 `
+    --max-instances=1 `
+    --set-env-vars="HOSTNAME=0.0.0.0" `
+    --quiet
+
+# ─── Done ───
+Write-Host "Frontend: $FRONTEND_URL"
+Write-Host "Backend:  $BACKEND_URL"
